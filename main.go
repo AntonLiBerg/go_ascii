@@ -3,27 +3,19 @@ package main
 import (
 	"os"
 	"strings"
+	"go_ascii/aiAPI"
 )
 
 func main() {
-	res, err := os.ReadFile("./scenarios/demo/map.txt")
-	if err != nil {
-		panic(err)
-	}
-	world := World{}
+	world := NewWorld()
+	ai := aiapi.New()
+	aMap,aEnt := ai.GetAsciiMapAndEntitiesFromFile("./scenarios/demo/map.txt")
 
-	content := string(res)
-	splitContent := strings.Split(content, "===")
-	scMap := []rune(mastrings.Split(splitContent[1], "MAP")[1])
-	scEntities := []rune(strings.Split(splitContent[2], "ENTITY")[1])
-
-	rowNum := 0
-	for i := 0; i < len(scMap); i++ {
+	for pos,ch := range aMap{
 		world.AddEntity()
-		eId := world.nextEnt - 1
-		world.Ascii[eId] = cAscii{Ascii: scMap[i]}
-		world.Pos[eId] = cPosition{X:}
+		world.Pos
 	}
+
 }
 
 type World struct {
@@ -33,6 +25,14 @@ type World struct {
 	Ascii    map[int]cAscii
 }
 
+func NewWorld() World {
+	return World{
+		nextEnt:0
+		Entities: []int{},
+		Pos:      map[int]cPosition{},
+		Ascii:    map[int]cAscii{},
+	}
+}
 func (w *World) AddEntity() {
 	w.Entities = append(w.Entities, w.nextEnt)
 	w.nextEnt++
