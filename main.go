@@ -40,14 +40,14 @@ func main() {
 	ticker := time.NewTicker(time.Second / 30)
 
 	services := []serv.IService{}
-	services = append(services, serv.ServiceDrawOnTerminal{})
-
+	changes := []func(*wrld.World){}
 	for {
 		select {
 		case key := <-keys:
 			world.ClearUserInput()
 			world.SetKeyDown(key)
 		case <-ticker.C:
+
 			for _, service := range services {
 				_ = service.Update(&world)
 			}
