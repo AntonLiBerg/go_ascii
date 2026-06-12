@@ -1,4 +1,4 @@
-====MAP
+===MAP
 ###########
 #.........#
 #....o....#
@@ -6,7 +6,13 @@
 ...........
 ...........
 ...........
-====ENTITY
-.=floor
-o=player
-#=wall
+===ENTITY
+floor
+- pos
+- ascii:.
+player
+- pos
+- ascii:o
+wall
+- pos
+- ascii=#

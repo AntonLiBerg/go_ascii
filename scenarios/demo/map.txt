@@ -7,6 +7,12 @@
 ...........
 ...........
 ===ENTITY
-.=floor
-o=player
-#=wall
+floor
+- pos
+- ascii:.
+player
+- pos
+- ascii:o
+wall
+- pos
+- ascii=#

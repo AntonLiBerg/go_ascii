@@ -1,6 +1,7 @@
 package aiapi
 
 import (
+	cmp "go_ascii/component"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,7 +10,7 @@ import (
 func TestGetAsciiMapFromMapFileContent(t *testing.T) {
 	api := AiAPI{}
 
-	asciiMap := api.GetAsciiMap("===MAP\nab\ncd\n===ENTITY\na=first")
+	asciiMap := api.GetAsciiMap("===MAP\nab\ncd\n===ENTITY\nfirst\n- ascii:a")
 
 	if len(asciiMap) != 4 {
 		t.Fatalf("expected 4 map runes, got %d", len(asciiMap))
@@ -45,13 +46,13 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	api := AiAPI{}
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
-	mapFile := "====MAP\n#.\no#\n====ENTITY\n.=floor\no=player\n#=wall\n"
+	mapFile := "====MAP\n#.\no#\n====ENTITY\nfloor\n- pos\n- ascii:.\n- tags: walkable, visible\nplayer\n- pos\n- ascii:o\nwall\n- pos\n- ascii=#\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
 	}
 
-	asciiMap, entities := api.GetAsciiMapAndEntitiesFromFile(mapPath)
+	asciiMap, entities, components := api.GetAsciiMapAndEntitiesFromFile(mapPath)
 
 	if len(asciiMap) != 4 {
 		t.Fatalf("expected 4 map runes, got %d", len(asciiMap))
@@ -66,13 +67,47 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	if len(entities) != 3 {
 		t.Fatalf("expected 3 entities, got %d", len(entities))
 	}
-	if got := entities["floor"]; got != '.' {
-		t.Fatalf("expected floor rune '.', got %q", got)
+	if got := entities['.']; got != "floor" {
+		t.Fatalf("expected rune '.' to be floor, got %q", got)
 	}
-	if got := entities["player"]; got != 'o' {
-		t.Fatalf("expected player rune 'o', got %q", got)
+	if got := entities['o']; got != "player" {
+		t.Fatalf("expected rune 'o' to be player, got %q", got)
 	}
-	if got := entities["wall"]; got != '#' {
-		t.Fatalf("expected wall rune '#', got %q", got)
+	if got := entities['#']; got != "wall" {
+		t.Fatalf("expected rune '#' to be wall, got %q", got)
+	}
+
+	if len(components) != 3 {
+		t.Fatalf("expected 3 component entries, got %d", len(components))
+	}
+	assertComponentValues(t, components, "floor", cmp.C_POS)
+	assertComponentValues(t, components, "floor", cmp.C_ASCII, ".")
+	assertComponentValues(t, components, "floor", cmp.ComponentName("tags"), "walkable", "visible")
+	assertComponentValues(t, components, "player", cmp.C_POS)
+	assertComponentValues(t, components, "player", cmp.C_ASCII, "o")
+	assertComponentValues(t, components, "wall", cmp.C_POS)
+	assertComponentValues(t, components, "wall", cmp.C_ASCII, "#")
+}
+
+func assertComponentValues(t *testing.T, components map[string]map[cmp.ComponentName][]string, entity string, component cmp.ComponentName, want ...string) {
+	t.Helper()
+
+	componentsForEntity, ok := components[entity]
+	if !ok {
+		t.Fatalf("expected components for entity %q", entity)
+	}
+
+	got, ok := componentsForEntity[component]
+	if !ok {
+		t.Fatalf("expected component %q for entity %q", component, entity)
+	}
+
+	if len(got) != len(want) {
+		t.Fatalf("expected %s.%s values %v, got %v", entity, component, want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expected %s.%s values %v, got %v", entity, component, want, got)
+		}
 	}
 }
