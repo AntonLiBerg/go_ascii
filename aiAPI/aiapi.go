@@ -29,29 +29,31 @@ func UpdateTerminal(world wrld.World) {
 }
 
 const (
-	SectionNameEntity  string = "ENTITY"
-	SectionNameMap     string = "MAP"
-	SectionNameDivider string = "="
+	SectionNameEntity           string = "ENTITY"
+	SectionNameMap              string = "MAP"
+	SectionNameUserInputProfile string = "USERINPUTPROFILE"
+	SectionNameDivider          string = "="
 )
 
 func GetAsciiMap(mapText string) map[[2]int]rune {
-	asciiMap, _, _, _ := parseMapFileContent(mapText)
+	asciiMap, _, _, _, _ := parseMapFileContent(mapText)
 	return asciiMap
 }
 
-func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]string, map[string]map[cmp.ComponentName][]string, error) {
+func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]string, map[string]map[cmp.ComponentName][]string, map[string]string, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	return parseMapFileContent(string(content))
 }
 
-func parseMapFileContent(text string) (map[[2]int]rune, map[rune]string, map[string]map[cmp.ComponentName][]string, error) {
+func parseMapFileContent(text string) (map[[2]int]rune, map[rune]string, map[string]map[cmp.ComponentName][]string, map[string]string, error) {
 	asciiMap := make(map[[2]int]rune)
 	entities := make(map[rune]string)
 	components := make(map[string]map[cmp.ComponentName][]string)
+	userInputProfile := make(map[string]string)
 
 	mapText := strings.Trim(extractMapSection(text), "\r\n")
 	if mapText != "" {
@@ -91,7 +93,15 @@ func parseMapFileContent(text string) (map[[2]int]rune, map[rune]string, map[str
 		currentEntity = name
 	}
 
-	return asciiMap, entities, components, nil
+	userInputProfileText := strings.Trim(extractUserInputProfileSection(text), "\r\n")
+	for _, line := range strings.Split(normalizeLineEndings(userInputProfileText), "\n") {
+		action, button, ok := parseUserInputProfileLine(line)
+		if ok {
+			userInputProfile[action] = button
+		}
+	}
+
+	return asciiMap, entities, components, userInputProfile, nil
 }
 
 func addAsciiEntities(entities map[rune]string, entityName string, values []string) {
@@ -148,6 +158,26 @@ func parseComponentValues(text string) []string {
 	return values
 }
 
+func parseUserInputProfileLine(line string) (string, string, bool) {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return "", "", false
+	}
+
+	separator := strings.IndexAny(line, ":=")
+	if separator == -1 {
+		return "", "", false
+	}
+
+	action := strings.TrimSpace(line[:separator])
+	button := strings.TrimSpace(line[separator+1:])
+	if action == "" || button == "" {
+		return "", "", false
+	}
+
+	return action, button, true
+}
+
 func extractMapSection(text string) string {
 	text = normalizeLineEndings(text)
 	lines := strings.Split(text, "\n")
@@ -165,7 +195,7 @@ func extractMapSection(text string) string {
 
 	end := len(lines)
 	for i := start; i < len(lines); i++ {
-		if isSectionLine(lines[i], SectionNameEntity) {
+		if isAnySectionLine(lines[i]) {
 			end = i
 			break
 		}
@@ -189,13 +219,53 @@ func extractEntitySection(text string) string {
 		return ""
 	}
 
-	return strings.Join(lines[start:], "\n")
+	end := len(lines)
+	for i := start; i < len(lines); i++ {
+		if isAnySectionLine(lines[i]) {
+			end = i
+			break
+		}
+	}
+
+	return strings.Join(lines[start:end], "\n")
+}
+
+func extractUserInputProfileSection(text string) string {
+	text = normalizeLineEndings(text)
+	lines := strings.Split(text, "\n")
+
+	start := -1
+	for i, line := range lines {
+		if isSectionLine(line, SectionNameUserInputProfile) {
+			start = i + 1
+			break
+		}
+	}
+	if start == -1 {
+		return ""
+	}
+
+	end := len(lines)
+	for i := start; i < len(lines); i++ {
+		if isAnySectionLine(lines[i]) {
+			end = i
+			break
+		}
+	}
+
+	return strings.Join(lines[start:end], "\n")
 }
 
 func isSectionLine(line string, name string) bool {
 	line = strings.TrimSpace(line)
 	line = strings.TrimLeft(line, SectionNameDivider)
 	return line == name
+}
+
+func isAnySectionLine(line string) bool {
+	return isSectionLine(line, SectionNameMap) ||
+		isSectionLine(line, SectionNameEntity) ||
+		isSectionLine(line, SectionNameUserInputProfile)
 }
 
 func normalizeLineEndings(text string) string {

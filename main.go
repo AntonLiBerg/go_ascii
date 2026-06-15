@@ -22,7 +22,7 @@ func main() {
 }
 
 func runDemo() {
-	aMap, entities, components, err := ai.GetAsciiMapAndEntitiesFromFile("./scenarios/demo/map.txt")
+	aMap, entities, components, userInputProfileMap, err := ai.GetAsciiMapAndEntitiesFromFile("./scenarios/demo/map.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -30,7 +30,7 @@ func runDemo() {
 	if err != nil {
 		panic(err)
 	}
-	world.UserInputProfile.KeyQuitGame = "q"
+	world.UserInputProfile.KeyQuitGame = userInputProfileMap["quitgame"]
 
 	services := []serv.IService{
 		&serv.ServiceDrawOnTerminal{},

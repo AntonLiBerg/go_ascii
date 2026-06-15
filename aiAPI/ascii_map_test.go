@@ -43,13 +43,13 @@ func TestGetAsciiMapFromRawMapText(t *testing.T) {
 func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
-	mapFile := "====MAP\n#.\no#\n====ENTITY\nfloor\n- pos\n- ascii:.\n- tags: walkable, visible\nplayer\n- pos\n- ascii:o\nwall\n- pos\n- ascii=#\n"
+	mapFile := "====MAP\n#.\no#\n====ENTITY\nfloor\n- pos\n- ascii:.\n- tags: walkable, visible\nplayer\n- pos\n- ascii:o\nwall\n- pos\n- ascii=#\n====USERINPUTPROFILE\nquitgame=q\nmoveleft:a\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
 	}
 
-	asciiMap, entities, components, err := GetAsciiMapAndEntitiesFromFile(mapPath)
+	asciiMap, entities, components, userInputProfileMap, err := GetAsciiMapAndEntitiesFromFile(mapPath)
 	if err != nil {
 		t.Fatalf("GetAsciiMapAndEntitiesFromFile returned error: %v", err)
 	}
@@ -87,10 +87,20 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	assertComponentValues(t, components, "player", cmp.C_ASCII, "o")
 	assertComponentValues(t, components, "wall", cmp.C_POS)
 	assertComponentValues(t, components, "wall", cmp.C_ASCII, "#")
+
+	if len(userInputProfileMap) != 2 {
+		t.Fatalf("expected 2 user input profile entries, got %d", len(userInputProfileMap))
+	}
+	if got := userInputProfileMap["quitgame"]; got != "q" {
+		t.Fatalf("expected quitgame button to be q, got %q", got)
+	}
+	if got := userInputProfileMap["moveleft"]; got != "a" {
+		t.Fatalf("expected moveleft button to be a, got %q", got)
+	}
 }
 
 func TestGetAsciiMapAndEntitiesFromFileReturnsError(t *testing.T) {
-	asciiMap, entities, components, err := GetAsciiMapAndEntitiesFromFile(filepath.Join(t.TempDir(), "missing.txt"))
+	asciiMap, entities, components, userInputProfileMap, err := GetAsciiMapAndEntitiesFromFile(filepath.Join(t.TempDir(), "missing.txt"))
 
 	if err == nil {
 		t.Fatal("expected error for missing map file")
@@ -103,6 +113,9 @@ func TestGetAsciiMapAndEntitiesFromFileReturnsError(t *testing.T) {
 	}
 	if components != nil {
 		t.Fatalf("expected nil components on error, got %v", components)
+	}
+	if userInputProfileMap != nil {
+		t.Fatalf("expected nil userInputProfileMap on error, got %v", userInputProfileMap)
 	}
 }
 

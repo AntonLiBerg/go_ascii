@@ -16,3 +16,5 @@ player
 wall
 - pos
 - ascii=#
+===USERINPUTPROFILE
+quitgame=q
