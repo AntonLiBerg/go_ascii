@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	serv "go_ascii/service"
+	usr "go_ascii/user"
 	wrld "go_ascii/world"
 	"sort"
 	"time"
@@ -24,7 +25,7 @@ func RunGame(world wrld.World, services []serv.IService, keyInput <-chan string)
 	updateFuncs := make(chan serv.UpdateFuncResult, len(services))
 
 	for {
-		if world.StateUser == wrld.S_quit {
+		if world.StateUser == usr.S_quit {
 			return nil
 		}
 		switch state {

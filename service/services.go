@@ -21,7 +21,6 @@ func (s *ServiceDrawOnTerminal) GetUpdateFunc(w wrld.World) UpdateFuncResult {
 	return UpdateFuncResult{
 		Order: 100,
 		UpdateFunc: func(w *wrld.World) {
-
 			ai.UpdateTerminal(*w)
 		},
 	}
