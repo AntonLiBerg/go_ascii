@@ -22,7 +22,29 @@ func NewWorld() World {
 		Ascii:     map[int]cmp.Ascii{},
 	}
 }
+func (w *World) Clone() World {
+	clone := World{
+		userInput: make(map[string]bool, len(w.userInput)),
+		nextEnt:   w.nextEnt,
+		Entities:  append([]int(nil), w.Entities...),
+		Pos:       make(map[int]cmp.Position, len(w.Pos)),
+		Ascii:     make(map[int]cmp.Ascii, len(w.Ascii)),
+	}
 
+	for key, value := range w.userInput {
+		clone.userInput[key] = value
+	}
+
+	for id, pos := range w.Pos {
+		clone.Pos[id] = pos
+	}
+
+	for id, ascii := range w.Ascii {
+		clone.Ascii[id] = ascii
+	}
+
+	return clone
+}
 func (w *World) ClearUserInput() {
 	clear(w.userInput)
 }
