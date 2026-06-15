@@ -18,6 +18,10 @@ func main() {
 	}
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
 
+	runDemo()
+}
+
+func runDemo() {
 	aMap, entities, components, err := ai.GetAsciiMapAndEntitiesFromFile("./scenarios/demo/map.txt")
 	if err != nil {
 		panic(err)
@@ -26,8 +30,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	world.UserInputProfile.KeyQuitGame = "q"
 
-	services := []serv.IService{}
+	services := []serv.IService{
+		&serv.ServiceDrawOnTerminal{},
+		&serv.ServiceQuitGame{},
+	}
 	keys := make(chan string)
 	go func() {
 		for {
@@ -36,6 +44,5 @@ func main() {
 			keys <- string(key[:])
 		}
 	}()
-
 	gme.RunGame(world, services, keys)
 }

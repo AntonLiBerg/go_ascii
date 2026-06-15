@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	serv "go_ascii/service"
 	wrld "go_ascii/world"
 	"sort"
@@ -13,13 +14,19 @@ const (
 	s_applyingChanges
 )
 
-func RunGame(world wrld.World, services []serv.IService, keyInput <-chan string) {
+func RunGame(world wrld.World, services []serv.IService, keyInput <-chan string) error {
+	if len(services) == 0 {
+		return fmt.Errorf("Services is empty")
+	}
 	state := s_readyToGetUpdateFunctions
 	ticker := time.NewTicker(time.Second / 30)
 	results := make([]serv.UpdateFuncResult, 0, len(services))
 	updateFuncs := make(chan serv.UpdateFuncResult, len(services))
 
 	for {
+		if world.StateUser == wrld.S_quit {
+			return nil
+		}
 		switch state {
 		case s_readyToGetUpdateFunctions:
 			select {
