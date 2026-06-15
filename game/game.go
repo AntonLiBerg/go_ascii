@@ -7,12 +7,13 @@ import (
 	"time"
 )
 
+const (
+	s_readyToGetUpdateFunctions = iota
+	s_gettingUpdateFunctions
+	s_applyingChanges
+)
+
 func RunGame(world wrld.World, services []serv.IService, keyInput <-chan string) {
-	const (
-		s_readyToGetUpdateFunctions = iota
-		s_gettingUpdateFunctions
-		s_applyingChanges
-	)
 	state := s_readyToGetUpdateFunctions
 	ticker := time.NewTicker(time.Second / 30)
 	results := make([]serv.UpdateFuncResult, 0, len(services))
