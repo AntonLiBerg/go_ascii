@@ -8,9 +8,8 @@ import (
 )
 
 func TestGetAsciiMapFromMapFileContent(t *testing.T) {
-	api := AiAPI{}
 
-	asciiMap := api.GetAsciiMap("===MAP\nab\ncd\n===ENTITY\nfirst\n- ascii:a")
+	asciiMap := GetAsciiMap("===MAP\nab\ncd\n===ENTITY\nfirst\n- ascii:a")
 
 	if len(asciiMap) != 4 {
 		t.Fatalf("expected 4 map runes, got %d", len(asciiMap))
@@ -30,9 +29,8 @@ func TestGetAsciiMapFromMapFileContent(t *testing.T) {
 }
 
 func TestGetAsciiMapFromRawMapText(t *testing.T) {
-	api := AiAPI{}
 
-	asciiMap := api.GetAsciiMap("å.\n#o")
+	asciiMap := GetAsciiMap("å.\n#o")
 
 	if got := asciiMap[[2]int{0, 0}]; got != 'å' {
 		t.Fatalf("expected coordinate 0,0 to be 'å', got %q", got)
@@ -43,7 +41,6 @@ func TestGetAsciiMapFromRawMapText(t *testing.T) {
 }
 
 func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
-	api := AiAPI{}
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
 	mapFile := "====MAP\n#.\no#\n====ENTITY\nfloor\n- pos\n- ascii:.\n- tags: walkable, visible\nplayer\n- pos\n- ascii:o\nwall\n- pos\n- ascii=#\n"
@@ -52,7 +49,10 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 		t.Fatalf("write temp map file: %v", err)
 	}
 
-	asciiMap, entities, components := api.GetAsciiMapAndEntitiesFromFile(mapPath)
+	asciiMap, entities, components, err := GetAsciiMapAndEntitiesFromFile(mapPath)
+	if err != nil {
+		t.Fatalf("GetAsciiMapAndEntitiesFromFile returned error: %v", err)
+	}
 
 	if len(asciiMap) != 4 {
 		t.Fatalf("expected 4 map runes, got %d", len(asciiMap))
@@ -87,6 +87,23 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	assertComponentValues(t, components, "player", cmp.C_ASCII, "o")
 	assertComponentValues(t, components, "wall", cmp.C_POS)
 	assertComponentValues(t, components, "wall", cmp.C_ASCII, "#")
+}
+
+func TestGetAsciiMapAndEntitiesFromFileReturnsError(t *testing.T) {
+	asciiMap, entities, components, err := GetAsciiMapAndEntitiesFromFile(filepath.Join(t.TempDir(), "missing.txt"))
+
+	if err == nil {
+		t.Fatal("expected error for missing map file")
+	}
+	if asciiMap != nil {
+		t.Fatalf("expected nil asciiMap on error, got %v", asciiMap)
+	}
+	if entities != nil {
+		t.Fatalf("expected nil entities on error, got %v", entities)
+	}
+	if components != nil {
+		t.Fatalf("expected nil components on error, got %v", components)
+	}
 }
 
 func assertComponentValues(t *testing.T, components map[string]map[cmp.ComponentName][]string, entity string, component cmp.ComponentName, want ...string) {

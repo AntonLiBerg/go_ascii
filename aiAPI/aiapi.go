@@ -8,17 +8,6 @@ import (
 	"strings"
 )
 
-// AiAPI groups pure helper methods for the go_ascii module.
-//
-// Keep methods on this type deterministic and side-effect free: no I/O, no
-// hidden global state, and no mutation of receiver state.
-type AiAPI struct{}
-
-// New returns an AiAPI value for calling pure helper methods.
-func New() AiAPI {
-	return AiAPI{}
-}
-
 func UpdateTerminal(world wrld.World) {
 	fmt.Print("\033[2J\033[H")
 
@@ -45,30 +34,21 @@ const (
 	SectionNameDivider string = "="
 )
 
-// GetAsciiMap returns every rune in mapText keyed by its zero-based x,y coordinate.
-//
-// mapText may be either raw map rows or the full map.txt content with MAP and
-// ENTITY sections.
-func (api AiAPI) GetAsciiMap(mapText string) map[[2]int]rune {
-	asciiMap, _, _ := parseMapFileContent(mapText)
+func GetAsciiMap(mapText string) map[[2]int]rune {
+	asciiMap, _, _, _ := parseMapFileContent(mapText)
 	return asciiMap
 }
 
-// GetAsciiMapAndEntitiesFromFile reads a map.txt-style file and returns the map
-// runes keyed by zero-based col,row, the entity names keyed by their rune, and
-// the components keyed to each entity name and component name.
-//
-// If filePath cannot be read, all returned maps are nil.
-func (api AiAPI) GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]string, map[string]map[cmp.ComponentName][]string) {
+func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]string, map[string]map[cmp.ComponentName][]string, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, nil, err
 	}
 
 	return parseMapFileContent(string(content))
 }
 
-func parseMapFileContent(text string) (map[[2]int]rune, map[rune]string, map[string]map[cmp.ComponentName][]string) {
+func parseMapFileContent(text string) (map[[2]int]rune, map[rune]string, map[string]map[cmp.ComponentName][]string, error) {
 	asciiMap := make(map[[2]int]rune)
 	entities := make(map[rune]string)
 	components := make(map[string]map[cmp.ComponentName][]string)
@@ -111,7 +91,7 @@ func parseMapFileContent(text string) (map[[2]int]rune, map[rune]string, map[str
 		currentEntity = name
 	}
 
-	return asciiMap, entities, components
+	return asciiMap, entities, components, nil
 }
 
 func addAsciiEntities(entities map[rune]string, entityName string, values []string) {

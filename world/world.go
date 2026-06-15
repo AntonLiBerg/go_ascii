@@ -13,7 +13,7 @@ type World struct {
 	Ascii     map[int]cmp.Ascii
 }
 
-func NewWorld() World {
+func NewWorldEmpty() World {
 	return World{
 		userInput: map[string]bool{},
 		nextEnt:   0,
@@ -21,6 +21,18 @@ func NewWorld() World {
 		Pos:       map[int]cmp.Position{},
 		Ascii:     map[int]cmp.Ascii{},
 	}
+}
+func NewWorld(aMap map[[2]int]rune, entities map[rune]string, components map[string]map[cmp.ComponentName][]string) (World, error) {
+	world := NewWorldEmpty()
+	for pos, ch := range aMap {
+		eName := entities[ch]
+		eComps := components[eName]
+		err := world.AddEntity(pos, eComps)
+		if err != nil {
+			return world, err
+		}
+	}
+	return world, nil
 }
 func (w *World) Clone() World {
 	clone := World{
