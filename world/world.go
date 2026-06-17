@@ -14,6 +14,7 @@ type World struct {
 	Entities         []int
 	Pos              map[int]cmp.Position
 	Ascii            map[int]cmp.Ascii
+	Impassable       map[int]cmp.Impassable
 	Tags             map[int]cmp.Tags
 	EByTag           map[cmp.Tag]map[int]bool
 	EByPos           map[cmp.Position]int
@@ -28,6 +29,7 @@ func NewWorldEmpty() World {
 		Entities:         []int{},
 		Pos:              map[int]cmp.Position{},
 		Ascii:            map[int]cmp.Ascii{},
+		Impassable:       map[int]cmp.Impassable{},
 		Tags:             map[int]cmp.Tags{},
 		EByTag:           map[cmp.Tag]map[int]bool{},
 		EByPos:           map[cmp.Position]int{},
@@ -54,6 +56,7 @@ func (w *World) Clone() World {
 		Entities:         append([]int(nil), w.Entities...),
 		Pos:              make(map[int]cmp.Position, len(w.Pos)),
 		Ascii:            make(map[int]cmp.Ascii, len(w.Ascii)),
+		Impassable:       make(map[int]cmp.Impassable, len(w.Impassable)),
 		Tags:             make(map[int]cmp.Tags, len(w.Tags)),
 		EByTag:           make(map[cmp.Tag]map[int]bool, len(w.EByTag)),
 		EByPos:           make(map[cmp.Position]int, len(w.Pos)),
@@ -70,6 +73,10 @@ func (w *World) Clone() World {
 
 	for id, ascii := range w.Ascii {
 		clone.Ascii[id] = ascii
+	}
+
+	for id, impassable := range w.Impassable {
+		clone.Impassable[id] = impassable
 	}
 
 	for id, tags := range w.Tags {
@@ -120,6 +127,8 @@ func (w *World) AddEntity(pos [2]int, compWithVals map[cmp.ComponentName][]strin
 				return fmt.Errorf("Required values are incorrect for %s", cmp.C_ASCII)
 			}
 			w.Ascii[eId] = cmp.Ascii{Ascii: []rune(vals[0])[0]}
+		case cmp.C_IMPASSABLE:
+			w.Impassable[eId] = cmp.Impassable{}
 		case cmp.C_TAGS:
 			tags := cmp.Tags{Vals: make(map[cmp.Tag]bool, len(vals))}
 			for _, value := range vals {

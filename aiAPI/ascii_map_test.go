@@ -54,7 +54,7 @@ func TestGetAsciiMapHandlesWindowsLineEndings(t *testing.T) {
 func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
-	mapFile := "====MAP\n#.\no#\n====ENTITY\nfloor\n- pos\n- ascii:.\n- tags: walkable, visible\nplayer\n- pos\n- ascii:o\nwall\n- pos\n- ascii=#\n====USERINPUTPROFILE\nquitgame=q\nmoveleft:a\n"
+	mapFile := "====MAP\n#.\no#\n====ENTITY\nfloor\n- pos\n- ascii:.\n- tags: walkable, visible\nplayer\n- pos\n- ascii:o\nwall\n- pos\n- ascii=#\n- impassable\n====USERINPUTPROFILE\nquitgame=q\nmoveleft:a\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
@@ -98,6 +98,7 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	assertComponentValues(t, components, "player", cmp.C_ASCII, "o")
 	assertComponentValues(t, components, "wall", cmp.C_POS)
 	assertComponentValues(t, components, "wall", cmp.C_ASCII, "#")
+	assertComponentValues(t, components, "wall", cmp.C_IMPASSABLE)
 
 	if len(userInputProfileMap) != 2 {
 		t.Fatalf("expected 2 user input profile entries, got %d", len(userInputProfileMap))

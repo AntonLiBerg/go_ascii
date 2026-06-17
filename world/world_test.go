@@ -6,13 +6,14 @@ import (
 	"testing"
 )
 
-func TestAddEntityStoresTags(t *testing.T) {
+func TestAddEntityStoresComponents(t *testing.T) {
 	world := NewWorldEmpty()
 
 	err := world.AddEntity([2]int{2, 3}, map[cmp.ComponentName][]string{
-		cmp.C_POS:   {},
-		cmp.C_ASCII: {"o"},
-		cmp.C_TAGS:  {string(cmp.TAG_PLAYER), "visible"},
+		cmp.C_POS:        {},
+		cmp.C_ASCII:      {"o"},
+		cmp.C_IMPASSABLE: {},
+		cmp.C_TAGS:       {string(cmp.TAG_PLAYER), "visible"},
 	})
 	if err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
@@ -38,9 +39,12 @@ func TestAddEntityStoresTags(t *testing.T) {
 	if !ok || gotPosID != 0 {
 		t.Fatalf("expected reverse position index to map 2,3 to entity 0, got %d, exists=%t", gotPosID, ok)
 	}
+	if _, ok := world.Impassable[0]; !ok {
+		t.Fatal("expected entity 0 to have impassable component")
+	}
 }
 
-func TestCloneCopiesTags(t *testing.T) {
+func TestCloneCopiesComponents(t *testing.T) {
 	world := NewWorldEmpty()
 	world.UserInputProfile = usr.UserInputProfile{KeyQuitGame: "q", KeyMoveDown: "s"}
 	world.StateUser = usr.S_quit
@@ -49,6 +53,7 @@ func TestCloneCopiesTags(t *testing.T) {
 	world.NextEnt = 2
 	world.Pos[1] = cmp.Position{X: 4, Y: 5}
 	world.Ascii[1] = cmp.Ascii{Ascii: 'o'}
+	world.Impassable[1] = cmp.Impassable{}
 	world.Tags[1] = cmp.Tags{Vals: map[cmp.Tag]bool{cmp.TAG_PLAYER: true}}
 	world.EByTag[cmp.TAG_PLAYER] = map[int]bool{1: true}
 	world.EByPos[cmp.Position{X: 4, Y: 5}] = 1
@@ -71,6 +76,9 @@ func TestCloneCopiesTags(t *testing.T) {
 	if !ok || gotPosID != 1 {
 		t.Fatalf("expected cloned world to keep reverse position index, got %d, exists=%t", gotPosID, ok)
 	}
+	if _, ok := clone.Impassable[1]; !ok {
+		t.Fatal("expected cloned world to keep impassable component")
+	}
 
 	clone.Tags[1].Vals[cmp.Tag("new")] = true
 	if world.Tags[1].Vals[cmp.Tag("new")] {
@@ -83,5 +91,9 @@ func TestCloneCopiesTags(t *testing.T) {
 	clone.EByPos[cmp.Position{X: 1, Y: 1}] = 9
 	if _, ok := world.EByPos[cmp.Position{X: 1, Y: 1}]; ok {
 		t.Fatal("expected cloned reverse position index to be independent")
+	}
+	delete(clone.Impassable, 1)
+	if _, ok := world.Impassable[1]; !ok {
+		t.Fatal("expected cloned impassable map to be independent")
 	}
 }
