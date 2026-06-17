@@ -40,6 +40,17 @@ func TestGetAsciiMapFromRawMapText(t *testing.T) {
 	}
 }
 
+func TestGetAsciiMapHandlesWindowsLineEndings(t *testing.T) {
+	asciiMap := GetAsciiMap("===MAP\r\nab\r\ncd\r\n===ENTITY\r\nfirst\r\n- ascii:a")
+
+	if got := asciiMap[[2]int{0, 0}]; got != 'a' {
+		t.Fatalf("expected coordinate 0,0 to be 'a', got %q", got)
+	}
+	if got := asciiMap[[2]int{1, 1}]; got != 'd' {
+		t.Fatalf("expected coordinate 1,1 to be 'd', got %q", got)
+	}
+}
+
 func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
@@ -82,7 +93,7 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	}
 	assertComponentValues(t, components, "floor", cmp.C_POS)
 	assertComponentValues(t, components, "floor", cmp.C_ASCII, ".")
-	assertComponentValues(t, components, "floor", cmp.ComponentName("tags"), "walkable", "visible")
+	assertComponentValues(t, components, "floor", cmp.C_TAGS, "walkable", "visible")
 	assertComponentValues(t, components, "player", cmp.C_POS)
 	assertComponentValues(t, components, "player", cmp.C_ASCII, "o")
 	assertComponentValues(t, components, "wall", cmp.C_POS)

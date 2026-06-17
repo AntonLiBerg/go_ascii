@@ -36,7 +36,46 @@ const (
 )
 
 func GetAsciiMap(mapText string) map[[2]int]rune {
-	asciiMap, _, _, _, _ := parseMapFileContent(mapText)
+	asciiMap := make(map[[2]int]rune)
+	mapText = strings.ReplaceAll(mapText, "\r\n", "\n")
+	mapText = strings.ReplaceAll(mapText, "\r", "\n")
+	lines := strings.Split(mapText, "\n")
+
+	mapStart := -1
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
+		if trimmed == SectionNameMap {
+			mapStart = i + 1
+			break
+		}
+	}
+
+	mapEnd := len(lines)
+	if mapStart == -1 {
+		mapStart = 0
+	} else {
+		for i := mapStart; i < len(lines); i++ {
+			trimmed := strings.TrimSpace(lines[i])
+			trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
+			if trimmed == SectionNameMap || trimmed == SectionNameEntity || trimmed == SectionNameUserInputProfile {
+				mapEnd = i
+				break
+			}
+		}
+	}
+
+	mapSection := strings.Trim(strings.Join(lines[mapStart:mapEnd], "\n"), "\n")
+	if mapSection == "" {
+		return asciiMap
+	}
+
+	for y, line := range strings.Split(mapSection, "\n") {
+		for x, char := range []rune(line) {
+			asciiMap[[2]int{x, y}] = char
+		}
+	}
+
 	return asciiMap
 }
 
@@ -46,229 +85,157 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 		return nil, nil, nil, nil, err
 	}
 
-	return parseMapFileContent(string(content))
-}
-
-func parseMapFileContent(text string) (map[[2]int]rune, map[rune]string, map[string]map[cmp.ComponentName][]string, map[string]string, error) {
 	asciiMap := make(map[[2]int]rune)
 	entities := make(map[rune]string)
 	components := make(map[string]map[cmp.ComponentName][]string)
 	userInputProfile := make(map[string]string)
+	text := strings.ReplaceAll(string(content), "\r\n", "\n")
+	text = strings.ReplaceAll(text, "\r", "\n")
+	lines := strings.Split(text, "\n")
 
-	mapText := strings.Trim(extractMapSection(text), "\r\n")
-	if mapText != "" {
-		for y, line := range strings.Split(normalizeLineEndings(mapText), "\n") {
+	mapStart := -1
+	entityStart := -1
+	userInputStart := -1
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
+		switch trimmed {
+		case SectionNameMap:
+			if mapStart == -1 {
+				mapStart = i + 1
+			}
+		case SectionNameEntity:
+			if entityStart == -1 {
+				entityStart = i + 1
+			}
+		case SectionNameUserInputProfile:
+			if userInputStart == -1 {
+				userInputStart = i + 1
+			}
+		}
+	}
+
+	mapEnd := len(lines)
+	if mapStart == -1 {
+		mapStart = 0
+	} else {
+		for i := mapStart; i < len(lines); i++ {
+			trimmed := strings.TrimSpace(lines[i])
+			trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
+			if trimmed == SectionNameMap || trimmed == SectionNameEntity || trimmed == SectionNameUserInputProfile {
+				mapEnd = i
+				break
+			}
+		}
+	}
+
+	mapSection := strings.Trim(strings.Join(lines[mapStart:mapEnd], "\n"), "\n")
+	if mapSection != "" {
+		for y, line := range strings.Split(mapSection, "\n") {
 			for x, char := range []rune(line) {
 				asciiMap[[2]int{x, y}] = char
 			}
 		}
 	}
 
-	entityText := strings.Trim(extractEntitySection(text), "\r\n")
 	currentEntity := ""
-	for _, line := range strings.Split(normalizeLineEndings(entityText), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		if component, values, ok := parseEntityComponentLine(line); ok {
-			if currentEntity != "" {
-				components[currentEntity][component] = values
-				if component == cmp.C_ASCII {
-					addAsciiEntities(entities, currentEntity, values)
-				}
+	if entityStart != -1 {
+		entityEnd := len(lines)
+		for i := entityStart; i < len(lines); i++ {
+			trimmed := strings.TrimSpace(lines[i])
+			trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
+			if trimmed == SectionNameMap || trimmed == SectionNameEntity || trimmed == SectionNameUserInputProfile {
+				entityEnd = i
+				break
 			}
-			continue
 		}
 
-		name, ok := parseEntityLine(line)
-		if !ok {
-			continue
-		}
+		for _, line := range lines[entityStart:entityEnd] {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
 
-		if _, exists := components[name]; !exists {
-			components[name] = make(map[cmp.ComponentName][]string)
+			if strings.HasPrefix(line, "-") {
+				componentText := strings.TrimSpace(strings.TrimPrefix(line, "-"))
+				if componentText == "" {
+					continue
+				}
+
+				componentName := cmp.ComponentName(componentText)
+				values := []string{}
+				separator := strings.IndexAny(componentText, ":=")
+				if separator != -1 {
+					name := strings.TrimSpace(componentText[:separator])
+					if name == "" {
+						continue
+					}
+
+					componentName = cmp.ComponentName(name)
+					valueText := strings.TrimSpace(componentText[separator+1:])
+					if valueText != "" {
+						for _, value := range strings.Split(valueText, ",") {
+							value = strings.TrimSpace(value)
+							if value != "" {
+								values = append(values, value)
+							}
+						}
+					}
+				}
+
+				if currentEntity != "" {
+					components[currentEntity][componentName] = values
+					if componentName == cmp.C_ASCII {
+						for _, value := range values {
+							symbol := []rune(value)
+							if len(symbol) == 1 {
+								entities[symbol[0]] = currentEntity
+							}
+						}
+					}
+				}
+				continue
+			}
+
+			name := strings.TrimSpace(line)
+			if _, exists := components[name]; !exists {
+				components[name] = make(map[cmp.ComponentName][]string)
+			}
+			currentEntity = name
 		}
-		currentEntity = name
 	}
 
-	userInputProfileText := strings.Trim(extractUserInputProfileSection(text), "\r\n")
-	for _, line := range strings.Split(normalizeLineEndings(userInputProfileText), "\n") {
-		action, button, ok := parseUserInputProfileLine(line)
-		if ok {
+	if userInputStart != -1 {
+		userInputEnd := len(lines)
+		for i := userInputStart; i < len(lines); i++ {
+			trimmed := strings.TrimSpace(lines[i])
+			trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
+			if trimmed == SectionNameMap || trimmed == SectionNameEntity || trimmed == SectionNameUserInputProfile {
+				userInputEnd = i
+				break
+			}
+		}
+
+		for _, line := range lines[userInputStart:userInputEnd] {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+
+			separator := strings.IndexAny(line, ":=")
+			if separator == -1 {
+				continue
+			}
+
+			action := strings.TrimSpace(line[:separator])
+			button := strings.TrimSpace(line[separator+1:])
+			if action == "" || button == "" {
+				continue
+			}
+
 			userInputProfile[action] = button
 		}
 	}
 
 	return asciiMap, entities, components, userInputProfile, nil
-}
-
-func addAsciiEntities(entities map[rune]string, entityName string, values []string) {
-	for _, value := range values {
-		symbol := []rune(value)
-		if len(symbol) == 1 {
-			entities[symbol[0]] = entityName
-		}
-	}
-}
-
-func parseEntityLine(line string) (string, bool) {
-	name := strings.TrimSpace(line)
-	return name, name != ""
-}
-
-func parseEntityComponentLine(line string) (cmp.ComponentName, []string, bool) {
-	if !strings.HasPrefix(line, "-") {
-		return "", nil, false
-	}
-
-	component := strings.TrimSpace(strings.TrimPrefix(line, "-"))
-	if component == "" {
-		return "", nil, false
-	}
-
-	separator := strings.IndexAny(component, ":=")
-	if separator == -1 {
-		return cmp.ComponentName(component), []string{}, true
-	}
-
-	name := strings.TrimSpace(component[:separator])
-	if name == "" {
-		return "", nil, false
-	}
-
-	return cmp.ComponentName(name), parseComponentValues(component[separator+1:]), true
-}
-
-func parseComponentValues(text string) []string {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return []string{}
-	}
-
-	values := []string{}
-	for _, value := range strings.Split(text, ",") {
-		value = strings.TrimSpace(value)
-		if value != "" {
-			values = append(values, value)
-		}
-	}
-
-	return values
-}
-
-func parseUserInputProfileLine(line string) (string, string, bool) {
-	line = strings.TrimSpace(line)
-	if line == "" {
-		return "", "", false
-	}
-
-	separator := strings.IndexAny(line, ":=")
-	if separator == -1 {
-		return "", "", false
-	}
-
-	action := strings.TrimSpace(line[:separator])
-	button := strings.TrimSpace(line[separator+1:])
-	if action == "" || button == "" {
-		return "", "", false
-	}
-
-	return action, button, true
-}
-
-func extractMapSection(text string) string {
-	text = normalizeLineEndings(text)
-	lines := strings.Split(text, "\n")
-
-	start := -1
-	for i, line := range lines {
-		if isSectionLine(line, SectionNameMap) {
-			start = i + 1
-			break
-		}
-	}
-	if start == -1 {
-		return text
-	}
-
-	end := len(lines)
-	for i := start; i < len(lines); i++ {
-		if isAnySectionLine(lines[i]) {
-			end = i
-			break
-		}
-	}
-
-	return strings.Join(lines[start:end], "\n")
-}
-
-func extractEntitySection(text string) string {
-	text = normalizeLineEndings(text)
-	lines := strings.Split(text, "\n")
-
-	start := -1
-	for i, line := range lines {
-		if isSectionLine(line, SectionNameEntity) {
-			start = i + 1
-			break
-		}
-	}
-	if start == -1 {
-		return ""
-	}
-
-	end := len(lines)
-	for i := start; i < len(lines); i++ {
-		if isAnySectionLine(lines[i]) {
-			end = i
-			break
-		}
-	}
-
-	return strings.Join(lines[start:end], "\n")
-}
-
-func extractUserInputProfileSection(text string) string {
-	text = normalizeLineEndings(text)
-	lines := strings.Split(text, "\n")
-
-	start := -1
-	for i, line := range lines {
-		if isSectionLine(line, SectionNameUserInputProfile) {
-			start = i + 1
-			break
-		}
-	}
-	if start == -1 {
-		return ""
-	}
-
-	end := len(lines)
-	for i := start; i < len(lines); i++ {
-		if isAnySectionLine(lines[i]) {
-			end = i
-			break
-		}
-	}
-
-	return strings.Join(lines[start:end], "\n")
-}
-
-func isSectionLine(line string, name string) bool {
-	line = strings.TrimSpace(line)
-	line = strings.TrimLeft(line, SectionNameDivider)
-	return line == name
-}
-
-func isAnySectionLine(line string) bool {
-	return isSectionLine(line, SectionNameMap) ||
-		isSectionLine(line, SectionNameEntity) ||
-		isSectionLine(line, SectionNameUserInputProfile)
-}
-
-func normalizeLineEndings(text string) string {
-	text = strings.ReplaceAll(text, "\r\n", "\n")
-	return strings.ReplaceAll(text, "\r", "\n")
 }

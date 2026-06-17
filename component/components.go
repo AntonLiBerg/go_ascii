@@ -16,7 +16,7 @@ type Ascii struct {
 }
 type Tag string
 const(
-	TagPlayer Tag =  "player"
+	TAG_PLAYER Tag =  "player"
 )
 type Tags struct {
 	Vals map[Tag]bool
