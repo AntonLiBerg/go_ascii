@@ -2,9 +2,9 @@ package service
 
 import (
 	ai "go_ascii/aiAPI"
+	cmp "go_ascii/component"
 	usr "go_ascii/user"
 	wrld "go_ascii/world"
-	cmp "go_ascii/component"
 )
 
 type UpdateFuncResult struct {
@@ -28,6 +28,7 @@ func (s ServiceDrawOnTerminal) GetUpdateFunc(w wrld.World) UpdateFuncResult {
 }
 
 type ServiceQuitGame struct{}
+
 func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) UpdateFuncResult {
 	return UpdateFuncResult{
 		Order: 1,
@@ -40,42 +41,62 @@ func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) UpdateFuncResult {
 }
 
 type ServiceMovePlayer struct{}
-func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) UpdateFuncResult{
+
+func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) UpdateFuncResult {
+	moveDelta := cmp.Position{}
+	keyToClear := ""
+
+	switch {
+	case w.UserInput[w.UserInputProfile.KeyMoveUp]:
+		moveDelta = cmp.Position{Y: -1}
+		keyToClear = w.UserInputProfile.KeyMoveUp
+	case w.UserInput[w.UserInputProfile.KeyMoveLeft]:
+		moveDelta = cmp.Position{X: -1}
+		keyToClear = w.UserInputProfile.KeyMoveLeft
+	case w.UserInput[w.UserInputProfile.KeyMoveDown]:
+		moveDelta = cmp.Position{Y: 1}
+		keyToClear = w.UserInputProfile.KeyMoveDown
+	case w.UserInput[w.UserInputProfile.KeyMoveRight]:
+		moveDelta = cmp.Position{X: 1}
+		keyToClear = w.UserInputProfile.KeyMoveRight
+	default:
+		return UpdateFuncResult{Order: 1}
+	}
+
 	return UpdateFuncResult{
 		Order: 1,
-		UpdateFunc: func(w *wrld.World){
-			if w.UserInput[w.UserInputProfile.KeyMoveDown] {
-			//Always only 1 entity!
-				for k,_ := range w.EByTag[cmp.TAG_PLAYER]{
-					TryGoToPosition(*w,k,cmp.Position{X:0, Y:+1})
-				}
-				w.UserInput[w.UserInputProfile.KeyMoveDown] = false
+		UpdateFunc: func(w *wrld.World) {
+			for eID := range w.EByTag[cmp.TAG_PLAYER] {
+				tryGoToPosition(w, eID, moveDelta)
 			}
+			w.UserInput[keyToClear] = false
 		},
 	}
 }
-func TryGoToPosition(w wrld.World, eMover int, posDelta cmp.Position) bool{
 
-	moverPos := w.Pos[eMover]
-	moverPos.X += posDelta.X
-	moverPos.Y += posDelta.Y
-	if !CanMakeMove(w,eMover,moverPos){
+func tryGoToPosition(w *wrld.World, eMover int, posDelta cmp.Position) bool {
+	moverPos, ok := w.Pos[eMover]
+	if !ok {
 		return false
 	}
 
-	nPosEId := w.EByPos[moverPos]
-	currentEntAtPos := w.Pos[nPosEId]
-	currentEntAtPos.Y--
+	targetPos := cmp.Position{X: moverPos.X + posDelta.X, Y: moverPos.Y + posDelta.Y}
+	targetID, ok := w.EByPos[targetPos]
+	if !ok || !canMakeMove(w, targetID) {
+		return false
+	}
 
-	w.Pos[eMover] = moverPos
-	w.Pos[nPosEId] = currentEntAtPos
+	w.Pos[eMover] = targetPos
+	w.EByPos[targetPos] = eMover
+
+	w.Pos[targetID] = moverPos
+	w.EByPos[moverPos] = targetID
 	return true
 }
-func CanMakeMove(w wrld.World, eMover int, posTarget cmp.Position) bool{
-	_,err := w.Impassable[w.EByPos[posTarget]]
-	if err {
+
+func canMakeMove(w *wrld.World, targetID int) bool {
+	if _, blocked := w.Impassable[targetID]; blocked {
 		return false
 	}
 	return true
 }
-

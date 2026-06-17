@@ -20,4 +20,7 @@ wall
 - impassable
 ===USERINPUTPROFILE
 quitgame=q
+moveup=w
+moveleft=a
 movedown=s
+moveright=d

@@ -7,26 +7,38 @@ const (
 	S_quit
 )
 
-const ( 
-	Key_quitGame = "quitgame"
-	Key_moveDown = "movedown"
+const (
+	Key_quitGame  = "quitgame"
+	Key_moveUp    = "moveup"
+	Key_moveLeft  = "moveleft"
+	Key_moveDown  = "movedown"
+	Key_moveRight = "moveright"
 )
 
 type UserInputProfile struct {
-	KeyQuitGame string
-	KeyMoveDown string
+	KeyQuitGame  string
+	KeyMoveUp    string
+	KeyMoveLeft  string
+	KeyMoveDown  string
+	KeyMoveRight string
 }
 
 func NewUserInputProfileEmpty() UserInputProfile {
 	return UserInputProfile{
-		KeyQuitGame: "",
-		KeyMoveDown: "",
+		KeyQuitGame:  "",
+		KeyMoveUp:    "",
+		KeyMoveLeft:  "",
+		KeyMoveDown:  "",
+		KeyMoveRight: "",
 	}
 }
 
-func NewUserInputProfile(userInputProfile map[string]string) UserInputProfile{
+func NewUserInputProfile(userInputProfile map[string]string) UserInputProfile {
 	return UserInputProfile{
-		KeyQuitGame: userInputProfile[Key_quitGame],
-		KeyMoveDown: userInputProfile[Key_moveDown],
+		KeyQuitGame:  userInputProfile[Key_quitGame],
+		KeyMoveUp:    userInputProfile[Key_moveUp],
+		KeyMoveLeft:  userInputProfile[Key_moveLeft],
+		KeyMoveDown:  userInputProfile[Key_moveDown],
+		KeyMoveRight: userInputProfile[Key_moveRight],
 	}
 }
