@@ -1,8 +1,10 @@
 package component
 
+type ComponentName string
 const (
 	C_POS   ComponentName = "pos"
 	C_ASCII ComponentName = "ascii"
+	C_TAGS ComponentName = "tags"
 )
 
 type Position struct {
@@ -12,5 +14,10 @@ type Position struct {
 type Ascii struct {
 	Ascii rune
 }
-
-type ComponentName string
+type Tag string
+const(
+	TagPlayer Tag =  "player"
+)
+type Tags struct {
+	Vals map[Tag]bool
+}

@@ -14,6 +14,7 @@ type World struct {
 	Entities         []int
 	Pos              map[int]cmp.Position
 	Ascii            map[int]cmp.Ascii
+	Tags            map[int]cmp.Tags
 }
 
 func NewWorldEmpty() World {
@@ -25,6 +26,7 @@ func NewWorldEmpty() World {
 		Entities:         []int{},
 		Pos:              map[int]cmp.Position{},
 		Ascii:            map[int]cmp.Ascii{},
+		Tags:            map[int]cmp.Tags{},
 	}
 }
 func NewWorld(aMap map[[2]int]rune, entities map[rune]string, components map[string]map[cmp.ComponentName][]string) (World, error) {
@@ -44,8 +46,9 @@ func (w *World) Clone() World {
 		UserInput: make(map[string]bool, len(w.UserInput)),
 		NextEnt:   w.NextEnt,
 		Entities:  append([]int(nil), w.Entities...),
-		Pos:       make(map[int]cmp.Position, len(w.Pos)),
-		Ascii:     make(map[int]cmp.Ascii, len(w.Ascii)),
+		Pos:       make(map[int]cmp.Position),
+		Ascii:     make(map[int]cmp.Ascii),
+		Tags:     make(map[int]cmp.Tags),
 	}
 
 	for key, value := range w.UserInput {

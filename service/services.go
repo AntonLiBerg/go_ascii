@@ -17,7 +17,7 @@ type IService interface {
 
 type ServiceDrawOnTerminal struct{}
 
-func (s *ServiceDrawOnTerminal) GetUpdateFunc(w wrld.World) UpdateFuncResult {
+func (s ServiceDrawOnTerminal) GetUpdateFunc(w wrld.World) UpdateFuncResult {
 	return UpdateFuncResult{
 		Order: 100,
 		UpdateFunc: func(w *wrld.World) {
@@ -28,12 +28,23 @@ func (s *ServiceDrawOnTerminal) GetUpdateFunc(w wrld.World) UpdateFuncResult {
 
 type ServiceQuitGame struct{}
 
-func (s *ServiceQuitGame) GetUpdateFunc(w wrld.World) UpdateFuncResult {
+func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) UpdateFuncResult {
 	return UpdateFuncResult{
 		Order: 1,
 		UpdateFunc: func(w *wrld.World) {
 			if w.UserInput[w.UserInputProfile.KeyQuitGame] {
 				w.StateUser = usr.S_quit
+			}
+		},
+	}
+}
+
+type ServiceMovePlayer struct{}
+func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) UpdateFuncResult{
+	return UpdateFuncResult{
+		Order: 1,
+		UpdateFunc: func(w *wrld.World){
+			if w.UserInput[w.UserInputProfile.KeyMoveDown] {
 			}
 		},
 	}

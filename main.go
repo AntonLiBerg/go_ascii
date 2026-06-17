@@ -4,8 +4,8 @@ import (
 	ai "go_ascii/aiAPI"
 	gme "go_ascii/game"
 	serv "go_ascii/service"
+	usr "go_ascii/user"
 	"os"
-
 	wrld "go_ascii/world"
 
 	"golang.org/x/term"
@@ -30,11 +30,11 @@ func runDemo() {
 	if err != nil {
 		panic(err)
 	}
-	world.UserInputProfile.KeyQuitGame = userInputProfileMap["quitgame"]
+	world.UserInputProfile = usr.NewUserInputProfile(userInputProfileMap)
 
 	services := []serv.IService{
-		&serv.ServiceDrawOnTerminal{},
-		&serv.ServiceQuitGame{},
+		serv.ServiceDrawOnTerminal{},
+		serv.ServiceQuitGame{},
 	}
 	keys := make(chan string)
 	go func() {

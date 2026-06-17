@@ -11,6 +11,7 @@ floor
 - pos
 - ascii:.
 player
+- tags:player
 - pos
 - ascii:o
 wall
@@ -18,3 +19,4 @@ wall
 - ascii=#
 ===USERINPUTPROFILE
 quitgame=q
+movedown=s
