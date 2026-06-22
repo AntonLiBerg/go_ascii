@@ -5,8 +5,8 @@ import (
 	gme "go_ascii/game"
 	serv "go_ascii/service"
 	usr "go_ascii/user"
-	"os"
 	wrld "go_ascii/world"
+	"os"
 
 	"golang.org/x/term"
 )
@@ -33,9 +33,9 @@ func runDemo() {
 	world.UserInputProfile = usr.NewUserInputProfile(userInputProfileMap)
 
 	services := []serv.IService{
-		serv.ServiceDrawOnTerminal{},
 		serv.ServiceQuitGame{},
 		serv.ServiceMovePlayer{},
+		serv.ServiceDrawOnTerminal{},
 	}
 	keys := make(chan string)
 	go func() {

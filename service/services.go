@@ -1,36 +1,40 @@
 package service
 
 import (
+	"fmt"
 	ai "go_ascii/aiAPI"
 	cmp "go_ascii/component"
 	usr "go_ascii/user"
 	wrld "go_ascii/world"
 )
 
-type UpdateFuncResult struct {
+type UpdateFunc struct {
 	Order      int
 	UpdateFunc func(*wrld.World)
 	Err        error
 }
 type IService interface {
-	GetUpdateFunc(world wrld.World) UpdateFuncResult
+	GetUpdateFunc(world wrld.World) UpdateFunc
 }
 
 type ServiceDrawOnTerminal struct{}
 
-func (s ServiceDrawOnTerminal) GetUpdateFunc(w wrld.World) UpdateFuncResult {
-	return UpdateFuncResult{
+func (s ServiceDrawOnTerminal) GetUpdateFunc(w wrld.World) UpdateFunc {
+	return UpdateFunc{
 		Order: 100,
 		UpdateFunc: func(w *wrld.World) {
-			ai.UpdateTerminal(*w)
+			if w.IterationNr == 1 || w.HasChanged {
+				ai.UpdateTerminal(*w)
+				w.HasChanged = false
+			}
 		},
 	}
 }
 
 type ServiceQuitGame struct{}
 
-func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) UpdateFuncResult {
-	return UpdateFuncResult{
+func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) UpdateFunc {
+	return UpdateFunc{
 		Order: 1,
 		UpdateFunc: func(w *wrld.World) {
 			if w.UserInput[w.UserInputProfile.KeyQuitGame] {
@@ -42,7 +46,7 @@ func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) UpdateFuncResult {
 
 type ServiceMovePlayer struct{}
 
-func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) UpdateFuncResult {
+func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) UpdateFunc {
 	moveDelta := cmp.Position{}
 	keyToClear := ""
 
@@ -60,30 +64,36 @@ func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) UpdateFuncResult {
 		moveDelta = cmp.Position{X: 1}
 		keyToClear = w.UserInputProfile.KeyMoveRight
 	default:
-		return UpdateFuncResult{Order: 1}
+		return UpdateFunc{Order: 1}
 	}
 
-	return UpdateFuncResult{
+	return UpdateFunc{
 		Order: 1,
 		UpdateFunc: func(w *wrld.World) {
+			w.HasChanged = true
 			for eID := range w.EByTag[cmp.TAG_PLAYER] {
-				tryGoToPosition(w, eID, moveDelta)
+				if err := tryGoToPosition(w, eID, moveDelta); err != nil {
+					panic(err)
+				}
 			}
 			w.UserInput[keyToClear] = false
 		},
 	}
 }
 
-func tryGoToPosition(w *wrld.World, eMover int, posDelta cmp.Position) bool {
+func tryGoToPosition(w *wrld.World, eMover int, posDelta cmp.Position) error {
 	moverPos, ok := w.Pos[eMover]
 	if !ok {
-		return false
+		return fmt.Errorf("Mover entity not found!")
 	}
 
 	targetPos := cmp.Position{X: moverPos.X + posDelta.X, Y: moverPos.Y + posDelta.Y}
 	targetID, ok := w.EByPos[targetPos]
-	if !ok || !canMakeMove(w, targetID) {
-		return false
+	if !ok {
+		return nil
+	}
+	if !canMakeMove(w, targetID) {
+		return nil
 	}
 
 	w.Pos[eMover] = targetPos
@@ -91,7 +101,7 @@ func tryGoToPosition(w *wrld.World, eMover int, posDelta cmp.Position) bool {
 
 	w.Pos[targetID] = moverPos
 	w.EByPos[moverPos] = targetID
-	return true
+	return nil
 }
 
 func canMakeMove(w *wrld.World, targetID int) bool {

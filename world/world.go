@@ -18,6 +18,8 @@ type World struct {
 	Tags             map[int]cmp.Tags
 	EByTag           map[cmp.Tag]map[int]bool
 	EByPos           map[cmp.Position]int
+	HasChanged       bool
+	IterationNr      int
 }
 
 func NewWorldEmpty() World {
@@ -33,6 +35,8 @@ func NewWorldEmpty() World {
 		Tags:             map[int]cmp.Tags{},
 		EByTag:           map[cmp.Tag]map[int]bool{},
 		EByPos:           map[cmp.Position]int{},
+		HasChanged:       false,
+		IterationNr:      0,
 	}
 }
 func NewWorld(aMap map[[2]int]rune, entities map[rune]string, components map[string]map[cmp.ComponentName][]string) (World, error) {
@@ -60,6 +64,8 @@ func (w *World) Clone() World {
 		Tags:             make(map[int]cmp.Tags, len(w.Tags)),
 		EByTag:           make(map[cmp.Tag]map[int]bool, len(w.EByTag)),
 		EByPos:           make(map[cmp.Position]int, len(w.Pos)),
+		HasChanged:       w.HasChanged,
+		IterationNr:      w.IterationNr,
 	}
 
 	for key, value := range w.UserInput {

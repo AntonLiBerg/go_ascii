@@ -21,10 +21,11 @@ func RunGame(world wrld.World, services []serv.IService, keyInput <-chan string)
 	}
 	state := s_readyToGetUpdateFunctions
 	ticker := time.NewTicker(time.Second / 30)
-	results := make([]serv.UpdateFuncResult, 0, len(services))
-	updateFuncs := make(chan serv.UpdateFuncResult, len(services))
+	results := make([]serv.UpdateFunc, 0, len(services))
+	updateFuncs := make(chan serv.UpdateFunc, len(services))
 
 	for {
+		world.IterationNr++
 		if world.StateUser == usr.S_quit {
 			return nil
 		}
@@ -75,7 +76,6 @@ func RunGame(world wrld.World, services []serv.IService, keyInput <-chan string)
 					result.UpdateFunc(&world)
 				}
 			}
-
 			state = s_readyToGetUpdateFunctions
 		}
 	}

@@ -13,8 +13,14 @@ floor
 player
 - pos
 - ascii:o
+- tags:player
 wall
 - pos
 - ascii=#
+- impassable
 ===USERINPUTPROFILE
 quitgame=q
+moveup=w
+moveleft=a
+movedown=s
+moveright=d
