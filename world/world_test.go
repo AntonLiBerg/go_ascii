@@ -44,6 +44,93 @@ func TestAddEntityStoresComponents(t *testing.T) {
 	}
 }
 
+func TestWorldAddMethodsMutateAndReturnWorld(t *testing.T) {
+	world := NewWorldEmpty()
+
+	updated, eID := world.AddNewEntity()
+	updated = updated.
+		AddUserInput("q", true).
+		AddPosition(eID, cmp.Position{X: 2, Y: 3}).
+		AddAscii(eID, cmp.Ascii{Ascii: 'o'}).
+		AddImpassable(eID).
+		AddTag(eID, cmp.TAG_PLAYER).
+		AddTag(eID, cmp.Tag("visible"))
+
+	if updated != &world {
+		t.Fatal("expected add methods to return the same world pointer")
+	}
+
+	if eID != 0 {
+		t.Fatalf("expected first entity id to be 0, got %d", eID)
+	}
+	if updated.NextEnt != 1 {
+		t.Fatalf("expected next entity id to be 1, got %d", updated.NextEnt)
+	}
+	if !updated.UserInput["q"] {
+		t.Fatal("expected updated world to store user input")
+	}
+	if got := updated.Pos[eID]; got != (cmp.Position{X: 2, Y: 3}) {
+		t.Fatalf("expected updated position 2,3, got %+v", got)
+	}
+	if got := updated.EByPos[cmp.Position{X: 2, Y: 3}]; got != eID {
+		t.Fatalf("expected reverse position index to point at entity %d, got %d", eID, got)
+	}
+	if got := updated.Ascii[eID].Ascii; got != 'o' {
+		t.Fatalf("expected ascii o, got %q", got)
+	}
+	if _, ok := updated.Impassable[eID]; !ok {
+		t.Fatal("expected updated world to store impassable component")
+	}
+	if !updated.Tags[eID].Vals[cmp.TAG_PLAYER] {
+		t.Fatal("expected updated world to store player tag")
+	}
+	if !updated.Tags[eID].Vals[cmp.Tag("visible")] {
+		t.Fatal("expected updated world to store visible tag")
+	}
+	if !updated.EByTag[cmp.TAG_PLAYER][eID] {
+		t.Fatal("expected reverse tag index to include player tag")
+	}
+	if !updated.EByTag[cmp.Tag("visible")][eID] {
+		t.Fatal("expected reverse tag index to include visible tag")
+	}
+}
+
+func TestAddPositionRemovesOldReverseIndex(t *testing.T) {
+	world := NewWorldEmpty()
+	updated, eID := world.AddNewEntity()
+	updated.AddPosition(eID, cmp.Position{X: 1, Y: 1})
+
+	returned := updated.AddPosition(eID, cmp.Position{X: 2, Y: 2})
+
+	if returned != &world {
+		t.Fatal("expected AddPosition to return the same world pointer")
+	}
+	if _, ok := world.EByPos[cmp.Position{X: 1, Y: 1}]; ok {
+		t.Fatal("expected old reverse position index to be removed")
+	}
+	if got := world.EByPos[cmp.Position{X: 2, Y: 2}]; got != eID {
+		t.Fatalf("expected new reverse position index to point at entity %d, got %d", eID, got)
+	}
+}
+
+func TestAddTagsReplacesReverseTagIndex(t *testing.T) {
+	world := NewWorldEmpty()
+	updated, eID := world.AddNewEntity()
+	updated.AddTags(eID, cmp.Tags{Vals: map[cmp.Tag]bool{cmp.TAG_PLAYER: true}})
+
+	returned := updated.AddTags(eID, cmp.Tags{Vals: map[cmp.Tag]bool{cmp.Tag("visible"): true}})
+
+	if returned != &world {
+		t.Fatal("expected AddTags to return the same world pointer")
+	}
+	if _, ok := world.EByTag[cmp.TAG_PLAYER][eID]; ok {
+		t.Fatal("expected old reverse tag index to be removed")
+	}
+	if !world.EByTag[cmp.Tag("visible")][eID] {
+		t.Fatal("expected new reverse tag index to include entity")
+	}
+}
+
 func TestCloneCopiesComponents(t *testing.T) {
 	world := NewWorldEmpty()
 	world.UserInputProfile = usr.UserInputProfile{KeyQuitGame: "q", KeyMoveDown: "s"}

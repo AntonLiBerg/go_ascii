@@ -25,7 +25,6 @@ func RunGame(world wrld.World, services []serv.IService, keyInput <-chan string)
 	updateFuncs := make(chan serv.UpdateFunc, len(services))
 
 	for {
-		world.IterationNr++
 		if world.StateUser == usr.S_quit {
 			return nil
 		}
@@ -77,6 +76,7 @@ func RunGame(world wrld.World, services []serv.IService, keyInput <-chan string)
 				}
 			}
 			state = s_readyToGetUpdateFunctions
+			world.IterationNr++
 		}
 	}
 }

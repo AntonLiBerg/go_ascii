@@ -110,3 +110,5 @@ func canMakeMove(w *wrld.World, targetID int) bool {
 	}
 	return true
 }
+
+type ServiceTurnOnMachine struct{}

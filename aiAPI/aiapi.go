@@ -239,3 +239,7 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 
 	return asciiMap, entities, components, userInputProfile, nil
 }
+
+func GetNeighbors(world wrld.World, target int, filterComponents []cmp.ComponentName) []int {
+	return nil
+}

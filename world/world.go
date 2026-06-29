@@ -120,6 +120,63 @@ func (w *World) MakeNewEntityId() int {
 	return w.NextEnt - 1
 }
 
+func (w *World) AddNewEntity() (*World, int) {
+	return w, w.MakeNewEntityId()
+}
+
+func (w *World) AddUserInput(key string, isDown bool) *World {
+	w.UserInput[key] = isDown
+	return w
+}
+
+func (w *World) AddPosition(eID int, pos cmp.Position) *World {
+	if oldPos, ok := w.Pos[eID]; ok {
+		delete(w.EByPos, oldPos)
+	}
+	w.Pos[eID] = pos
+	w.EByPos[pos] = eID
+	return w
+}
+
+func (w *World) AddAscii(eID int, ascii cmp.Ascii) *World {
+	w.Ascii[eID] = ascii
+	return w
+}
+
+func (w *World) AddImpassable(eID int) *World {
+	w.Impassable[eID] = cmp.Impassable{}
+	return w
+}
+
+func (w *World) AddTags(eID int, tags cmp.Tags) *World {
+	w.removeTags(eID)
+	w.Tags[eID] = tags
+	for tag, ok := range w.Tags[eID].Vals {
+		if !ok {
+			continue
+		}
+		if w.EByTag[tag] == nil {
+			w.EByTag[tag] = map[int]bool{}
+		}
+		w.EByTag[tag][eID] = true
+	}
+	return w
+}
+
+func (w *World) AddTag(eID int, tag cmp.Tag) *World {
+	tags := w.Tags[eID]
+	if tags.Vals == nil {
+		tags.Vals = map[cmp.Tag]bool{}
+	}
+	tags.Vals[tag] = true
+	w.Tags[eID] = tags
+	if w.EByTag[tag] == nil {
+		w.EByTag[tag] = map[int]bool{}
+	}
+	w.EByTag[tag][eID] = true
+	return w
+}
+
 func (w *World) AddEntity(pos [2]int, compWithVals map[cmp.ComponentName][]string) error {
 	eId := w.MakeNewEntityId()
 	for name, vals := range compWithVals {
@@ -151,4 +208,17 @@ func (w *World) AddEntity(pos [2]int, compWithVals map[cmp.ComponentName][]strin
 		}
 	}
 	return nil
+}
+
+func (w *World) removeTags(eID int) {
+	tags := w.Tags[eID]
+	for tag, ok := range tags.Vals {
+		if !ok {
+			continue
+		}
+		delete(w.EByTag[tag], eID)
+		if len(w.EByTag[tag]) == 0 {
+			delete(w.EByTag, tag)
+		}
+	}
 }
