@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	ai "go_ascii/aiAPI"
+	aiapi "go_ascii/aiAPI"
 	cmp "go_ascii/component"
 	usr "go_ascii/user"
 	wrld "go_ascii/world"
@@ -112,3 +113,28 @@ func canMakeMove(w *wrld.World, targetID int) bool {
 }
 
 type ServiceTurnOnMachine struct{}
+
+func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
+	return UpdateFunc{
+		Order: 1,
+		UpdateFunc: func(w *wrld.World) {
+			playerId := 0
+			for eId := range w.EByTag[cmp.TAG_PLAYER] {
+				playerId = eId
+			}
+			neighbors := aiapi.GetNeighbors(*w, playerId, []cmp.ComponentName{cmp.Machine{MachineType: cmp.MACHINENAME_RADIO}})
+			if len(neighbors) == 0 {
+				return
+			}
+			machine := w.Machine[neighbors[0]]
+
+			switch machine.MachineType {
+			case cmp.MACHINENAME_RADIO:
+				break
+			default:
+				panic("Machine not found!")
+				break
+			}
+		},
+	}
+}

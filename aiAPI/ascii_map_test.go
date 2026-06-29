@@ -167,7 +167,7 @@ func TestGetNeighbors(t *testing.T) {
 	e21 := world.MakeNewEntityId()
 	e20 := world.MakeNewEntityId()
 	e10 := world.MakeNewEntityId()
-	world.AddPosition(pId, cmp.Position{X: 1, Y: 1})
+	world = world.AddPosition(pId, cmp.Position{X: 1, Y: 1})
 	tests := []struct {
 		name   string
 		want   []int
@@ -180,60 +180,66 @@ func TestGetNeighbors(t *testing.T) {
 		},
 		{
 			"oneNeighbor00", []int{e00}, []cmp.ComponentName{},
-			*world.
+			world.
 				AddPosition(e00, cmp.Position{X: 0, Y: 0}),
 		},
 		{
 			"oneNeighbor01", []int{e01}, []cmp.ComponentName{},
-			*world.
-				AddPosition(pId, cmp.Position{X: 0, Y: 1}),
+			world.
+				AddPosition(e01, cmp.Position{X: 0, Y: 1}),
 		},
 		{
 			"oneNeighbor02", []int{e02}, []cmp.ComponentName{},
-			*world.
-				AddPosition(pId, cmp.Position{X: 0, Y: 2}),
+			world.
+				AddPosition(e02, cmp.Position{X: 0, Y: 2}),
 		},
 		{
 			"oneNeighbor12", []int{e12}, []cmp.ComponentName{},
-			*world.
-				AddPosition(pId, cmp.Position{X: 1, Y: 2}),
+			world.
+				AddPosition(e12, cmp.Position{X: 1, Y: 2}),
 		},
 		{
 			"oneNeighbor22", []int{e22}, []cmp.ComponentName{},
-			*world.
-				AddPosition(pId, cmp.Position{X: 2, Y: 2}),
+			world.
+				AddPosition(e22, cmp.Position{X: 2, Y: 2}),
 		},
 		{
 			"oneNeighbor21", []int{e21}, []cmp.ComponentName{},
-			*world.
-				AddPosition(pId, cmp.Position{X: 2, Y: 1}),
+			world.
+				AddPosition(e21, cmp.Position{X: 2, Y: 1}),
 		},
 		{
 			"oneNeighbor20", []int{e20}, []cmp.ComponentName{},
-			*world.
-				AddPosition(pId, cmp.Position{X: 2, Y: 0}),
+			world.
+				AddPosition(e20, cmp.Position{X: 2, Y: 0}),
 		},
 		{
 			"oneNeighbor10", []int{e10}, []cmp.ComponentName{},
-			*world.
-				AddPosition(pId, cmp.Position{X: 1, Y: 0}),
+			world.
+				AddPosition(e10, cmp.Position{X: 1, Y: 0}),
 		},
 		{
 			"oneNeighborAll", []int{e00, e01, e02, e12, e22, e21, e20, e10}, []cmp.ComponentName{},
-			*world.
-				AddPosition(pId, cmp.Position{X: 0, Y: 0}).
-				AddPosition(pId, cmp.Position{X: 0, Y: 1}).
-				AddPosition(pId, cmp.Position{X: 0, Y: 2}).
-				AddPosition(pId, cmp.Position{X: 1, Y: 2}).
-				AddPosition(pId, cmp.Position{X: 2, Y: 2}).
-				AddPosition(pId, cmp.Position{X: 2, Y: 1}).
-				AddPosition(pId, cmp.Position{X: 2, Y: 0}).
-				AddPosition(pId, cmp.Position{X: 1, Y: 0}),
+			world.
+				AddPosition(e00, cmp.Position{X: 0, Y: 0}).
+				AddPosition(e01, cmp.Position{X: 0, Y: 1}).
+				AddPosition(e02, cmp.Position{X: 0, Y: 2}).
+				AddPosition(e12, cmp.Position{X: 1, Y: 2}).
+				AddPosition(e22, cmp.Position{X: 2, Y: 2}).
+				AddPosition(e21, cmp.Position{X: 2, Y: 1}).
+				AddPosition(e20, cmp.Position{X: 2, Y: 0}).
+				AddPosition(e10, cmp.Position{X: 1, Y: 0}),
+		},
+		{
+			"oneNeighborFiltered", []int{}, []cmp.ComponentName{cmp.C_IMPASSABLE},
+			world.
+				AddPosition(pId, cmp.Position{X: 1, Y: 0}).
+				AddImpassable(pId),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual := GetNeighbors(world, pId, tt.filter)
+			actual := GetNeighbors(tt.world, pId, tt.filter)
 			if !slices.Equal(tt.want, actual) {
 				t.Errorf("got %v, want %v", actual, tt.want)
 			}

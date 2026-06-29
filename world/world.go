@@ -120,61 +120,68 @@ func (w *World) MakeNewEntityId() int {
 	return w.NextEnt - 1
 }
 
-func (w *World) AddNewEntity() (*World, int) {
-	return w, w.MakeNewEntityId()
+func (w World) AddNewEntity() (World, int) {
+	world := w.Clone()
+	return world, world.MakeNewEntityId()
 }
 
-func (w *World) AddUserInput(key string, isDown bool) *World {
-	w.UserInput[key] = isDown
-	return w
+func (w World) AddUserInput(key string, isDown bool) World {
+	world := w.Clone()
+	world.UserInput[key] = isDown
+	return world
 }
 
-func (w *World) AddPosition(eID int, pos cmp.Position) *World {
-	if oldPos, ok := w.Pos[eID]; ok {
-		delete(w.EByPos, oldPos)
+func (w World) AddPosition(eID int, pos cmp.Position) World {
+	world := w.Clone()
+	if oldPos, ok := world.Pos[eID]; ok {
+		delete(world.EByPos, oldPos)
 	}
-	w.Pos[eID] = pos
-	w.EByPos[pos] = eID
-	return w
+	world.Pos[eID] = pos
+	world.EByPos[pos] = eID
+	return world
 }
 
-func (w *World) AddAscii(eID int, ascii cmp.Ascii) *World {
-	w.Ascii[eID] = ascii
-	return w
+func (w World) AddAscii(eID int, ascii cmp.Ascii) World {
+	world := w.Clone()
+	world.Ascii[eID] = ascii
+	return world
 }
 
-func (w *World) AddImpassable(eID int) *World {
-	w.Impassable[eID] = cmp.Impassable{}
-	return w
+func (w World) AddImpassable(eID int) World {
+	world := w.Clone()
+	world.Impassable[eID] = cmp.Impassable{}
+	return world
 }
 
-func (w *World) AddTags(eID int, tags cmp.Tags) *World {
-	w.removeTags(eID)
-	w.Tags[eID] = tags
-	for tag, ok := range w.Tags[eID].Vals {
+func (w World) AddTags(eID int, tags cmp.Tags) World {
+	world := w.Clone()
+	world.removeTags(eID)
+	world.Tags[eID] = cloneTags(tags)
+	for tag, ok := range world.Tags[eID].Vals {
 		if !ok {
 			continue
 		}
-		if w.EByTag[tag] == nil {
-			w.EByTag[tag] = map[int]bool{}
+		if world.EByTag[tag] == nil {
+			world.EByTag[tag] = map[int]bool{}
 		}
-		w.EByTag[tag][eID] = true
+		world.EByTag[tag][eID] = true
 	}
-	return w
+	return world
 }
 
-func (w *World) AddTag(eID int, tag cmp.Tag) *World {
-	tags := w.Tags[eID]
+func (w World) AddTag(eID int, tag cmp.Tag) World {
+	world := w.Clone()
+	tags := world.Tags[eID]
 	if tags.Vals == nil {
 		tags.Vals = map[cmp.Tag]bool{}
 	}
 	tags.Vals[tag] = true
-	w.Tags[eID] = tags
-	if w.EByTag[tag] == nil {
-		w.EByTag[tag] = map[int]bool{}
+	world.Tags[eID] = tags
+	if world.EByTag[tag] == nil {
+		world.EByTag[tag] = map[int]bool{}
 	}
-	w.EByTag[tag][eID] = true
-	return w
+	world.EByTag[tag][eID] = true
+	return world
 }
 
 func (w *World) AddEntity(pos [2]int, compWithVals map[cmp.ComponentName][]string) error {
@@ -221,4 +228,12 @@ func (w *World) removeTags(eID int) {
 			delete(w.EByTag, tag)
 		}
 	}
+}
+
+func cloneTags(tags cmp.Tags) cmp.Tags {
+	clone := cmp.Tags{Vals: map[cmp.Tag]bool{}}
+	for tag, ok := range tags.Vals {
+		clone.Vals[tag] = ok
+	}
+	return clone
 }
