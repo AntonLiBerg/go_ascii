@@ -32,6 +32,7 @@ type Tags struct {
 type Impassable struct{}
 
 type Machine struct {
+	IsOn        bool
 	MachineType MachineTypeName
 }
 type MachineTypeName string

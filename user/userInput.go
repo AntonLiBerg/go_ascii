@@ -13,6 +13,7 @@ const (
 	Key_moveLeft  = "moveleft"
 	Key_moveDown  = "movedown"
 	Key_moveRight = "moveright"
+	KEY_INTERACT  = "interact"
 )
 
 type UserInputProfile struct {
@@ -21,6 +22,7 @@ type UserInputProfile struct {
 	KeyMoveLeft  string
 	KeyMoveDown  string
 	KeyMoveRight string
+	KeyInteract  string
 }
 
 func NewUserInputProfileEmpty() UserInputProfile {
@@ -30,6 +32,7 @@ func NewUserInputProfileEmpty() UserInputProfile {
 		KeyMoveLeft:  "",
 		KeyMoveDown:  "",
 		KeyMoveRight: "",
+		KeyInteract:  "",
 	}
 }
 
@@ -40,5 +43,6 @@ func NewUserInputProfile(userInputProfile map[string]string) UserInputProfile {
 		KeyMoveLeft:  userInputProfile[Key_moveLeft],
 		KeyMoveDown:  userInputProfile[Key_moveDown],
 		KeyMoveRight: userInputProfile[Key_moveRight],
+		KeyInteract:  userInputProfile[KEY_INTERACT],
 	}
 }

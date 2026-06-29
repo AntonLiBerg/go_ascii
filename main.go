@@ -35,6 +35,7 @@ func runDemo() {
 	services := []serv.IService{
 		serv.ServiceQuitGame{},
 		serv.ServiceMovePlayer{},
+		serv.ServiceTurnOnMachine{},
 		serv.ServiceDrawOnTerminal{},
 	}
 	keys := make(chan string)

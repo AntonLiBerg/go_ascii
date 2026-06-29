@@ -113,6 +113,29 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	}
 }
 
+func TestGetAsciiMapAndEntitiesFromFileAddsRadioMachine(t *testing.T) {
+	tempDir := t.TempDir()
+	mapPath := filepath.Join(tempDir, "map.txt")
+	mapFile := "====MAP\nR\n====ENTITY\nradio\n- pos\n- ascii=R\n-impassable\n"
+
+	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
+		t.Fatalf("write temp map file: %v", err)
+	}
+
+	_, entities, components, _, err := GetAsciiMapAndEntitiesFromFile(mapPath)
+	if err != nil {
+		t.Fatalf("GetAsciiMapAndEntitiesFromFile returned error: %v", err)
+	}
+
+	if got := entities['R']; got != "radio" {
+		t.Fatalf("expected rune 'R' to be radio, got %q", got)
+	}
+	assertComponentValues(t, components, "radio", cmp.C_POS)
+	assertComponentValues(t, components, "radio", cmp.C_ASCII, "R")
+	assertComponentValues(t, components, "radio", cmp.C_IMPASSABLE)
+	assertComponentValues(t, components, "radio", cmp.C_MACHINE, string(cmp.MACHINENAME_RADIO))
+}
+
 func TestGetAsciiMapAndEntitiesFromFileReturnsError(t *testing.T) {
 	asciiMap, entities, components, userInputProfileMap, err := GetAsciiMapAndEntitiesFromFile(filepath.Join(t.TempDir(), "missing.txt"))
 

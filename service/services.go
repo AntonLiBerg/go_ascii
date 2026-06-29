@@ -115,26 +115,29 @@ func canMakeMove(w *wrld.World, targetID int) bool {
 type ServiceTurnOnMachine struct{}
 
 func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
-	return UpdateFunc{
-		Order: 1,
-		UpdateFunc: func(w *wrld.World) {
-			playerId := 0
-			for eId := range w.EByTag[cmp.TAG_PLAYER] {
-				playerId = eId
-			}
-			neighbors := aiapi.GetNeighbors(*w, playerId, []cmp.ComponentName{cmp.Machine{MachineType: cmp.MACHINENAME_RADIO}})
-			if len(neighbors) == 0 {
-				return
-			}
-			machine := w.Machine[neighbors[0]]
+	if !w.UserInput[w.UserInputProfile.KeyInteract] {
+		return UpdateFunc{Order: 1}
+	}
 
-			switch machine.MachineType {
-			case cmp.MACHINENAME_RADIO:
-				break
-			default:
-				panic("Machine not found!")
-				break
-			}
-		},
+	playerId := -1
+	for eId := range w.EByTag[cmp.TAG_PLAYER] {
+		playerId = eId
+	}
+	neighbors := aiapi.GetNeighbors(w, playerId, []cmp.ComponentName{cmp.C_MACHINE})
+	if len(neighbors) == 0 {
+		return UpdateFunc{Order: 1}
+	}
+
+	machine := w.Machine[neighbors[0]]
+	switch machine.MachineType {
+	case cmp.MACHINENAME_RADIO:
+		return UpdateFunc{
+			Order: 1,
+			UpdateFunc: func(w *wrld.World) {
+				//What happens when you turn off or on a radio?
+			},
+		}
+	default:
+		panic("Machine not found!")
 	}
 }

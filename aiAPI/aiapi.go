@@ -201,6 +201,9 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 			if _, exists := components[name]; !exists {
 				components[name] = make(map[cmp.ComponentName][]string)
 			}
+			if name == "radio" {
+				components[name][cmp.C_MACHINE] = []string{string(cmp.MACHINENAME_RADIO)}
+			}
 			currentEntity = name
 		}
 	}
@@ -286,6 +289,10 @@ func hasComponents(world wrld.World, eID int, components []cmp.ComponentName) bo
 			}
 		case cmp.C_IMPASSABLE:
 			if _, ok := world.Impassable[eID]; !ok {
+				return false
+			}
+		case cmp.C_MACHINE:
+			if _, ok := world.Machine[eID]; !ok {
 				return false
 			}
 		case cmp.C_TAGS:

@@ -15,6 +15,7 @@ type World struct {
 	Pos              map[int]cmp.Position
 	Ascii            map[int]cmp.Ascii
 	Impassable       map[int]cmp.Impassable
+	Machine          map[int]cmp.Machine
 	Tags             map[int]cmp.Tags
 	EByTag           map[cmp.Tag]map[int]bool
 	EByPos           map[cmp.Position]int
@@ -32,6 +33,7 @@ func NewWorldEmpty() World {
 		Pos:              map[int]cmp.Position{},
 		Ascii:            map[int]cmp.Ascii{},
 		Impassable:       map[int]cmp.Impassable{},
+		Machine:          map[int]cmp.Machine{},
 		Tags:             map[int]cmp.Tags{},
 		EByTag:           map[cmp.Tag]map[int]bool{},
 		EByPos:           map[cmp.Position]int{},
@@ -61,6 +63,7 @@ func (w *World) Clone() World {
 		Pos:              make(map[int]cmp.Position, len(w.Pos)),
 		Ascii:            make(map[int]cmp.Ascii, len(w.Ascii)),
 		Impassable:       make(map[int]cmp.Impassable, len(w.Impassable)),
+		Machine:          make(map[int]cmp.Machine, len(w.Machine)),
 		Tags:             make(map[int]cmp.Tags, len(w.Tags)),
 		EByTag:           make(map[cmp.Tag]map[int]bool, len(w.EByTag)),
 		EByPos:           make(map[cmp.Position]int, len(w.Pos)),
@@ -83,6 +86,10 @@ func (w *World) Clone() World {
 
 	for id, impassable := range w.Impassable {
 		clone.Impassable[id] = impassable
+	}
+
+	for id, machine := range w.Machine {
+		clone.Machine[id] = machine
 	}
 
 	for id, tags := range w.Tags {
@@ -153,6 +160,12 @@ func (w World) AddImpassable(eID int) World {
 	return world
 }
 
+func (w World) AddMachine(eID int, machine cmp.Machine) World {
+	world := w.Clone()
+	world.Machine[eID] = machine
+	return world
+}
+
 func (w World) AddTags(eID int, tags cmp.Tags) World {
 	world := w.Clone()
 	world.removeTags(eID)
@@ -199,6 +212,17 @@ func (w *World) AddEntity(pos [2]int, compWithVals map[cmp.ComponentName][]strin
 			w.Ascii[eId] = cmp.Ascii{Ascii: []rune(vals[0])[0]}
 		case cmp.C_IMPASSABLE:
 			w.Impassable[eId] = cmp.Impassable{}
+		case cmp.C_MACHINE:
+			if len(vals) != 1 {
+				return fmt.Errorf("Required values are incorrect for %s", cmp.C_MACHINE)
+			}
+			machineType := cmp.MachineTypeName(vals[0])
+			switch machineType {
+			case cmp.MACHINENAME_RADIO:
+				w.Machine[eId] = cmp.Machine{MachineType: machineType}
+			default:
+				return fmt.Errorf("Machine type does not exist %s", vals[0])
+			}
 		case cmp.C_TAGS:
 			tags := cmp.Tags{Vals: make(map[cmp.Tag]bool, len(vals))}
 			for _, value := range vals {

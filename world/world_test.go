@@ -13,6 +13,7 @@ func TestAddEntityStoresComponents(t *testing.T) {
 		cmp.C_POS:        {},
 		cmp.C_ASCII:      {"o"},
 		cmp.C_IMPASSABLE: {},
+		cmp.C_MACHINE:    {string(cmp.MACHINENAME_RADIO)},
 		cmp.C_TAGS:       {string(cmp.TAG_PLAYER), "visible"},
 	})
 	if err != nil {
@@ -42,6 +43,9 @@ func TestAddEntityStoresComponents(t *testing.T) {
 	if _, ok := world.Impassable[0]; !ok {
 		t.Fatal("expected entity 0 to have impassable component")
 	}
+	if got := world.Machine[0].MachineType; got != cmp.MACHINENAME_RADIO {
+		t.Fatalf("expected entity 0 to have radio machine component, got %s", got)
+	}
 }
 
 func TestWorldAddMethodsCloneAndReturnWorld(t *testing.T) {
@@ -53,6 +57,7 @@ func TestWorldAddMethodsCloneAndReturnWorld(t *testing.T) {
 		AddPosition(eID, cmp.Position{X: 2, Y: 3}).
 		AddAscii(eID, cmp.Ascii{Ascii: 'o'}).
 		AddImpassable(eID).
+		AddMachine(eID, cmp.Machine{MachineType: cmp.MACHINENAME_RADIO}).
 		AddTag(eID, cmp.TAG_PLAYER).
 		AddTag(eID, cmp.Tag("visible"))
 
@@ -86,6 +91,9 @@ func TestWorldAddMethodsCloneAndReturnWorld(t *testing.T) {
 	}
 	if _, ok := updated.Impassable[eID]; !ok {
 		t.Fatal("expected updated world to store impassable component")
+	}
+	if got := updated.Machine[eID].MachineType; got != cmp.MACHINENAME_RADIO {
+		t.Fatalf("expected updated world to store radio machine component, got %s", got)
 	}
 	if !updated.Tags[eID].Vals[cmp.TAG_PLAYER] {
 		t.Fatal("expected updated world to store player tag")
@@ -147,6 +155,7 @@ func TestCloneCopiesComponents(t *testing.T) {
 	world.Pos[1] = cmp.Position{X: 4, Y: 5}
 	world.Ascii[1] = cmp.Ascii{Ascii: 'o'}
 	world.Impassable[1] = cmp.Impassable{}
+	world.Machine[1] = cmp.Machine{MachineType: cmp.MACHINENAME_RADIO}
 	world.Tags[1] = cmp.Tags{Vals: map[cmp.Tag]bool{cmp.TAG_PLAYER: true}}
 	world.EByTag[cmp.TAG_PLAYER] = map[int]bool{1: true}
 	world.EByPos[cmp.Position{X: 4, Y: 5}] = 1
@@ -172,6 +181,9 @@ func TestCloneCopiesComponents(t *testing.T) {
 	if _, ok := clone.Impassable[1]; !ok {
 		t.Fatal("expected cloned world to keep impassable component")
 	}
+	if got := clone.Machine[1].MachineType; got != cmp.MACHINENAME_RADIO {
+		t.Fatalf("expected cloned world to keep radio machine component, got %s", got)
+	}
 
 	clone.Tags[1].Vals[cmp.Tag("new")] = true
 	if world.Tags[1].Vals[cmp.Tag("new")] {
@@ -188,5 +200,9 @@ func TestCloneCopiesComponents(t *testing.T) {
 	delete(clone.Impassable, 1)
 	if _, ok := world.Impassable[1]; !ok {
 		t.Fatal("expected cloned impassable map to be independent")
+	}
+	delete(clone.Machine, 1)
+	if _, ok := world.Machine[1]; !ok {
+		t.Fatal("expected cloned machine map to be independent")
 	}
 }
