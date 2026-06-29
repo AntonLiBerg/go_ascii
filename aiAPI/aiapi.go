@@ -241,5 +241,60 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 }
 
 func GetNeighbors(world wrld.World, target int, filterComponents []cmp.ComponentName) []int {
-	return nil
+	targetPos, ok := world.Pos[target]
+	if !ok {
+		return []int{}
+	}
+
+	deltas := []cmp.Position{
+		{X: -1, Y: -1},
+		{X: -1, Y: 0},
+		{X: -1, Y: 1},
+		{X: 0, Y: 1},
+		{X: 1, Y: 1},
+		{X: 1, Y: 0},
+		{X: 1, Y: -1},
+		{X: 0, Y: -1},
+	}
+
+	neighbors := []int{}
+	for _, delta := range deltas {
+		pos := cmp.Position{X: targetPos.X + delta.X, Y: targetPos.Y + delta.Y}
+		eID, ok := world.EByPos[pos]
+		if !ok || eID == target {
+			continue
+		}
+		if !hasComponents(world, eID, filterComponents) {
+			continue
+		}
+		neighbors = append(neighbors, eID)
+	}
+
+	return neighbors
+}
+
+func hasComponents(world wrld.World, eID int, components []cmp.ComponentName) bool {
+	for _, component := range components {
+		switch component {
+		case cmp.C_POS:
+			if _, ok := world.Pos[eID]; !ok {
+				return false
+			}
+		case cmp.C_ASCII:
+			if _, ok := world.Ascii[eID]; !ok {
+				return false
+			}
+		case cmp.C_IMPASSABLE:
+			if _, ok := world.Impassable[eID]; !ok {
+				return false
+			}
+		case cmp.C_TAGS:
+			if _, ok := world.Tags[eID]; !ok {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
 }

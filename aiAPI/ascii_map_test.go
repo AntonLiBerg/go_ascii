@@ -1,7 +1,6 @@
 package aiapi
 
 import (
-	"fmt"
 	cmp "go_ascii/component"
 	wrld "go_ascii/world"
 	"os"
@@ -236,9 +235,7 @@ func TestGetNeighbors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			actual := GetNeighbors(world, pId, tt.filter)
 			if !slices.Equal(tt.want, actual) {
-				sWant := fmt.Sprint(tt.want)
-				sActual := fmt.Sprint(actual)
-				t.Errorf("got: " + sActual + " actual: " + sWant)
+				t.Errorf("got %v, want %v", actual, tt.want)
 			}
 		})
 	}
