@@ -44,7 +44,7 @@ func TestAddEntityStoresComponents(t *testing.T) {
 	}
 }
 
-func TestWorldAddMethodsMutateAndReturnWorld(t *testing.T) {
+func TestWorldAddMethodsCloneAndReturnWorld(t *testing.T) {
 	world := NewWorldEmpty()
 
 	updated, eID := world.AddNewEntity()
@@ -56,8 +56,14 @@ func TestWorldAddMethodsMutateAndReturnWorld(t *testing.T) {
 		AddTag(eID, cmp.TAG_PLAYER).
 		AddTag(eID, cmp.Tag("visible"))
 
-	if updated != &world {
-		t.Fatal("expected add methods to return the same world pointer")
+	if len(world.Entities) != 0 {
+		t.Fatal("expected original world to keep no entities")
+	}
+	if _, ok := world.UserInput["q"]; ok {
+		t.Fatal("expected original world to keep no user input")
+	}
+	if _, ok := world.Pos[eID]; ok {
+		t.Fatal("expected original world to keep no position")
 	}
 
 	if eID != 0 {
@@ -97,37 +103,37 @@ func TestWorldAddMethodsMutateAndReturnWorld(t *testing.T) {
 
 func TestAddPositionRemovesOldReverseIndex(t *testing.T) {
 	world := NewWorldEmpty()
-	updated, eID := world.AddNewEntity()
-	updated.AddPosition(eID, cmp.Position{X: 1, Y: 1})
+	world, eID := world.AddNewEntity()
+	world = world.AddPosition(eID, cmp.Position{X: 1, Y: 1})
 
-	returned := updated.AddPosition(eID, cmp.Position{X: 2, Y: 2})
+	updated := world.AddPosition(eID, cmp.Position{X: 2, Y: 2})
 
-	if returned != &world {
-		t.Fatal("expected AddPosition to return the same world pointer")
-	}
-	if _, ok := world.EByPos[cmp.Position{X: 1, Y: 1}]; ok {
+	if _, ok := updated.EByPos[cmp.Position{X: 1, Y: 1}]; ok {
 		t.Fatal("expected old reverse position index to be removed")
 	}
-	if got := world.EByPos[cmp.Position{X: 2, Y: 2}]; got != eID {
+	if got := updated.EByPos[cmp.Position{X: 2, Y: 2}]; got != eID {
 		t.Fatalf("expected new reverse position index to point at entity %d, got %d", eID, got)
+	}
+	if got := world.EByPos[cmp.Position{X: 1, Y: 1}]; got != eID {
+		t.Fatalf("expected original reverse position index to stay unchanged, got %d", got)
 	}
 }
 
 func TestAddTagsReplacesReverseTagIndex(t *testing.T) {
 	world := NewWorldEmpty()
-	updated, eID := world.AddNewEntity()
-	updated.AddTags(eID, cmp.Tags{Vals: map[cmp.Tag]bool{cmp.TAG_PLAYER: true}})
+	world, eID := world.AddNewEntity()
+	world = world.AddTags(eID, cmp.Tags{Vals: map[cmp.Tag]bool{cmp.TAG_PLAYER: true}})
 
-	returned := updated.AddTags(eID, cmp.Tags{Vals: map[cmp.Tag]bool{cmp.Tag("visible"): true}})
+	updated := world.AddTags(eID, cmp.Tags{Vals: map[cmp.Tag]bool{cmp.Tag("visible"): true}})
 
-	if returned != &world {
-		t.Fatal("expected AddTags to return the same world pointer")
-	}
-	if _, ok := world.EByTag[cmp.TAG_PLAYER][eID]; ok {
+	if _, ok := updated.EByTag[cmp.TAG_PLAYER][eID]; ok {
 		t.Fatal("expected old reverse tag index to be removed")
 	}
-	if !world.EByTag[cmp.Tag("visible")][eID] {
+	if !updated.EByTag[cmp.Tag("visible")][eID] {
 		t.Fatal("expected new reverse tag index to include entity")
+	}
+	if !world.EByTag[cmp.TAG_PLAYER][eID] {
+		t.Fatal("expected original reverse tag index to stay unchanged")
 	}
 }
 
