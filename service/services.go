@@ -127,17 +127,18 @@ func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
 	if len(neighbors) == 0 {
 		return UpdateFunc{Order: 1}
 	}
-
-	machine := w.Machine[neighbors[0]]
-	switch machine.MachineType {
-	case cmp.MACHINENAME_RADIO:
+	if len(neighbors) == 1{
 		return UpdateFunc{
 			Order: 1,
-			UpdateFunc: func(w *wrld.World) {
-				//What happens when you turn off or on a radio?
+			UpdateFunc: func(w *wrld.World){
+				w.Interactions = append(w.Interactions,usr.Interaction{Interaction: usr.KEY_INTERACT, TargetEid: neighbors});
 			},
 		}
-	default:
-		panic("Machine not found!")
 	}
+
+}
+type Interaction struct{
+	Interaction  usr.Interaction
+	TargetEid []int
+
 }

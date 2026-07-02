@@ -4,25 +4,27 @@ type UserState int
 
 const (
 	S_playing UserState = iota
+	S_INTERACT
 	S_quit
 )
 
+type Interaction string
 const (
-	Key_quitGame  = "quitgame"
-	Key_moveUp    = "moveup"
-	Key_moveLeft  = "moveleft"
-	Key_moveDown  = "movedown"
-	Key_moveRight = "moveright"
-	KEY_INTERACT  = "interact"
+	Key_quitGame Interaction = "quitgame"
+	Key_moveUp  Interaction   = "moveup"
+	Key_moveLeft  Interaction = "moveleft"
+	Key_moveDown  Interaction = "movedown"
+	Key_moveRight  Interaction= "moveright"
+	KEY_INTERACT  Interaction = "interact"
 )
 
 type UserInputProfile struct {
-	KeyQuitGame  string
-	KeyMoveUp    string
-	KeyMoveLeft  string
-	KeyMoveDown  string
-	KeyMoveRight string
-	KeyInteract  string
+	KeyQuitGame  Interaction
+	KeyMoveUp    Interaction
+	KeyMoveLeft  Interaction
+	KeyMoveDown  Interaction
+	KeyMoveRight Interaction
+	KeyInteract  Interaction
 }
 
 func NewUserInputProfileEmpty() UserInputProfile {
@@ -38,11 +40,11 @@ func NewUserInputProfileEmpty() UserInputProfile {
 
 func NewUserInputProfile(userInputProfile map[string]string) UserInputProfile {
 	return UserInputProfile{
-		KeyQuitGame:  userInputProfile[Key_quitGame],
-		KeyMoveUp:    userInputProfile[Key_moveUp],
-		KeyMoveLeft:  userInputProfile[Key_moveLeft],
-		KeyMoveDown:  userInputProfile[Key_moveDown],
-		KeyMoveRight: userInputProfile[Key_moveRight],
-		KeyInteract:  userInputProfile[KEY_INTERACT],
+		KeyQuitGame:  Key_quitGame,
+		KeyMoveUp:    Key_moveUp,
+		KeyMoveLeft:  Key_moveLeft,
+		KeyMoveDown:  Key_moveDown,
+		KeyMoveRight: Key_moveRight,
+		KeyInteract:  KEY_INTERACT,
 	}
 }
