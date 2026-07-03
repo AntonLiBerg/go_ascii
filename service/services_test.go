@@ -45,6 +45,42 @@ func TestServiceMovePlayerMovesWithWASD(t *testing.T) {
 	}
 }
 
+func TestServiceTurnOnMachineTurnsOnSingleNeighborAndClearsInteractKey(t *testing.T) {
+	world := wrld.NewWorldEmpty()
+	world.UserInputProfile = usr.UserInputProfile{KeyInteract: "e"}
+
+	addMovementTestEntity(t, &world, [2]int{1, 1}, map[cmp.ComponentName][]string{
+		cmp.C_POS:   {},
+		cmp.C_ASCII: {"o"},
+		cmp.C_TAGS:  {string(cmp.TAG_PLAYER)},
+	})
+	addMovementTestEntity(t, &world, [2]int{2, 1}, map[cmp.ComponentName][]string{
+		cmp.C_POS:        {},
+		cmp.C_ASCII:      {"R"},
+		cmp.C_IMPASSABLE: {},
+		cmp.C_MACHINE:    {string(cmp.MACHINENAME_RADIO)},
+	})
+	world.SetKeyDown("e")
+
+	result := ServiceTurnOnMachine{}.GetUpdateFunc(world)
+	if result.UpdateFunc == nil {
+		t.Fatal("expected interact update func")
+	}
+
+	result.UpdateFunc(&world)
+
+	machineID := getSingleMachineID(t, world)
+	if !world.Machine[machineID].IsOn {
+		t.Fatal("expected machine to be on after interaction")
+	}
+	if world.UserInput["e"] {
+		t.Fatal("expected interact key to be cleared after interaction")
+	}
+	if !world.HasChanged {
+		t.Fatal("expected world to be marked changed after turning on machine")
+	}
+}
+
 func newMovementTestWorld(t *testing.T) wrld.World {
 	t.Helper()
 
@@ -103,5 +139,20 @@ func getSinglePlayerID(t *testing.T, world wrld.World) int {
 	}
 
 	t.Fatal("expected player id")
+	return 0
+}
+
+func getSingleMachineID(t *testing.T, world wrld.World) int {
+	t.Helper()
+
+	if len(world.Machine) != 1 {
+		t.Fatalf("expected exactly one machine, got %d", len(world.Machine))
+	}
+
+	for id := range world.Machine {
+		return id
+	}
+
+	t.Fatal("expected machine id")
 	return 0
 }

@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	ai "go_ascii/aiAPI"
 	aiapi "go_ascii/aiAPI"
 	cmp "go_ascii/component"
 	usr "go_ascii/user"
@@ -25,7 +24,7 @@ func (s ServiceDrawOnTerminal) GetUpdateFunc(w wrld.World) UpdateFunc {
 		Order: 100,
 		UpdateFunc: func(w *wrld.World) {
 			if w.IterationNr == 1 || w.HasChanged {
-				ai.UpdateTerminal(*w)
+				aiapi.UpdateTerminal(*w)
 				w.HasChanged = false
 			}
 		},
@@ -38,7 +37,7 @@ func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) UpdateFunc {
 	return UpdateFunc{
 		Order: 1,
 		UpdateFunc: func(w *wrld.World) {
-			if w.UserInput[w.UserInputProfile.KeyQuitGame] {
+			if w.UserInput[string(w.UserInputProfile.KeyQuitGame)] {
 				w.StateUser = usr.S_quit
 			}
 		},
@@ -52,18 +51,18 @@ func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) UpdateFunc {
 	keyToClear := ""
 
 	switch {
-	case w.UserInput[w.UserInputProfile.KeyMoveUp]:
+	case w.UserInput[string(w.UserInputProfile.KeyMoveUp)]:
 		moveDelta = cmp.Position{Y: -1}
-		keyToClear = w.UserInputProfile.KeyMoveUp
-	case w.UserInput[w.UserInputProfile.KeyMoveLeft]:
+		keyToClear = string(w.UserInputProfile.KeyMoveUp)
+	case w.UserInput[string(w.UserInputProfile.KeyMoveLeft)]:
 		moveDelta = cmp.Position{X: -1}
-		keyToClear = w.UserInputProfile.KeyMoveLeft
-	case w.UserInput[w.UserInputProfile.KeyMoveDown]:
+		keyToClear = string(w.UserInputProfile.KeyMoveLeft)
+	case w.UserInput[string(w.UserInputProfile.KeyMoveDown)]:
 		moveDelta = cmp.Position{Y: 1}
-		keyToClear = w.UserInputProfile.KeyMoveDown
-	case w.UserInput[w.UserInputProfile.KeyMoveRight]:
+		keyToClear = string(w.UserInputProfile.KeyMoveDown)
+	case w.UserInput[string(w.UserInputProfile.KeyMoveRight)]:
 		moveDelta = cmp.Position{X: 1}
-		keyToClear = w.UserInputProfile.KeyMoveRight
+		keyToClear = string(w.UserInputProfile.KeyMoveRight)
 	default:
 		return UpdateFunc{Order: 1}
 	}
@@ -115,30 +114,41 @@ func canMakeMove(w *wrld.World, targetID int) bool {
 type ServiceTurnOnMachine struct{}
 
 func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
-	if !w.UserInput[w.UserInputProfile.KeyInteract] {
+	if !w.UserInput[string(w.UserInputProfile.KeyInteract)] {
 		return UpdateFunc{Order: 1}
 	}
 
-	playerId := -1
-	for eId := range w.EByTag[cmp.TAG_PLAYER] {
-		playerId = eId
+	playerID := -1
+	for eID := range w.EByTag[cmp.TAG_PLAYER] {
+		playerID = eID
+		break
 	}
-	neighbors := aiapi.GetNeighbors(w, playerId, []cmp.ComponentName{cmp.C_MACHINE})
-	if len(neighbors) == 0 {
+	if playerID == -1 {
 		return UpdateFunc{Order: 1}
 	}
-	if len(neighbors) == 1{
-		return UpdateFunc{
-			Order: 1,
-			UpdateFunc: func(w *wrld.World){
-				w.Interactions = append(w.Interactions,usr.Interaction{Interaction: usr.KEY_INTERACT, TargetEid: neighbors});
-			},
-		}
+
+	neighbors := aiapi.GetNeighbors(w, playerID, []cmp.ComponentName{cmp.C_MACHINE})
+	machineID := -1
+	if len(neighbors) == 1 {
+		machineID = neighbors[0]
 	}
 
-}
-type Interaction struct{
-	Interaction  usr.Interaction
-	TargetEid []int
+	return UpdateFunc{
+		Order: 1,
+		UpdateFunc: func(w *wrld.World) {
+			w.UserInput[string(w.UserInputProfile.KeyInteract)] = false
+			if machineID == -1 {
+				return
+			}
 
+			machine := w.Machine[machineID]
+			if machine.IsOn {
+				return
+			}
+
+			machine.IsOn = true
+			w.Machine[machineID] = machine
+			w.HasChanged = true
+		},
+	}
 }

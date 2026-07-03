@@ -9,12 +9,13 @@ const (
 )
 
 type Interaction string
+
 const (
-	Key_quitGame Interaction = "quitgame"
-	Key_moveUp  Interaction   = "moveup"
+	Key_quitGame  Interaction = "quitgame"
+	Key_moveUp    Interaction = "moveup"
 	Key_moveLeft  Interaction = "moveleft"
 	Key_moveDown  Interaction = "movedown"
-	Key_moveRight  Interaction= "moveright"
+	Key_moveRight Interaction = "moveright"
 	KEY_INTERACT  Interaction = "interact"
 )
 
@@ -40,11 +41,11 @@ func NewUserInputProfileEmpty() UserInputProfile {
 
 func NewUserInputProfile(userInputProfile map[string]string) UserInputProfile {
 	return UserInputProfile{
-		KeyQuitGame:  Key_quitGame,
-		KeyMoveUp:    Key_moveUp,
-		KeyMoveLeft:  Key_moveLeft,
-		KeyMoveDown:  Key_moveDown,
-		KeyMoveRight: Key_moveRight,
-		KeyInteract:  KEY_INTERACT,
+		KeyQuitGame:  Interaction(userInputProfile[string(Key_quitGame)]),
+		KeyMoveUp:    Interaction(userInputProfile[string(Key_moveUp)]),
+		KeyMoveLeft:  Interaction(userInputProfile[string(Key_moveLeft)]),
+		KeyMoveDown:  Interaction(userInputProfile[string(Key_moveDown)]),
+		KeyMoveRight: Interaction(userInputProfile[string(Key_moveRight)]),
+		KeyInteract:  Interaction(userInputProfile[string(KEY_INTERACT)]),
 	}
 }
