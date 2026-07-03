@@ -129,26 +129,26 @@ func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
 
 	neighbors := aiapi.GetNeighbors(w, playerID, []cmp.ComponentName{cmp.C_MACHINE})
 	machineID := -1
+	if len(neighbors) == 0{
+		return UpdateFunc{}
+	}
 	if len(neighbors) == 1 {
 		machineID = neighbors[0]
+		return UpdateFunc{
+			Order: 1,
+			UpdateFunc: func(w *wrld.World) {
+				machine := w.Machine[machineID]
+				machine.IsOn = true
+				w.HasChanged = true
+			},
+		}
+	}else{
+		// Display choice menu
+		return UpdateFunc{}
 	}
 
-	return UpdateFunc{
-		Order: 1,
-		UpdateFunc: func(w *wrld.World) {
-			w.UserInput[string(w.UserInputProfile.KeyInteract)] = false
-			if machineID == -1 {
-				return
-			}
+}
+type ServiceShowChoiceMenu struct{}
+func (s ServiceShowChoiceMenu) GetUpdateFunc(w wrld.World) UpdateFunc {
 
-			machine := w.Machine[machineID]
-			if machine.IsOn {
-				return
-			}
-
-			machine.IsOn = true
-			w.Machine[machineID] = machine
-			w.HasChanged = true
-		},
-	}
 }

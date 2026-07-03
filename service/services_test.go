@@ -156,3 +156,10 @@ func getSingleMachineID(t *testing.T, world wrld.World) int {
 	t.Fatal("expected machine id")
 	return 0
 }
+
+
+
+
+func TestServiceShowChoiceMenu(t *testing.T, world wrld.World){
+
+}
