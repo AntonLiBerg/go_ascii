@@ -158,8 +158,3 @@ func getSingleMachineID(t *testing.T, world wrld.World) int {
 }
 
 
-
-
-func TestServiceShowChoiceMenu(t *testing.T, world wrld.World){
-
-}

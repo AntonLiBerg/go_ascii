@@ -8,7 +8,7 @@ import (
 
 type World struct {
 	UserInputProfile usr.UserInputProfile
-	StateUser        usr.UserState
+	StateUser        map[usr.UserState]bool
 	UserInput        map[string]bool
 	NextEnt          int
 	Entities         []int
@@ -26,7 +26,7 @@ type World struct {
 func NewWorldEmpty() World {
 	return World{
 		UserInputProfile: usr.NewUserInputProfileEmpty(),
-		StateUser:        usr.S_playing,
+		StateUser:        map[usr.UserState]bool{usr.S_playing: true},
 		UserInput:        map[string]bool{},
 		NextEnt:          0,
 		Entities:         []int{},
@@ -56,7 +56,7 @@ func NewWorld(aMap map[[2]int]rune, entities map[rune]string, components map[str
 func (w *World) Clone() World {
 	clone := World{
 		UserInputProfile: w.UserInputProfile,
-		StateUser:        w.StateUser,
+		StateUser:        make(map[usr.UserState]bool, len(w.StateUser)),
 		UserInput:        make(map[string]bool, len(w.UserInput)),
 		NextEnt:          w.NextEnt,
 		Entities:         append([]int(nil), w.Entities...),
@@ -69,6 +69,10 @@ func (w *World) Clone() World {
 		EByPos:           make(map[cmp.Position]int, len(w.Pos)),
 		HasChanged:       w.HasChanged,
 		IterationNr:      w.IterationNr,
+	}
+
+	for state, active := range w.StateUser {
+		clone.StateUser[state] = active
 	}
 
 	for key, value := range w.UserInput {
@@ -115,6 +119,17 @@ func (w *World) ClearUserInput() {
 
 func (w *World) SetKeyDown(key string) {
 	w.UserInput[key] = true
+}
+
+func (w *World) SetUserState(state usr.UserState, isActive bool) {
+	if w.StateUser == nil {
+		w.StateUser = map[usr.UserState]bool{}
+	}
+	w.StateUser[state] = isActive
+}
+
+func (w World) HasUserState(state usr.UserState) bool {
+	return w.StateUser[state]
 }
 
 func (w World) IsKeyDown(key string) bool {

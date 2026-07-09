@@ -148,7 +148,7 @@ func TestAddTagsReplacesReverseTagIndex(t *testing.T) {
 func TestCloneCopiesComponents(t *testing.T) {
 	world := NewWorldEmpty()
 	world.UserInputProfile = usr.UserInputProfile{KeyQuitGame: "q", KeyMoveDown: "s"}
-	world.StateUser = usr.S_quit
+	world.SetUserState(usr.S_quit, true)
 	world.UserInput["q"] = true
 	world.Entities = []int{1}
 	world.NextEnt = 2
@@ -165,7 +165,7 @@ func TestCloneCopiesComponents(t *testing.T) {
 	if clone.UserInputProfile.KeyQuitGame != "q" || clone.UserInputProfile.KeyMoveDown != "s" {
 		t.Fatalf("expected user input profile to be copied, got %+v", clone.UserInputProfile)
 	}
-	if clone.StateUser != usr.S_quit {
+	if !clone.HasUserState(usr.S_quit) {
 		t.Fatalf("expected state user to be copied, got %v", clone.StateUser)
 	}
 	if !clone.Tags[1].Vals[cmp.TAG_PLAYER] {
@@ -192,6 +192,10 @@ func TestCloneCopiesComponents(t *testing.T) {
 	clone.EByTag[cmp.TAG_PLAYER][2] = true
 	if world.EByTag[cmp.TAG_PLAYER][2] {
 		t.Fatal("expected cloned reverse tag index to be independent")
+	}
+	clone.SetUserState(usr.S_INTERACT, true)
+	if world.HasUserState(usr.S_INTERACT) {
+		t.Fatal("expected cloned state user map to be independent")
 	}
 	clone.EByPos[cmp.Position{X: 1, Y: 1}] = 9
 	if _, ok := world.EByPos[cmp.Position{X: 1, Y: 1}]; ok {

@@ -38,7 +38,7 @@ func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) UpdateFunc {
 		Order: 1,
 		UpdateFunc: func(w *wrld.World) {
 			if w.UserInput[string(w.UserInputProfile.KeyQuitGame)] {
-				w.StateUser = usr.S_quit
+				w.SetUserState(usr.S_quit, true)
 			}
 		},
 	}
@@ -129,7 +129,7 @@ func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
 
 	neighbors := aiapi.GetNeighbors(w, playerID, []cmp.ComponentName{cmp.C_MACHINE})
 	machineID := -1
-	if len(neighbors) == 0{
+	if len(neighbors) == 0 {
 		return UpdateFunc{}
 	}
 	if len(neighbors) == 1 {
@@ -142,13 +142,16 @@ func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
 				w.HasChanged = true
 			},
 		}
-	}else{
+	} else {
 		// Display choice menu
 		return UpdateFunc{}
 	}
 
 }
+
 type ServiceShowChoiceMenu struct{}
 func (s ServiceShowChoiceMenu) GetUpdateFunc(w wrld.World) UpdateFunc {
+	if(!w.StateUser[S_CHOICEMENU]){
 
+	}
 }
