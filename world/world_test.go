@@ -14,27 +14,30 @@ func TestAddEntityStoresComponents(t *testing.T) {
 		cmp.C_ASCII:      {"o"},
 		cmp.C_IMPASSABLE: {},
 		cmp.C_MACHINE:    {string(cmp.MACHINENAME_RADIO)},
-		cmp.C_TAGS:       {string(cmp.TAG_PLAYER), "visible"},
+		cmp.C_PLAYER:     {},
+		cmp.C_VISIBLE:    {},
 	})
 	if err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
 
-	tags, ok := world.Tags[0]
-	if !ok {
-		t.Fatal("expected tags for entity 0")
+	if !world.HasComponent(0, cmp.C_PLAYER) {
+		t.Fatal("expected entity 0 to have player component")
 	}
-	if !tags.Vals[cmp.TAG_PLAYER] {
-		t.Fatal("expected entity 0 to have player tag")
+	if !world.HasComponent(0, cmp.C_VISIBLE) {
+		t.Fatal("expected entity 0 to have visible component")
 	}
-	if !tags.Vals[cmp.Tag("visible")] {
-		t.Fatal("expected entity 0 to have visible tag")
+	if !world.HasComponent(0, cmp.C_POS) {
+		t.Fatal("expected entity 0 to have position component")
 	}
-	if !world.EByTag[cmp.TAG_PLAYER][0] {
-		t.Fatal("expected reverse tag index to include entity 0 for player")
+	if !world.HasComponent(0, cmp.C_ASCII) {
+		t.Fatal("expected entity 0 to have ascii component")
 	}
-	if !world.EByTag[cmp.Tag("visible")][0] {
-		t.Fatal("expected reverse tag index to include entity 0 for visible")
+	if !world.HasComponent(0, cmp.C_IMPASSABLE) {
+		t.Fatal("expected entity 0 to have impassable component")
+	}
+	if !world.HasComponent(0, cmp.C_MACHINE) {
+		t.Fatal("expected entity 0 to have machine component")
 	}
 	gotPosID, ok := world.EByPos[cmp.Position{X: 2, Y: 3}]
 	if !ok || gotPosID != 0 {
@@ -54,12 +57,17 @@ func TestWorldAddMethodsCloneAndReturnWorld(t *testing.T) {
 	updated, eID := world.AddNewEntity()
 	updated = updated.
 		AddUserInput("q", true).
+		AddMenuChoices(MenuChoices{
+			ShouldShow: true,
+			Header:     "test menu",
+			Choices:    []MenuChoice{{Text: "one"}},
+		}).
 		AddPosition(eID, cmp.Position{X: 2, Y: 3}).
 		AddAscii(eID, cmp.Ascii{Ascii: 'o'}).
 		AddImpassable(eID).
 		AddMachine(eID, cmp.Machine{MachineType: cmp.MACHINENAME_RADIO}).
-		AddTag(eID, cmp.TAG_PLAYER).
-		AddTag(eID, cmp.Tag("visible"))
+		AddPlayer(eID).
+		AddVisible(eID)
 
 	if len(world.Entities) != 0 {
 		t.Fatal("expected original world to keep no entities")
@@ -70,6 +78,12 @@ func TestWorldAddMethodsCloneAndReturnWorld(t *testing.T) {
 	if _, ok := world.Pos[eID]; ok {
 		t.Fatal("expected original world to keep no position")
 	}
+	if world.HasComponent(eID, cmp.C_PLAYER) {
+		t.Fatal("expected original world to keep no player component")
+	}
+	if world.MenuChoices.ShouldShow {
+		t.Fatal("expected original world to keep empty menu choices")
+	}
 
 	if eID != 0 {
 		t.Fatalf("expected first entity id to be 0, got %d", eID)
@@ -79,6 +93,9 @@ func TestWorldAddMethodsCloneAndReturnWorld(t *testing.T) {
 	}
 	if !updated.UserInput["q"] {
 		t.Fatal("expected updated world to store user input")
+	}
+	if !updated.MenuChoices.ShouldShow || updated.MenuChoices.Header != "test menu" || len(updated.MenuChoices.Choices) != 1 {
+		t.Fatalf("expected updated world to store menu choices, got %+v", updated.MenuChoices)
 	}
 	if got := updated.Pos[eID]; got != (cmp.Position{X: 2, Y: 3}) {
 		t.Fatalf("expected updated position 2,3, got %+v", got)
@@ -95,17 +112,23 @@ func TestWorldAddMethodsCloneAndReturnWorld(t *testing.T) {
 	if got := updated.Machine[eID].MachineType; got != cmp.MACHINENAME_RADIO {
 		t.Fatalf("expected updated world to store radio machine component, got %s", got)
 	}
-	if !updated.Tags[eID].Vals[cmp.TAG_PLAYER] {
-		t.Fatal("expected updated world to store player tag")
+	if !updated.HasComponent(eID, cmp.C_PLAYER) {
+		t.Fatal("expected updated world to store player component")
 	}
-	if !updated.Tags[eID].Vals[cmp.Tag("visible")] {
-		t.Fatal("expected updated world to store visible tag")
+	if !updated.HasComponent(eID, cmp.C_VISIBLE) {
+		t.Fatal("expected updated world to store visible component")
 	}
-	if !updated.EByTag[cmp.TAG_PLAYER][eID] {
-		t.Fatal("expected reverse tag index to include player tag")
+	if !updated.HasComponent(eID, cmp.C_POS) {
+		t.Fatal("expected updated world to store position component")
 	}
-	if !updated.EByTag[cmp.Tag("visible")][eID] {
-		t.Fatal("expected reverse tag index to include visible tag")
+	if !updated.HasComponent(eID, cmp.C_ASCII) {
+		t.Fatal("expected updated world to store ascii component")
+	}
+	if !updated.HasComponent(eID, cmp.C_IMPASSABLE) {
+		t.Fatal("expected updated world to store impassable component")
+	}
+	if !updated.HasComponent(eID, cmp.C_MACHINE) {
+		t.Fatal("expected updated world to store machine component")
 	}
 }
 
@@ -127,21 +150,39 @@ func TestAddPositionRemovesOldReverseIndex(t *testing.T) {
 	}
 }
 
-func TestAddTagsReplacesReverseTagIndex(t *testing.T) {
+func TestAddPlayerClonesAndKeepsOriginalWorld(t *testing.T) {
 	world := NewWorldEmpty()
 	world, eID := world.AddNewEntity()
-	world = world.AddTags(eID, cmp.Tags{Vals: map[cmp.Tag]bool{cmp.TAG_PLAYER: true}})
 
-	updated := world.AddTags(eID, cmp.Tags{Vals: map[cmp.Tag]bool{cmp.Tag("visible"): true}})
+	updated := world.AddPlayer(eID)
 
-	if _, ok := updated.EByTag[cmp.TAG_PLAYER][eID]; ok {
-		t.Fatal("expected old reverse tag index to be removed")
+	if !updated.HasComponent(eID, cmp.C_PLAYER) {
+		t.Fatal("expected updated world to store player component")
 	}
-	if !updated.EByTag[cmp.Tag("visible")][eID] {
-		t.Fatal("expected new reverse tag index to include entity")
+	if world.HasComponent(eID, cmp.C_PLAYER) {
+		t.Fatal("expected original world to stay unchanged")
 	}
-	if !world.EByTag[cmp.TAG_PLAYER][eID] {
-		t.Fatal("expected original reverse tag index to stay unchanged")
+}
+
+func TestAddMenuChoicesClonesAndKeepsOriginalWorld(t *testing.T) {
+	world := NewWorldEmpty()
+
+	updated := world.AddMenuChoices(MenuChoices{
+		ShouldShow: true,
+		Header:     "choices",
+		Choices:    []MenuChoice{{Text: "pick me"}},
+	})
+
+	if !updated.MenuChoices.ShouldShow || updated.MenuChoices.Header != "choices" || len(updated.MenuChoices.Choices) != 1 {
+		t.Fatalf("expected updated world to store menu choices, got %+v", updated.MenuChoices)
+	}
+	if world.MenuChoices.ShouldShow || world.MenuChoices.Header != "" || len(world.MenuChoices.Choices) != 0 {
+		t.Fatalf("expected original world to stay unchanged, got %+v", world.MenuChoices)
+	}
+
+	updated.MenuChoices.Choices[0].Text = "changed"
+	if len(world.MenuChoices.Choices) != 0 {
+		t.Fatal("expected original world menu choices slice to stay independent")
 	}
 }
 
@@ -150,14 +191,19 @@ func TestCloneCopiesComponents(t *testing.T) {
 	world.UserInputProfile = usr.UserInputProfile{KeyQuitGame: "q", KeyMoveDown: "s"}
 	world.SetUserState(usr.S_quit, true)
 	world.UserInput["q"] = true
+	world.MenuChoices = MenuChoices{
+		ShouldShow: true,
+		IsOpen:     true,
+		Header:     "cloned menu",
+		Choices:    []MenuChoice{{Text: "first"}},
+	}
 	world.Entities = []int{1}
 	world.NextEnt = 2
 	world.Pos[1] = cmp.Position{X: 4, Y: 5}
 	world.Ascii[1] = cmp.Ascii{Ascii: 'o'}
 	world.Impassable[1] = cmp.Impassable{}
+	world.Player[1] = cmp.Player{}
 	world.Machine[1] = cmp.Machine{MachineType: cmp.MACHINENAME_RADIO}
-	world.Tags[1] = cmp.Tags{Vals: map[cmp.Tag]bool{cmp.TAG_PLAYER: true}}
-	world.EByTag[cmp.TAG_PLAYER] = map[int]bool{1: true}
 	world.EByPos[cmp.Position{X: 4, Y: 5}] = 1
 
 	clone := world.Clone()
@@ -168,11 +214,23 @@ func TestCloneCopiesComponents(t *testing.T) {
 	if !clone.HasUserState(usr.S_quit) {
 		t.Fatalf("expected state user to be copied, got %v", clone.StateUser)
 	}
-	if !clone.Tags[1].Vals[cmp.TAG_PLAYER] {
-		t.Fatal("expected cloned world to keep player tag")
+	if !clone.MenuChoices.ShouldShow || !clone.MenuChoices.IsOpen || clone.MenuChoices.Header != "cloned menu" || len(clone.MenuChoices.Choices) != 1 {
+		t.Fatalf("expected menu choices to be copied, got %+v", clone.MenuChoices)
 	}
-	if !clone.EByTag[cmp.TAG_PLAYER][1] {
-		t.Fatal("expected cloned world to keep reverse player tag index")
+	if !clone.HasComponent(1, cmp.C_PLAYER) {
+		t.Fatal("expected cloned world to keep player component")
+	}
+	if !clone.HasComponent(1, cmp.C_POS) {
+		t.Fatal("expected cloned world to keep position component")
+	}
+	if !clone.HasComponent(1, cmp.C_ASCII) {
+		t.Fatal("expected cloned world to keep ascii component")
+	}
+	if !clone.HasComponent(1, cmp.C_IMPASSABLE) {
+		t.Fatal("expected cloned world to keep impassable component")
+	}
+	if !clone.HasComponent(1, cmp.C_MACHINE) {
+		t.Fatal("expected cloned world to keep machine component")
 	}
 	gotPosID, ok := clone.EByPos[cmp.Position{X: 4, Y: 5}]
 	if !ok || gotPosID != 1 {
@@ -185,13 +243,13 @@ func TestCloneCopiesComponents(t *testing.T) {
 		t.Fatalf("expected cloned world to keep radio machine component, got %s", got)
 	}
 
-	clone.Tags[1].Vals[cmp.Tag("new")] = true
-	if world.Tags[1].Vals[cmp.Tag("new")] {
-		t.Fatal("expected cloned tags map to be independent")
+	clone.Visible[1] = cmp.Visible{}
+	if _, ok := world.Visible[1]; ok {
+		t.Fatal("expected cloned visible map to be independent")
 	}
-	clone.EByTag[cmp.TAG_PLAYER][2] = true
-	if world.EByTag[cmp.TAG_PLAYER][2] {
-		t.Fatal("expected cloned reverse tag index to be independent")
+	clone.MenuChoices.Choices[0].Text = "changed"
+	if world.MenuChoices.Choices[0].Text == "changed" {
+		t.Fatal("expected cloned menu choices to be independent")
 	}
 	clone.SetUserState(usr.S_INTERACT, true)
 	if world.HasUserState(usr.S_INTERACT) {

@@ -5,9 +5,11 @@ type ComponentName string
 const (
 	C_POS        ComponentName = "pos"
 	C_ASCII      ComponentName = "ascii"
-	C_TAGS       ComponentName = "tags"
 	C_IMPASSABLE ComponentName = "impassable"
 	C_MACHINE    ComponentName = "machine"
+	C_PLAYER     ComponentName = "player"
+	C_VISIBLE    ComponentName = "visible"
+	C_WALKABLE   ComponentName = "walkable"
 )
 
 type Position struct {
@@ -19,17 +21,13 @@ type Ascii struct {
 	Ascii rune
 }
 
-type Tag string
-
-const (
-	TAG_PLAYER Tag = "player"
-)
-
-type Tags struct {
-	Vals map[Tag]bool
-}
-
 type Impassable struct{}
+
+type Player struct{}
+
+type Visible struct{}
+
+type Walkable struct{}
 
 type Machine struct {
 	IsOn        bool

@@ -33,7 +33,10 @@ func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) UpdateFunc {
 		Order: 1,
 		UpdateFunc: func(w *wrld.World) {
 			w.HasChanged = true
-			for eID := range w.EByTag[cmp.TAG_PLAYER] {
+			for _, eID := range w.Entities {
+				if !w.HasComponent(eID, cmp.C_PLAYER) {
+					continue
+				}
 				if err := tryGoToPosition(w, eID, moveDelta); err != nil {
 					panic(err)
 				}

@@ -10,17 +10,20 @@ type World struct {
 	UserInputProfile usr.UserInputProfile
 	StateUser        map[usr.UserState]bool
 	UserInput        map[string]bool
-	NextEnt          int
-	Entities         []int
-	Pos              map[int]cmp.Position
-	Ascii            map[int]cmp.Ascii
-	Impassable       map[int]cmp.Impassable
-	Machine          map[int]cmp.Machine
-	Tags             map[int]cmp.Tags
-	EByTag           map[cmp.Tag]map[int]bool
 	EByPos           map[cmp.Position]int
 	HasChanged       bool
 	IterationNr      int
+	MenuChoices      MenuChoices
+	//Entities
+	NextEnt    int
+	Entities   []int
+	Pos        map[int]cmp.Position
+	Ascii      map[int]cmp.Ascii
+	Impassable map[int]cmp.Impassable
+	Player     map[int]cmp.Player
+	Visible    map[int]cmp.Visible
+	Walkable   map[int]cmp.Walkable
+	Machine    map[int]cmp.Machine
 }
 
 func NewWorldEmpty() World {
@@ -28,14 +31,16 @@ func NewWorldEmpty() World {
 		UserInputProfile: usr.NewUserInputProfileEmpty(),
 		StateUser:        map[usr.UserState]bool{usr.S_playing: true},
 		UserInput:        map[string]bool{},
+		MenuChoices:      MenuChoices{Choices: []MenuChoice{}},
 		NextEnt:          0,
 		Entities:         []int{},
 		Pos:              map[int]cmp.Position{},
 		Ascii:            map[int]cmp.Ascii{},
 		Impassable:       map[int]cmp.Impassable{},
+		Player:           map[int]cmp.Player{},
+		Visible:          map[int]cmp.Visible{},
+		Walkable:         map[int]cmp.Walkable{},
 		Machine:          map[int]cmp.Machine{},
-		Tags:             map[int]cmp.Tags{},
-		EByTag:           map[cmp.Tag]map[int]bool{},
 		EByPos:           map[cmp.Position]int{},
 		HasChanged:       false,
 		IterationNr:      0,
@@ -58,14 +63,16 @@ func (w *World) Clone() World {
 		UserInputProfile: w.UserInputProfile,
 		StateUser:        make(map[usr.UserState]bool, len(w.StateUser)),
 		UserInput:        make(map[string]bool, len(w.UserInput)),
+		MenuChoices:      cloneMenuChoices(w.MenuChoices),
 		NextEnt:          w.NextEnt,
 		Entities:         append([]int(nil), w.Entities...),
 		Pos:              make(map[int]cmp.Position, len(w.Pos)),
 		Ascii:            make(map[int]cmp.Ascii, len(w.Ascii)),
 		Impassable:       make(map[int]cmp.Impassable, len(w.Impassable)),
+		Player:           make(map[int]cmp.Player, len(w.Player)),
+		Visible:          make(map[int]cmp.Visible, len(w.Visible)),
+		Walkable:         make(map[int]cmp.Walkable, len(w.Walkable)),
 		Machine:          make(map[int]cmp.Machine, len(w.Machine)),
-		Tags:             make(map[int]cmp.Tags, len(w.Tags)),
-		EByTag:           make(map[cmp.Tag]map[int]bool, len(w.EByTag)),
 		EByPos:           make(map[cmp.Position]int, len(w.Pos)),
 		HasChanged:       w.HasChanged,
 		IterationNr:      w.IterationNr,
@@ -80,35 +87,31 @@ func (w *World) Clone() World {
 	}
 
 	for id, pos := range w.Pos {
-		clone.Pos[id] = pos
-		clone.EByPos[pos] = id
+		clone.setPosition(id, pos)
 	}
 
 	for id, ascii := range w.Ascii {
-		clone.Ascii[id] = ascii
+		clone.setAscii(id, ascii)
 	}
 
 	for id, impassable := range w.Impassable {
-		clone.Impassable[id] = impassable
+		clone.setImpassable(id, impassable)
+	}
+
+	for id, player := range w.Player {
+		clone.Player[id] = player
+	}
+
+	for id, visible := range w.Visible {
+		clone.Visible[id] = visible
+	}
+
+	for id, walkable := range w.Walkable {
+		clone.Walkable[id] = walkable
 	}
 
 	for id, machine := range w.Machine {
-		clone.Machine[id] = machine
-	}
-
-	for id, tags := range w.Tags {
-		cloneTags := cmp.Tags{Vals: make(map[cmp.Tag]bool, len(tags.Vals))}
-		for tag, ok := range tags.Vals {
-			cloneTags.Vals[tag] = ok
-			if !ok {
-				continue
-			}
-			if clone.EByTag[tag] == nil {
-				clone.EByTag[tag] = make(map[int]bool)
-			}
-			clone.EByTag[tag][id] = true
-		}
-		clone.Tags[id] = cloneTags
+		clone.setMachine(id, machine)
 	}
 
 	return clone
@@ -132,6 +135,34 @@ func (w World) HasUserState(state usr.UserState) bool {
 	return w.StateUser[state]
 }
 
+func (w World) HasComponent(eID int, component cmp.ComponentName) bool {
+	switch component {
+	case cmp.C_POS:
+		_, ok := w.Pos[eID]
+		return ok
+	case cmp.C_ASCII:
+		_, ok := w.Ascii[eID]
+		return ok
+	case cmp.C_IMPASSABLE:
+		_, ok := w.Impassable[eID]
+		return ok
+	case cmp.C_PLAYER:
+		_, ok := w.Player[eID]
+		return ok
+	case cmp.C_VISIBLE:
+		_, ok := w.Visible[eID]
+		return ok
+	case cmp.C_WALKABLE:
+		_, ok := w.Walkable[eID]
+		return ok
+	case cmp.C_MACHINE:
+		_, ok := w.Machine[eID]
+		return ok
+	default:
+		return false
+	}
+}
+
 func (w World) IsKeyDown(key string) bool {
 	return w.UserInput[key]
 }
@@ -153,62 +184,51 @@ func (w World) AddUserInput(key string, isDown bool) World {
 	return world
 }
 
+func (w World) AddMenuChoices(menuChoices MenuChoices) World {
+	world := w.Clone()
+	world.MenuChoices = cloneMenuChoices(menuChoices)
+	return world
+}
+
 func (w World) AddPosition(eID int, pos cmp.Position) World {
 	world := w.Clone()
-	if oldPos, ok := world.Pos[eID]; ok {
-		delete(world.EByPos, oldPos)
-	}
-	world.Pos[eID] = pos
-	world.EByPos[pos] = eID
+	world.setPosition(eID, pos)
 	return world
 }
 
 func (w World) AddAscii(eID int, ascii cmp.Ascii) World {
 	world := w.Clone()
-	world.Ascii[eID] = ascii
+	world.setAscii(eID, ascii)
 	return world
 }
 
 func (w World) AddImpassable(eID int) World {
 	world := w.Clone()
-	world.Impassable[eID] = cmp.Impassable{}
+	world.setImpassable(eID, cmp.Impassable{})
+	return world
+}
+
+func (w World) AddPlayer(eID int) World {
+	world := w.Clone()
+	world.Player[eID] = cmp.Player{}
+	return world
+}
+
+func (w World) AddVisible(eID int) World {
+	world := w.Clone()
+	world.Visible[eID] = cmp.Visible{}
+	return world
+}
+
+func (w World) AddWalkable(eID int) World {
+	world := w.Clone()
+	world.Walkable[eID] = cmp.Walkable{}
 	return world
 }
 
 func (w World) AddMachine(eID int, machine cmp.Machine) World {
 	world := w.Clone()
-	world.Machine[eID] = machine
-	return world
-}
-
-func (w World) AddTags(eID int, tags cmp.Tags) World {
-	world := w.Clone()
-	world.removeTags(eID)
-	world.Tags[eID] = cloneTags(tags)
-	for tag, ok := range world.Tags[eID].Vals {
-		if !ok {
-			continue
-		}
-		if world.EByTag[tag] == nil {
-			world.EByTag[tag] = map[int]bool{}
-		}
-		world.EByTag[tag][eID] = true
-	}
-	return world
-}
-
-func (w World) AddTag(eID int, tag cmp.Tag) World {
-	world := w.Clone()
-	tags := world.Tags[eID]
-	if tags.Vals == nil {
-		tags.Vals = map[cmp.Tag]bool{}
-	}
-	tags.Vals[tag] = true
-	world.Tags[eID] = tags
-	if world.EByTag[tag] == nil {
-		world.EByTag[tag] = map[int]bool{}
-	}
-	world.EByTag[tag][eID] = true
+	world.setMachine(eID, machine)
 	return world
 }
 
@@ -218,15 +238,32 @@ func (w *World) AddEntity(pos [2]int, compWithVals map[cmp.ComponentName][]strin
 		switch name {
 		case cmp.C_POS:
 			entityPos := cmp.Position{X: pos[0], Y: pos[1]}
-			w.Pos[eId] = entityPos
-			w.EByPos[entityPos] = eId
+			w.setPosition(eId, entityPos)
 		case cmp.C_ASCII:
 			if len(vals) != 1 || len(vals[0]) != 1 {
 				return fmt.Errorf("Required values are incorrect for %s", cmp.C_ASCII)
 			}
-			w.Ascii[eId] = cmp.Ascii{Ascii: []rune(vals[0])[0]}
+			w.setAscii(eId, cmp.Ascii{Ascii: []rune(vals[0])[0]})
 		case cmp.C_IMPASSABLE:
-			w.Impassable[eId] = cmp.Impassable{}
+			if len(vals) != 0 {
+				return fmt.Errorf("Required values are incorrect for %s", cmp.C_IMPASSABLE)
+			}
+			w.setImpassable(eId, cmp.Impassable{})
+		case cmp.C_PLAYER:
+			if len(vals) != 0 {
+				return fmt.Errorf("Required values are incorrect for %s", cmp.C_PLAYER)
+			}
+			w.Player[eId] = cmp.Player{}
+		case cmp.C_VISIBLE:
+			if len(vals) != 0 {
+				return fmt.Errorf("Required values are incorrect for %s", cmp.C_VISIBLE)
+			}
+			w.Visible[eId] = cmp.Visible{}
+		case cmp.C_WALKABLE:
+			if len(vals) != 0 {
+				return fmt.Errorf("Required values are incorrect for %s", cmp.C_WALKABLE)
+			}
+			w.Walkable[eId] = cmp.Walkable{}
 		case cmp.C_MACHINE:
 			if len(vals) != 1 {
 				return fmt.Errorf("Required values are incorrect for %s", cmp.C_MACHINE)
@@ -234,21 +271,10 @@ func (w *World) AddEntity(pos [2]int, compWithVals map[cmp.ComponentName][]strin
 			machineType := cmp.MachineTypeName(vals[0])
 			switch machineType {
 			case cmp.MACHINENAME_RADIO:
-				w.Machine[eId] = cmp.Machine{MachineType: machineType}
+				w.setMachine(eId, cmp.Machine{MachineType: machineType})
 			default:
 				return fmt.Errorf("Machine type does not exist %s", vals[0])
 			}
-		case cmp.C_TAGS:
-			tags := cmp.Tags{Vals: make(map[cmp.Tag]bool, len(vals))}
-			for _, value := range vals {
-				tag := cmp.Tag(value)
-				tags.Vals[tag] = true
-				if w.EByTag[tag] == nil {
-					w.EByTag[tag] = make(map[int]bool)
-				}
-				w.EByTag[tag][eId] = true
-			}
-			w.Tags[eId] = tags
 		default:
 			return fmt.Errorf("component does not exist %s", name)
 		}
@@ -256,23 +282,22 @@ func (w *World) AddEntity(pos [2]int, compWithVals map[cmp.ComponentName][]strin
 	return nil
 }
 
-func (w *World) removeTags(eID int) {
-	tags := w.Tags[eID]
-	for tag, ok := range tags.Vals {
-		if !ok {
-			continue
-		}
-		delete(w.EByTag[tag], eID)
-		if len(w.EByTag[tag]) == 0 {
-			delete(w.EByTag, tag)
-		}
+func (w *World) setPosition(eID int, pos cmp.Position) {
+	if oldPos, ok := w.Pos[eID]; ok {
+		delete(w.EByPos, oldPos)
 	}
+	w.Pos[eID] = pos
+	w.EByPos[pos] = eID
 }
 
-func cloneTags(tags cmp.Tags) cmp.Tags {
-	clone := cmp.Tags{Vals: map[cmp.Tag]bool{}}
-	for tag, ok := range tags.Vals {
-		clone.Vals[tag] = ok
-	}
-	return clone
+func (w *World) setAscii(eID int, ascii cmp.Ascii) {
+	w.Ascii[eID] = ascii
+}
+
+func (w *World) setImpassable(eID int, impassable cmp.Impassable) {
+	w.Impassable[eID] = impassable
+}
+
+func (w *World) setMachine(eID int, machine cmp.Machine) {
+	w.Machine[eID] = machine
 }

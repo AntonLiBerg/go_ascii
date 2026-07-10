@@ -50,9 +50,9 @@ func TestServiceTurnOnMachineTurnsOnSingleNeighborAndClearsInteractKey(t *testin
 	world.UserInputProfile = usr.UserInputProfile{KeyInteract: "e"}
 
 	addMovementTestEntity(t, &world, [2]int{1, 1}, map[cmp.ComponentName][]string{
-		cmp.C_POS:   {},
-		cmp.C_ASCII: {"o"},
-		cmp.C_TAGS:  {string(cmp.TAG_PLAYER)},
+		cmp.C_POS:    {},
+		cmp.C_ASCII:  {"o"},
+		cmp.C_PLAYER: {},
 	})
 	addMovementTestEntity(t, &world, [2]int{2, 1}, map[cmp.ComponentName][]string{
 		cmp.C_POS:        {},
@@ -93,9 +93,9 @@ func newMovementTestWorld(t *testing.T) wrld.World {
 	}
 
 	addMovementTestEntity(t, &world, [2]int{1, 1}, map[cmp.ComponentName][]string{
-		cmp.C_POS:   {},
-		cmp.C_ASCII: {"o"},
-		cmp.C_TAGS:  {string(cmp.TAG_PLAYER)},
+		cmp.C_POS:    {},
+		cmp.C_ASCII:  {"o"},
+		cmp.C_PLAYER: {},
 	})
 	addMovementTestEntity(t, &world, [2]int{1, 0}, map[cmp.ComponentName][]string{
 		cmp.C_POS:        {},
@@ -129,13 +129,20 @@ func addMovementTestEntity(t *testing.T, world *wrld.World, pos [2]int, comps ma
 func getSinglePlayerID(t *testing.T, world wrld.World) int {
 	t.Helper()
 
-	playerIDs := world.EByTag[cmp.TAG_PLAYER]
-	if len(playerIDs) != 1 {
-		t.Fatalf("expected exactly one player, got %d", len(playerIDs))
+	playerID := -1
+	playerCount := 0
+	for _, id := range world.Entities {
+		if !world.HasComponent(id, cmp.C_PLAYER) {
+			continue
+		}
+		playerID = id
+		playerCount++
 	}
-
-	for id := range playerIDs {
-		return id
+	if playerCount != 1 {
+		t.Fatalf("expected exactly one player, got %d", playerCount)
+	}
+	if playerID != -1 {
+		return playerID
 	}
 
 	t.Fatal("expected player id")

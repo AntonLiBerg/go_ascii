@@ -15,7 +15,10 @@ func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
 	}
 
 	playerID := -1
-	for eID := range w.EByTag[cmp.TAG_PLAYER] {
+	for _, eID := range w.Entities {
+		if !w.HasComponent(eID, cmp.C_PLAYER) {
+			continue
+		}
 		playerID = eID
 		break
 	}

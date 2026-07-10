@@ -16,7 +16,7 @@ floor
 player
 - pos
 - ascii:o
-- tags:player
+- player
 wall
 - pos
 - ascii=#

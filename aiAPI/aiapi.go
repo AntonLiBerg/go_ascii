@@ -278,28 +278,7 @@ func GetNeighbors(world wrld.World, target int, filterComponents []cmp.Component
 
 func hasComponents(world wrld.World, eID int, components []cmp.ComponentName) bool {
 	for _, component := range components {
-		switch component {
-		case cmp.C_POS:
-			if _, ok := world.Pos[eID]; !ok {
-				return false
-			}
-		case cmp.C_ASCII:
-			if _, ok := world.Ascii[eID]; !ok {
-				return false
-			}
-		case cmp.C_IMPASSABLE:
-			if _, ok := world.Impassable[eID]; !ok {
-				return false
-			}
-		case cmp.C_MACHINE:
-			if _, ok := world.Machine[eID]; !ok {
-				return false
-			}
-		case cmp.C_TAGS:
-			if _, ok := world.Tags[eID]; !ok {
-				return false
-			}
-		default:
+		if !world.HasComponent(eID, component) {
 			return false
 		}
 	}
