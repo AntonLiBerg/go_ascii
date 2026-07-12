@@ -32,7 +32,7 @@ func RunGame(world wrld.World, services []IService, keyInput <-chan string) erro
 			select {
 			case key := <-keyInput:
 				world.ClearUserInput()
-				world.SetKeyDown(key)
+				world.SetKeyDown(usr.Interaction(key))
 
 			case <-ticker.C:
 				snapshot := world.Clone()
@@ -58,7 +58,7 @@ func RunGame(world wrld.World, services []IService, keyInput <-chan string) erro
 
 			case key := <-keyInput:
 				world.ClearUserInput()
-				world.SetKeyDown(key)
+				world.SetKeyDown(usr.Interaction(key))
 			}
 
 		case s_applyingChanges:

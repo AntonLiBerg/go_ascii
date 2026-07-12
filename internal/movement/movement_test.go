@@ -10,7 +10,7 @@ import (
 func TestServiceMovesPlayerWithWASD(t *testing.T) {
 	tests := []struct {
 		name          string
-		key           string
+		key           usr.Interaction
 		wantPlayerPos cmp.Position
 	}{
 		{name: "up blocked", key: "w", wantPlayerPos: cmp.Position{X: 1, Y: 1}},

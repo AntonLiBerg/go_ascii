@@ -1,5 +1,7 @@
 package component
 
+import "strconv"
+
 type ComponentName string
 
 const (
@@ -15,6 +17,10 @@ const (
 type Position struct {
 	X int
 	Y int
+}
+
+func (p Position) ToString() string {
+	return strconv.Itoa(p.X) + ":" + strconv.Itoa(p.Y)
 }
 
 type Ascii struct {

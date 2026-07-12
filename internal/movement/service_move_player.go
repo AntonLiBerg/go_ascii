@@ -5,27 +5,28 @@ import (
 	"go_ascii/internal/game"
 	wrld "go_ascii/internal/world"
 	cmp "go_ascii/internal/world/component"
+	usr "go_ascii/internal/world/user"
 )
 
 type ServiceMovePlayer struct{}
 
 func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) game.UpdateFunc {
 	moveDelta := cmp.Position{}
-	keyToClear := ""
+	var keyToClear usr.Interaction
 
 	switch {
-	case w.UserInput[string(w.UserInputProfile.KeyMoveUp)]:
+	case w.UserInput[w.UserInputProfile.KeyMoveUp]:
 		moveDelta = cmp.Position{Y: -1}
-		keyToClear = string(w.UserInputProfile.KeyMoveUp)
-	case w.UserInput[string(w.UserInputProfile.KeyMoveLeft)]:
+		keyToClear = w.UserInputProfile.KeyMoveUp
+	case w.UserInput[w.UserInputProfile.KeyMoveLeft]:
 		moveDelta = cmp.Position{X: -1}
-		keyToClear = string(w.UserInputProfile.KeyMoveLeft)
-	case w.UserInput[string(w.UserInputProfile.KeyMoveDown)]:
+		keyToClear = w.UserInputProfile.KeyMoveLeft
+	case w.UserInput[w.UserInputProfile.KeyMoveDown]:
 		moveDelta = cmp.Position{Y: 1}
-		keyToClear = string(w.UserInputProfile.KeyMoveDown)
-	case w.UserInput[string(w.UserInputProfile.KeyMoveRight)]:
+		keyToClear = w.UserInputProfile.KeyMoveDown
+	case w.UserInput[w.UserInputProfile.KeyMoveRight]:
 		moveDelta = cmp.Position{X: 1}
-		keyToClear = string(w.UserInputProfile.KeyMoveRight)
+		keyToClear = w.UserInputProfile.KeyMoveRight
 	default:
 		return game.UpdateFunc{Order: 1}
 	}

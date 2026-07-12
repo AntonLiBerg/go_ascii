@@ -12,7 +12,7 @@ func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) game.UpdateFunc {
 	return game.UpdateFunc{
 		Order: 1,
 		UpdateFunc: func(w *wrld.World) {
-			if w.UserInput[string(w.UserInputProfile.KeyQuitGame)] {
+			if w.UserInput[w.UserInputProfile.KeyQuitGame] {
 				w.SetUserState(usr.S_quit, true)
 			}
 		},

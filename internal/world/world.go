@@ -9,7 +9,7 @@ import (
 type World struct {
 	UserInputProfile usr.UserInputProfile
 	StateUser        map[usr.UserState]bool
-	UserInput        map[string]bool
+	UserInput        map[usr.Interaction]bool
 	EByPos           map[cmp.Position]int
 	HasChanged       bool
 	IterationNr      int
@@ -30,7 +30,7 @@ func NewWorldEmpty() World {
 	return World{
 		UserInputProfile: usr.NewUserInputProfileEmpty(),
 		StateUser:        map[usr.UserState]bool{usr.S_playing: true},
-		UserInput:        map[string]bool{},
+		UserInput:        map[usr.Interaction]bool{},
 		MenuChoices:      MenuChoices{Choices: []MenuChoice{}},
 		NextEnt:          0,
 		Entities:         []int{},
@@ -62,7 +62,7 @@ func (w *World) Clone() World {
 	clone := World{
 		UserInputProfile: w.UserInputProfile,
 		StateUser:        make(map[usr.UserState]bool, len(w.StateUser)),
-		UserInput:        make(map[string]bool, len(w.UserInput)),
+		UserInput:        make(map[usr.Interaction]bool, len(w.UserInput)),
 		MenuChoices:      cloneMenuChoices(w.MenuChoices),
 		NextEnt:          w.NextEnt,
 		Entities:         append([]int(nil), w.Entities...),
@@ -120,8 +120,8 @@ func (w *World) ClearUserInput() {
 	clear(w.UserInput)
 }
 
-func (w *World) SetKeyDown(key string) {
-	w.UserInput[key] = true
+func (w *World) SetKeyDown(interaction usr.Interaction) {
+	w.UserInput[interaction] = true
 }
 
 func (w *World) SetUserState(state usr.UserState, isActive bool) {
@@ -163,8 +163,8 @@ func (w World) HasComponent(eID int, component cmp.ComponentName) bool {
 	}
 }
 
-func (w World) IsKeyDown(key string) bool {
-	return w.UserInput[key]
+func (w World) IsKeyDown(interaction usr.Interaction) bool {
+	return w.UserInput[interaction]
 }
 
 func (w *World) MakeNewEntityId() int {
@@ -178,9 +178,9 @@ func (w World) AddNewEntity() (World, int) {
 	return world, world.MakeNewEntityId()
 }
 
-func (w World) AddUserInput(key string, isDown bool) World {
+func (w World) AddUserInput(interaction usr.Interaction, isDown bool) World {
 	world := w.Clone()
-	world.UserInput[key] = isDown
+	world.UserInput[interaction] = isDown
 	return world
 }
 
