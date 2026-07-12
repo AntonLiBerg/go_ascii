@@ -1,11 +1,9 @@
-package aiapi
+package scenario
 
 import (
-	cmp "go_ascii/component"
-	wrld "go_ascii/world"
+	cmp "go_ascii/internal/world/component"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 )
 
@@ -178,96 +176,5 @@ func assertComponentValues(t *testing.T, components map[string]map[cmp.Component
 		if got[i] != want[i] {
 			t.Fatalf("expected %s.%s values %v, got %v", entity, component, want, got)
 		}
-	}
-}
-
-func TestGetNeighbors(t *testing.T) {
-	world := wrld.NewWorldEmpty()
-	pId := world.MakeNewEntityId()
-	e00 := world.MakeNewEntityId()
-	e01 := world.MakeNewEntityId()
-	e02 := world.MakeNewEntityId()
-	e12 := world.MakeNewEntityId()
-	e22 := world.MakeNewEntityId()
-	e21 := world.MakeNewEntityId()
-	e20 := world.MakeNewEntityId()
-	e10 := world.MakeNewEntityId()
-	world = world.AddPosition(pId, cmp.Position{X: 1, Y: 1})
-	tests := []struct {
-		name   string
-		want   []int
-		filter []cmp.ComponentName
-		world  wrld.World
-	}{
-		{
-			"noNeighbors", []int{}, []cmp.ComponentName{},
-			world,
-		},
-		{
-			"oneNeighbor00", []int{e00}, []cmp.ComponentName{},
-			world.
-				AddPosition(e00, cmp.Position{X: 0, Y: 0}),
-		},
-		{
-			"oneNeighbor01", []int{e01}, []cmp.ComponentName{},
-			world.
-				AddPosition(e01, cmp.Position{X: 0, Y: 1}),
-		},
-		{
-			"oneNeighbor02", []int{e02}, []cmp.ComponentName{},
-			world.
-				AddPosition(e02, cmp.Position{X: 0, Y: 2}),
-		},
-		{
-			"oneNeighbor12", []int{e12}, []cmp.ComponentName{},
-			world.
-				AddPosition(e12, cmp.Position{X: 1, Y: 2}),
-		},
-		{
-			"oneNeighbor22", []int{e22}, []cmp.ComponentName{},
-			world.
-				AddPosition(e22, cmp.Position{X: 2, Y: 2}),
-		},
-		{
-			"oneNeighbor21", []int{e21}, []cmp.ComponentName{},
-			world.
-				AddPosition(e21, cmp.Position{X: 2, Y: 1}),
-		},
-		{
-			"oneNeighbor20", []int{e20}, []cmp.ComponentName{},
-			world.
-				AddPosition(e20, cmp.Position{X: 2, Y: 0}),
-		},
-		{
-			"oneNeighbor10", []int{e10}, []cmp.ComponentName{},
-			world.
-				AddPosition(e10, cmp.Position{X: 1, Y: 0}),
-		},
-		{
-			"oneNeighborAll", []int{e00, e01, e02, e12, e22, e21, e20, e10}, []cmp.ComponentName{},
-			world.
-				AddPosition(e00, cmp.Position{X: 0, Y: 0}).
-				AddPosition(e01, cmp.Position{X: 0, Y: 1}).
-				AddPosition(e02, cmp.Position{X: 0, Y: 2}).
-				AddPosition(e12, cmp.Position{X: 1, Y: 2}).
-				AddPosition(e22, cmp.Position{X: 2, Y: 2}).
-				AddPosition(e21, cmp.Position{X: 2, Y: 1}).
-				AddPosition(e20, cmp.Position{X: 2, Y: 0}).
-				AddPosition(e10, cmp.Position{X: 1, Y: 0}),
-		},
-		{
-			"oneNeighborFiltered", []int{}, []cmp.ComponentName{cmp.C_IMPASSABLE},
-			world.
-				AddPosition(pId, cmp.Position{X: 1, Y: 0}).
-				AddImpassable(pId),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			actual := GetNeighbors(tt.world, pId, tt.filter)
-			if !slices.Equal(tt.want, actual) {
-				t.Errorf("got %v, want %v", actual, tt.want)
-			}
-		})
 	}
 }

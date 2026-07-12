@@ -1,17 +1,17 @@
-package service
+package interaction
 
 import (
-	aiapi "go_ascii/aiAPI"
-	cmp "go_ascii/component"
-	wrld "go_ascii/world"
+	"go_ascii/internal/game"
+	wrld "go_ascii/internal/world"
+	cmp "go_ascii/internal/world/component"
 )
 
 type ServiceTurnOnMachine struct{}
 
-func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
+func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) game.UpdateFunc {
 	interactKey := string(w.UserInputProfile.KeyInteract)
 	if !w.UserInput[interactKey] {
-		return UpdateFunc{Order: 1}
+		return game.UpdateFunc{Order: 1}
 	}
 
 	playerID := -1
@@ -23,17 +23,17 @@ func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
 		break
 	}
 	if playerID == -1 {
-		return UpdateFunc{Order: 1}
+		return game.UpdateFunc{Order: 1}
 	}
 
-	neighbors := aiapi.GetNeighbors(w, playerID, []cmp.ComponentName{cmp.C_MACHINE})
+	neighbors := wrld.GetNeighbors(w, playerID, []cmp.ComponentName{cmp.C_MACHINE})
 	machineID := -1
 	if len(neighbors) == 0 {
-		return UpdateFunc{}
+		return game.UpdateFunc{}
 	}
 	if len(neighbors) == 1 {
 		machineID = neighbors[0]
-		return UpdateFunc{
+		return game.UpdateFunc{
 			Order: 1,
 			UpdateFunc: func(w *wrld.World) {
 				machine := w.Machine[machineID]
@@ -46,5 +46,5 @@ func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) UpdateFunc {
 	}
 
 	// Display choice menu
-	return UpdateFunc{}
+	return game.UpdateFunc{}
 }

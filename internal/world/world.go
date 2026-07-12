@@ -2,8 +2,8 @@ package world
 
 import (
 	"fmt"
-	cmp "go_ascii/component"
-	usr "go_ascii/user"
+	cmp "go_ascii/internal/world/component"
+	usr "go_ascii/internal/world/user"
 )
 
 type World struct {

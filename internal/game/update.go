@@ -1,7 +1,7 @@
-package service
+package game
 
 import (
-	wrld "go_ascii/world"
+	wrld "go_ascii/internal/world"
 )
 
 type UpdateFunc struct {

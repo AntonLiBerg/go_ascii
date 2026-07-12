@@ -1,32 +1,10 @@
-package aiapi
+package scenario
 
 import (
-	"fmt"
-	cmp "go_ascii/component"
-	wrld "go_ascii/world"
+	cmp "go_ascii/internal/world/component"
 	"os"
 	"strings"
 )
-
-func UpdateTerminal(world wrld.World) {
-	fmt.Print("\033[2J\033[H")
-
-	maxY := 0
-	for _, eId := range world.Entities {
-		pos, okPos := world.Pos[eId]
-		ascii, okAscii := world.Ascii[eId]
-		if !okPos || !okAscii || pos.X < 0 || pos.Y < 0 {
-			continue
-		}
-
-		fmt.Printf("\033[%d;%dH%c", pos.Y+1, pos.X+1, ascii.Ascii)
-		if pos.Y > maxY {
-			maxY = pos.Y
-		}
-	}
-
-	fmt.Printf("\033[%d;1H", maxY+2)
-}
 
 const (
 	SectionNameEntity           string = "ENTITY"
@@ -241,46 +219,4 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 	}
 
 	return asciiMap, entities, components, userInputProfile, nil
-}
-
-func GetNeighbors(world wrld.World, target int, filterComponents []cmp.ComponentName) []int {
-	targetPos, ok := world.Pos[target]
-	if !ok {
-		return []int{}
-	}
-
-	deltas := []cmp.Position{
-		{X: -1, Y: -1},
-		{X: -1, Y: 0},
-		{X: -1, Y: 1},
-		{X: 0, Y: 1},
-		{X: 1, Y: 1},
-		{X: 1, Y: 0},
-		{X: 1, Y: -1},
-		{X: 0, Y: -1},
-	}
-
-	neighbors := []int{}
-	for _, delta := range deltas {
-		pos := cmp.Position{X: targetPos.X + delta.X, Y: targetPos.Y + delta.Y}
-		eID, ok := world.EByPos[pos]
-		if !ok || eID == target {
-			continue
-		}
-		if !hasComponents(world, eID, filterComponents) {
-			continue
-		}
-		neighbors = append(neighbors, eID)
-	}
-
-	return neighbors
-}
-
-func hasComponents(world wrld.World, eID int, components []cmp.ComponentName) bool {
-	for _, component := range components {
-		if !world.HasComponent(eID, component) {
-			return false
-		}
-	}
-	return true
 }

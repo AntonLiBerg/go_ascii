@@ -1,14 +1,15 @@
-package service
+package quit
 
 import (
-	usr "go_ascii/user"
-	wrld "go_ascii/world"
+	"go_ascii/internal/game"
+	wrld "go_ascii/internal/world"
+	usr "go_ascii/internal/world/user"
 )
 
 type ServiceQuitGame struct{}
 
-func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) UpdateFunc {
-	return UpdateFunc{
+func (s ServiceQuitGame) GetUpdateFunc(w wrld.World) game.UpdateFunc {
+	return game.UpdateFunc{
 		Order: 1,
 		UpdateFunc: func(w *wrld.World) {
 			if w.UserInput[string(w.UserInputProfile.KeyQuitGame)] {

@@ -2,9 +2,8 @@ package game
 
 import (
 	"fmt"
-	serv "go_ascii/service"
-	usr "go_ascii/user"
-	wrld "go_ascii/world"
+	wrld "go_ascii/internal/world"
+	usr "go_ascii/internal/world/user"
 	"sort"
 	"time"
 )
@@ -15,14 +14,14 @@ const (
 	s_applyingChanges
 )
 
-func RunGame(world wrld.World, services []serv.IService, keyInput <-chan string) error {
+func RunGame(world wrld.World, services []IService, keyInput <-chan string) error {
 	if len(services) == 0 {
 		return fmt.Errorf("Services is empty")
 	}
 	state := s_readyToGetUpdateFunctions
 	ticker := time.NewTicker(time.Second / 30)
-	results := make([]serv.UpdateFunc, 0, len(services))
-	updateFuncs := make(chan serv.UpdateFunc, len(services))
+	results := make([]UpdateFunc, 0, len(services))
+	updateFuncs := make(chan UpdateFunc, len(services))
 
 	for {
 		if world.HasUserState(usr.S_quit) {
@@ -40,7 +39,7 @@ func RunGame(world wrld.World, services []serv.IService, keyInput <-chan string)
 				results = results[:0]
 
 				for _, service := range services {
-					go func(service serv.IService) {
+					go func(service IService) {
 						updateFuncs <- service.GetUpdateFunc(snapshot)
 					}(service)
 				}

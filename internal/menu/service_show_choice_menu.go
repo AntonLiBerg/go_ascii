@@ -1,17 +1,18 @@
-package service
+package menu
 
 import (
-	wrld "go_ascii/world"
+	"go_ascii/internal/game"
+	wrld "go_ascii/internal/world"
 )
 
 type ServiceShowChoiceMenu struct{}
 
-func (s ServiceShowChoiceMenu) GetUpdateFunc(w wrld.World) UpdateFunc {
+func (s ServiceShowChoiceMenu) GetUpdateFunc(w wrld.World) game.UpdateFunc {
 	if !w.MenuChoices.ShouldShow || w.MenuChoices.IsOpen {
-		return UpdateFunc{Order: 1}
+		return game.UpdateFunc{Order: 1}
 	}
 
-	return UpdateFunc{
+	return game.UpdateFunc{
 		Order: 1,
 		UpdateFunc: func(w *wrld.World) {
 			w.MenuChoices.IsOpen = true

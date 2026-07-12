@@ -1,14 +1,15 @@
-package service
+package movement
 
 import (
 	"fmt"
-	cmp "go_ascii/component"
-	wrld "go_ascii/world"
+	"go_ascii/internal/game"
+	wrld "go_ascii/internal/world"
+	cmp "go_ascii/internal/world/component"
 )
 
 type ServiceMovePlayer struct{}
 
-func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) UpdateFunc {
+func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) game.UpdateFunc {
 	moveDelta := cmp.Position{}
 	keyToClear := ""
 
@@ -26,10 +27,10 @@ func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) UpdateFunc {
 		moveDelta = cmp.Position{X: 1}
 		keyToClear = string(w.UserInputProfile.KeyMoveRight)
 	default:
-		return UpdateFunc{Order: 1}
+		return game.UpdateFunc{Order: 1}
 	}
 
-	return UpdateFunc{
+	return game.UpdateFunc{
 		Order: 1,
 		UpdateFunc: func(w *wrld.World) {
 			w.HasChanged = true
