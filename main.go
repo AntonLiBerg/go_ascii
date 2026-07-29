@@ -7,8 +7,7 @@ import (
 	"go_ascii/internal/quit"
 	"go_ascii/internal/render"
 	"go_ascii/internal/scenario"
-	wrld "go_ascii/internal/world"
-	usr "go_ascii/internal/world/user"
+	"go_ascii/internal/world"
 	"os"
 
 	"golang.org/x/term"
@@ -29,11 +28,11 @@ func runDemo() {
 	if err != nil {
 		panic(err)
 	}
-	world, err := wrld.NewWorld(aMap, entities, components)
+	gameWorld, err := world.NewWorld(aMap, entities, components)
 	if err != nil {
 		panic(err)
 	}
-	world.UserInputProfile = usr.NewUserInputProfile(userInputProfileMap)
+	gameWorld.UserInputProfile = world.NewUserInputProfile(userInputProfileMap)
 
 	services := []game.IService{
 		quit.ServiceQuitGame{},
@@ -49,5 +48,5 @@ func runDemo() {
 			keys <- string(key[:])
 		}
 	}()
-	game.RunGame(world, services, keys)
+	game.RunGame(gameWorld, services, keys)
 }

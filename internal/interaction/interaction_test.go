@@ -1,47 +1,62 @@
 package interaction
 
 import (
-	wrld "go_ascii/internal/world"
-	cmp "go_ascii/internal/world/component"
-	usr "go_ascii/internal/world/user"
+	"go_ascii/internal/world"
 	"testing"
 )
 
 func TestServiceTurnsOnSingleNeighborAndClearsInteractKey(t *testing.T) {
-	world := wrld.NewWorldEmpty()
-	world.UserInputProfile = usr.UserInputProfile{KeyInteract: "e"}
-
-	addTestEntity(t, &world, [2]int{1, 1}, map[cmp.ComponentName][]string{
-		cmp.C_POS: {}, cmp.C_ASCII: {"o"}, cmp.C_PLAYER: {},
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}
+	addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{
+		"pos": {}, "ascii": {"o"}, "player": {},
 	})
-	addTestEntity(t, &world, [2]int{2, 1}, map[cmp.ComponentName][]string{
-		cmp.C_POS: {}, cmp.C_ASCII: {"R"}, cmp.C_IMPASSABLE: {},
-		cmp.C_MACHINE: {string(cmp.MACHINENAME_RADIO)},
+	machineID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
+		"pos": {}, "ascii": {"R"}, "impassable": {}, "machine": {},
 	})
-	world.SetKeyDown("e")
+	gameWorld.KeyDown = "e"
 
-	result := ServiceTurnOnMachine{}.GetUpdateFunc(world)
+	result := ServiceTurnOnMachine{}.GetUpdateFunc(gameWorld)
 	if result.UpdateFunc == nil {
 		t.Fatal("expected interact update func")
 	}
-	result.UpdateFunc(&world)
+	result.UpdateFunc(&gameWorld)
 
-	for _, machine := range world.Machine {
-		if !machine.IsOn {
-			t.Fatal("expected machine to be on after interaction")
-		}
+	if !gameWorld.Machine[machineID] {
+		t.Fatal("expected machine to be on after interaction")
 	}
-	if world.UserInput["e"] {
-		t.Fatal("expected interact key to be cleared after interaction")
+	if gameWorld.KeyDown != "" {
+		t.Fatalf("expected interact key to be cleared, got %q", gameWorld.KeyDown)
 	}
-	if !world.HasChanged {
+	if !gameWorld.HasChanged {
 		t.Fatal("expected world to be marked changed after turning on machine")
 	}
 }
 
-func addTestEntity(t *testing.T, world *wrld.World, position [2]int, components map[cmp.ComponentName][]string) {
+func TestServiceTurnsOnFirstNeighborMachine(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}
+	addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
+	eastMachine := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{"pos": {}, "machine": {}})
+	westMachine := addTestEntity(t, &gameWorld, [2]int{0, 1}, map[string][]string{"pos": {}, "machine": {}})
+	gameWorld.KeyDown = "e"
+
+	result := ServiceTurnOnMachine{}.GetUpdateFunc(gameWorld)
+	result.UpdateFunc(&gameWorld)
+
+	if !gameWorld.Machine[westMachine] {
+		t.Fatal("expected first machine in neighbor order to be on")
+	}
+	if gameWorld.Machine[eastMachine] {
+		t.Fatal("expected later machine in neighbor order to remain off")
+	}
+}
+
+func addTestEntity(t *testing.T, gameWorld *world.World, position [2]int, components map[string][]string) int {
 	t.Helper()
-	if err := world.AddEntity(position, components); err != nil {
+	eID := len(gameWorld.Entities)
+	if err := gameWorld.AddEntity(position, components); err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
+	return eID
 }

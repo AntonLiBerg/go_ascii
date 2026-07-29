@@ -2,67 +2,43 @@ package interaction
 
 import (
 	"go_ascii/internal/game"
-	wrld "go_ascii/internal/world"
-	cmp "go_ascii/internal/world/component"
+	"go_ascii/internal/world"
 )
 
 type ServiceTurnOnMachine struct{}
 
-func (s ServiceTurnOnMachine) GetUpdateFunc(w wrld.World) game.UpdateFunc {
+func (s ServiceTurnOnMachine) GetUpdateFunc(w world.World) game.UpdateFunc {
 	interactKey := w.UserInputProfile.KeyInteract
-	if !w.UserInput[interactKey] {
+	if interactKey == "" || w.KeyDown != interactKey {
 		return game.UpdateFunc{Order: 1}
 	}
 
 	playerID := -1
-	for _, eID := range w.Entities {
-		if !w.HasComponent(eID, cmp.C_PLAYER) {
-			continue
-		}
+	for eID := range w.Player {
 		playerID = eID
 		break
 	}
-	if playerID == -1 {
-		return game.UpdateFunc{Order: 1}
+
+	machineID := -1
+	if playerID != -1 {
+		for _, neighborID := range world.GetNeighbors(w, playerID) {
+			if _, isMachine := w.Machine[neighborID]; isMachine {
+				machineID = neighborID
+				break
+			}
+		}
 	}
 
-	neighbors := wrld.GetNeighbors(w, playerID, []cmp.ComponentName{cmp.C_MACHINE})
-	machineID := -1
-	if len(neighbors) == 0 {
-		return game.UpdateFunc{}
+	return game.UpdateFunc{
+		Order: 1,
+		UpdateFunc: func(w *world.World) {
+			if machineID != -1 {
+				w.Machine[machineID] = true
+				w.HasChanged = true
+			}
+			if w.KeyDown == interactKey {
+				w.KeyDown = ""
+			}
+		},
 	}
-	if len(neighbors) == 1 {
-		machineID = neighbors[0]
-		return game.UpdateFunc{
-			Order: 1,
-			UpdateFunc: func(w *wrld.World) {
-				turnOnMachine(machineID, w)
-			},
-		}
-	} else {
-		return game.UpdateFunc{
-			Order: 1,
-			UpdateFunc: func(w *wrld.World) {
-				for _, m := range neighbors {
-					mch := w.Machine[m]
-					pos := w.Pos[m]
-					txt := pos.ToString() + ": " + string(mch.MachineType)
-					cmenu := wrld.MenuChoice{
-						Text: txt,
-						Update: func(w *wrld.World) {
-							turnOnMachine(machineID, w)
-						},
-					}
-					w.MenuChoices.Choices = append(w.MenuChoices.Choices, cmenu)
-				}
-			},
-		}
-	}
-}
-func turnOnMachine(machineID int, w *wrld.World) {
-	machine := w.Machine[machineID]
-	machine.IsOn = true
-	w.Machine[machineID] = machine
-	w.HasChanged = true
-	w.UserInput[w.UserInputProfile.KeyInteract] = false
 }

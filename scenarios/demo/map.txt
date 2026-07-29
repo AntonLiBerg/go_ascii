@@ -24,7 +24,8 @@ wall
 radio
 - pos
 - ascii=R
--impassable
+- impassable
+- machine
 ===USERINPUTPROFILE
 quitgame=q
 interact=e

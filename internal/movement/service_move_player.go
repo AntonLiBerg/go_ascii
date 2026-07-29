@@ -3,77 +3,67 @@ package movement
 import (
 	"fmt"
 	"go_ascii/internal/game"
-	wrld "go_ascii/internal/world"
-	cmp "go_ascii/internal/world/component"
-	usr "go_ascii/internal/world/user"
+	"go_ascii/internal/world"
 )
 
 type ServiceMovePlayer struct{}
 
-func (s ServiceMovePlayer) GetUpdateFunc(w wrld.World) game.UpdateFunc {
-	moveDelta := cmp.Position{}
-	var keyToClear usr.Interaction
+func (s ServiceMovePlayer) GetUpdateFunc(w world.World) game.UpdateFunc {
+	if w.KeyDown == "" {
+		return game.UpdateFunc{Order: 1}
+	}
 
-	switch {
-	case w.UserInput[w.UserInputProfile.KeyMoveUp]:
-		moveDelta = cmp.Position{Y: -1}
-		keyToClear = w.UserInputProfile.KeyMoveUp
-	case w.UserInput[w.UserInputProfile.KeyMoveLeft]:
-		moveDelta = cmp.Position{X: -1}
-		keyToClear = w.UserInputProfile.KeyMoveLeft
-	case w.UserInput[w.UserInputProfile.KeyMoveDown]:
-		moveDelta = cmp.Position{Y: 1}
-		keyToClear = w.UserInputProfile.KeyMoveDown
-	case w.UserInput[w.UserInputProfile.KeyMoveRight]:
-		moveDelta = cmp.Position{X: 1}
-		keyToClear = w.UserInputProfile.KeyMoveRight
+	moveDelta := world.Position{}
+	keyToClear := w.KeyDown
+	switch w.KeyDown {
+	case w.UserInputProfile.KeyMoveUp:
+		moveDelta = world.Position{Y: -1}
+	case w.UserInputProfile.KeyMoveLeft:
+		moveDelta = world.Position{X: -1}
+	case w.UserInputProfile.KeyMoveDown:
+		moveDelta = world.Position{Y: 1}
+	case w.UserInputProfile.KeyMoveRight:
+		moveDelta = world.Position{X: 1}
 	default:
 		return game.UpdateFunc{Order: 1}
 	}
 
 	return game.UpdateFunc{
 		Order: 1,
-		UpdateFunc: func(w *wrld.World) {
+		UpdateFunc: func(w *world.World) {
 			w.HasChanged = true
-			for _, eID := range w.Entities {
-				if !w.HasComponent(eID, cmp.C_PLAYER) {
-					continue
-				}
+			for eID := range w.Player {
 				if err := tryGoToPosition(w, eID, moveDelta); err != nil {
 					panic(err)
 				}
 			}
-			w.UserInput[keyToClear] = false
+			if w.KeyDown == keyToClear {
+				w.KeyDown = ""
+			}
 		},
 	}
 }
 
-func tryGoToPosition(w *wrld.World, eMover int, posDelta cmp.Position) error {
-	moverPos, ok := w.Pos[eMover]
+func tryGoToPosition(w *world.World, moverID int, delta world.Position) error {
+	moverPos, ok := w.Pos[moverID]
 	if !ok {
-		return fmt.Errorf("Mover entity not found!")
+		return fmt.Errorf("mover entity not found")
 	}
 
-	targetPos := cmp.Position{X: moverPos.X + posDelta.X, Y: moverPos.Y + posDelta.Y}
+	targetPos := world.Position{X: moverPos.X + delta.X, Y: moverPos.Y + delta.Y}
 	targetID, ok := w.EByPos[targetPos]
-	if !ok {
-		return nil
-	}
-	if !canMakeMove(w, targetID) {
+	if !ok || !canMakeMove(w, targetID) {
 		return nil
 	}
 
-	w.Pos[eMover] = targetPos
-	w.EByPos[targetPos] = eMover
-
+	w.Pos[moverID] = targetPos
+	w.EByPos[targetPos] = moverID
 	w.Pos[targetID] = moverPos
 	w.EByPos[moverPos] = targetID
 	return nil
 }
 
-func canMakeMove(w *wrld.World, targetID int) bool {
-	if _, blocked := w.Impassable[targetID]; blocked {
-		return false
-	}
-	return true
+func canMakeMove(w *world.World, targetID int) bool {
+	_, blocked := w.Impassable[targetID]
+	return !blocked
 }

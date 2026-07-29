@@ -1,7 +1,6 @@
 package scenario
 
 import (
-	cmp "go_ascii/internal/world/component"
 	"os"
 	"path/filepath"
 	"testing"
@@ -54,7 +53,7 @@ func TestGetAsciiMapHandlesWindowsLineEndings(t *testing.T) {
 func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
-	mapFile := "====MAP\n#.\no#\n====ENTITY\nfloor\n- pos\n- ascii:.\n- walkable\n- visible\nplayer\n- pos\n- ascii:o\n- player\nwall\n- pos\n- ascii=#\n- impassable\n====USERINPUTPROFILE\nquitgame=q\nmoveleft:a\n"
+	mapFile := "====MAP\n#.\no#\n====ENTITY\nfloor\n- pos\n- ascii:.\nplayer\n- pos\n- ascii:o\n- player\nwall\n- pos\n- ascii=#\n- impassable\n====USERINPUTPROFILE\nquitgame=q\nmoveleft:a\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
@@ -91,16 +90,14 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	if len(components) != 3 {
 		t.Fatalf("expected 3 component entries, got %d", len(components))
 	}
-	assertComponentValues(t, components, "floor", cmp.C_POS)
-	assertComponentValues(t, components, "floor", cmp.C_ASCII, ".")
-	assertComponentValues(t, components, "floor", cmp.C_WALKABLE)
-	assertComponentValues(t, components, "floor", cmp.C_VISIBLE)
-	assertComponentValues(t, components, "player", cmp.C_POS)
-	assertComponentValues(t, components, "player", cmp.C_ASCII, "o")
-	assertComponentValues(t, components, "player", cmp.C_PLAYER)
-	assertComponentValues(t, components, "wall", cmp.C_POS)
-	assertComponentValues(t, components, "wall", cmp.C_ASCII, "#")
-	assertComponentValues(t, components, "wall", cmp.C_IMPASSABLE)
+	assertComponentValues(t, components, "floor", "pos")
+	assertComponentValues(t, components, "floor", "ascii", ".")
+	assertComponentValues(t, components, "player", "pos")
+	assertComponentValues(t, components, "player", "ascii", "o")
+	assertComponentValues(t, components, "player", "player")
+	assertComponentValues(t, components, "wall", "pos")
+	assertComponentValues(t, components, "wall", "ascii", "#")
+	assertComponentValues(t, components, "wall", "impassable")
 
 	if len(userInputProfileMap) != 2 {
 		t.Fatalf("expected 2 user input profile entries, got %d", len(userInputProfileMap))
@@ -113,10 +110,10 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	}
 }
 
-func TestGetAsciiMapAndEntitiesFromFileAddsRadioMachine(t *testing.T) {
+func TestGetAsciiMapAndEntitiesFromFileParsesMachine(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
-	mapFile := "====MAP\nR\n====ENTITY\nradio\n- pos\n- ascii=R\n-impassable\n"
+	mapFile := "====MAP\nR\n====ENTITY\nradio\n- pos\n- ascii=R\n- impassable\n- machine\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
@@ -130,10 +127,10 @@ func TestGetAsciiMapAndEntitiesFromFileAddsRadioMachine(t *testing.T) {
 	if got := entities['R']; got != "radio" {
 		t.Fatalf("expected rune 'R' to be radio, got %q", got)
 	}
-	assertComponentValues(t, components, "radio", cmp.C_POS)
-	assertComponentValues(t, components, "radio", cmp.C_ASCII, "R")
-	assertComponentValues(t, components, "radio", cmp.C_IMPASSABLE)
-	assertComponentValues(t, components, "radio", cmp.C_MACHINE, string(cmp.MACHINENAME_RADIO))
+	assertComponentValues(t, components, "radio", "pos")
+	assertComponentValues(t, components, "radio", "ascii", "R")
+	assertComponentValues(t, components, "radio", "impassable")
+	assertComponentValues(t, components, "radio", "machine")
 }
 
 func TestGetAsciiMapAndEntitiesFromFileReturnsError(t *testing.T) {
@@ -156,7 +153,7 @@ func TestGetAsciiMapAndEntitiesFromFileReturnsError(t *testing.T) {
 	}
 }
 
-func assertComponentValues(t *testing.T, components map[string]map[cmp.ComponentName][]string, entity string, component cmp.ComponentName, want ...string) {
+func assertComponentValues(t *testing.T, components map[string]map[string][]string, entity string, component string, want ...string) {
 	t.Helper()
 
 	componentsForEntity, ok := components[entity]

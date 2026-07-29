@@ -1,7 +1,6 @@
 package scenario
 
 import (
-	cmp "go_ascii/internal/world/component"
 	"os"
 	"strings"
 )
@@ -57,7 +56,7 @@ func GetAsciiMap(mapText string) map[[2]int]rune {
 	return asciiMap
 }
 
-func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]string, map[string]map[cmp.ComponentName][]string, map[string]string, error) {
+func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]string, map[string]map[string][]string, map[string]string, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -65,7 +64,7 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 
 	asciiMap := make(map[[2]int]rune)
 	entities := make(map[rune]string)
-	components := make(map[string]map[cmp.ComponentName][]string)
+	components := make(map[string]map[string][]string)
 	userInputProfile := make(map[string]string)
 	text := strings.ReplaceAll(string(content), "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
@@ -140,7 +139,7 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 					continue
 				}
 
-				componentName := cmp.ComponentName(componentText)
+				componentName := componentText
 				values := []string{}
 				separator := strings.IndexAny(componentText, ":=")
 				if separator != -1 {
@@ -149,7 +148,7 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 						continue
 					}
 
-					componentName = cmp.ComponentName(name)
+					componentName = name
 					valueText := strings.TrimSpace(componentText[separator+1:])
 					if valueText != "" {
 						for _, value := range strings.Split(valueText, ",") {
@@ -163,7 +162,7 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 
 				if currentEntity != "" {
 					components[currentEntity][componentName] = values
-					if componentName == cmp.C_ASCII {
+					if componentName == "ascii" {
 						for _, value := range values {
 							symbol := []rune(value)
 							if len(symbol) == 1 {
@@ -177,10 +176,7 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 
 			name := strings.TrimSpace(line)
 			if _, exists := components[name]; !exists {
-				components[name] = make(map[cmp.ComponentName][]string)
-			}
-			if name == "radio" {
-				components[name][cmp.C_MACHINE] = []string{string(cmp.MACHINENAME_RADIO)}
+				components[name] = make(map[string][]string)
 			}
 			currentEntity = name
 		}

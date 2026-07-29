@@ -2,8 +2,7 @@ package game
 
 import (
 	"fmt"
-	wrld "go_ascii/internal/world"
-	usr "go_ascii/internal/world/user"
+	"go_ascii/internal/world"
 	"sort"
 	"time"
 )
@@ -14,28 +13,28 @@ const (
 	s_applyingChanges
 )
 
-func RunGame(world wrld.World, services []IService, keyInput <-chan string) error {
+func RunGame(gameWorld world.World, services []IService, keyInput <-chan string) error {
 	if len(services) == 0 {
 		return fmt.Errorf("Services is empty")
 	}
 	state := s_readyToGetUpdateFunctions
 	ticker := time.NewTicker(time.Second / 30)
+	defer ticker.Stop()
 	results := make([]UpdateFunc, 0, len(services))
 	updateFuncs := make(chan UpdateFunc, len(services))
 
 	for {
-		if world.HasUserState(usr.S_quit) {
+		if gameWorld.ShouldQuit {
 			return nil
 		}
 		switch state {
 		case s_readyToGetUpdateFunctions:
 			select {
 			case key := <-keyInput:
-				world.ClearUserInput()
-				world.SetKeyDown(usr.Interaction(key))
+				gameWorld.KeyDown = key
 
 			case <-ticker.C:
-				snapshot := world.Clone()
+				snapshot := gameWorld.Clone()
 				results = results[:0]
 
 				for _, service := range services {
@@ -57,8 +56,7 @@ func RunGame(world wrld.World, services []IService, keyInput <-chan string) erro
 				}
 
 			case key := <-keyInput:
-				world.ClearUserInput()
-				world.SetKeyDown(usr.Interaction(key))
+				gameWorld.KeyDown = key
 			}
 
 		case s_applyingChanges:
@@ -71,11 +69,11 @@ func RunGame(world wrld.World, services []IService, keyInput <-chan string) erro
 					panic(result.Err)
 				}
 				if result.UpdateFunc != nil {
-					result.UpdateFunc(&world)
+					result.UpdateFunc(&gameWorld)
 				}
 			}
 			state = s_readyToGetUpdateFunctions
-			world.IterationNr++
+			gameWorld.IterationNr++
 		}
 	}
 }

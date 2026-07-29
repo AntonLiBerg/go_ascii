@@ -1,14 +1,12 @@
 package game
 
-import (
-	wrld "go_ascii/internal/world"
-)
+import "go_ascii/internal/world"
 
 type UpdateFunc struct {
 	Order      int
-	UpdateFunc func(*wrld.World)
+	UpdateFunc func(*world.World)
 	Err        error
 }
 type IService interface {
-	GetUpdateFunc(world wrld.World) UpdateFunc
+	GetUpdateFunc(world world.World) UpdateFunc
 }
