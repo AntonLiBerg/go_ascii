@@ -7,6 +7,19 @@ The bridge is both the play space and the game's interface. Its layout should fo
 ## Concept Layout
 
 ```text
+                 Bridge
+                   |
+scan & comms - engine room - server room
+                   |
+             supply storage
+```
+Rooms(change this later to be more exact)
+- Bridge: where the instruments are
+- scan & comms: things needed for outside info instruments
+- engine room: responsible for power, propulsion and steering 
+- server room: responsible for internal info instruments
+- supply storage: crew or player have to go her first to pick up supply for certain actions
+```text
 #########################
 # N                   T #
 #                       #
