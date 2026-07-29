@@ -19,7 +19,7 @@ type World struct {
 	Ascii            map[int]component.Ascii
 	Impassable       map[int]component.Impassable
 	Player           map[int]component.Player
-	Machine          map[int]component.Machine
+	Door             map[int]component.Door
 }
 
 func NewWorldEmpty() World {
@@ -29,7 +29,7 @@ func NewWorldEmpty() World {
 		Ascii:      make(map[int]component.Ascii),
 		Impassable: make(map[int]component.Impassable),
 		Player:     make(map[int]component.Player),
-		Machine:    make(map[int]component.Machine),
+		Door:       make(map[int]component.Door),
 	}
 }
 
@@ -51,7 +51,7 @@ func (w World) Clone() World {
 	clone.Ascii = maps.Clone(w.Ascii)
 	clone.Impassable = maps.Clone(w.Impassable)
 	clone.Player = maps.Clone(w.Player)
-	clone.Machine = maps.Clone(w.Machine)
+	clone.Door = maps.Clone(w.Door)
 	return clone
 }
 
@@ -91,11 +91,11 @@ func (w *World) AddEntity(pos [2]int, components map[string][]string) error {
 			}
 			w.Player[eID] = component.Player{}
 
-		case component.NameMachine:
+		case component.NameDoor:
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Machine[eID] = component.Machine{}
+			w.Door[eID] = component.Door{IsInteractable: true}
 
 		default:
 			return fmt.Errorf("component does not exist %q", name)

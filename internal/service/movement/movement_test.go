@@ -56,6 +56,43 @@ func TestMovementDoesNotClearNewerKey(t *testing.T) {
 	}
 }
 
+func TestMovementKeepsUnderlyingDoorInPlace(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.UserInputProfile = world.UserInputProfile{KeyMoveRight: "d"}
+	playerID := addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{
+		"pos": {}, "ascii": {"o"}, "player": {},
+	})
+	doorID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
+		"pos": {}, "ascii": {"D"}, "door": {},
+	})
+	addTestEntity(t, &gameWorld, [2]int{3, 1}, map[string][]string{
+		"pos": {}, "ascii": {"."},
+	})
+
+	gameWorld.KeyDown = "d"
+	firstMove := ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	firstMove.UpdateFunc(&gameWorld)
+
+	doorPos := component.Position{X: 2, Y: 1}
+	if gameWorld.Pos[playerID] != doorPos || gameWorld.Pos[doorID] != doorPos {
+		t.Fatalf("expected player and door at %+v, got player=%+v door=%+v", doorPos, gameWorld.Pos[playerID], gameWorld.Pos[doorID])
+	}
+	if gameWorld.EByPos[doorPos] != playerID {
+		t.Fatal("expected player to be indexed above door")
+	}
+
+	gameWorld.KeyDown = "d"
+	secondMove := ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	secondMove.UpdateFunc(&gameWorld)
+
+	if gameWorld.Pos[doorID] != doorPos {
+		t.Fatalf("expected door to remain at %+v, got %+v", doorPos, gameWorld.Pos[doorID])
+	}
+	if gameWorld.EByPos[doorPos] != doorID {
+		t.Fatal("expected door index to be restored after player leaves")
+	}
+}
+
 func newTestWorld(t *testing.T) world.World {
 	t.Helper()
 

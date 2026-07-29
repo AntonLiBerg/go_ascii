@@ -2,6 +2,7 @@ package render
 
 import (
 	"fmt"
+	component "go_ascii/internal"
 	"go_ascii/internal/game"
 	"go_ascii/internal/world"
 )
@@ -27,7 +28,7 @@ func UpdateTerminal(world world.World) {
 	for _, eID := range world.Entities {
 		pos, okPos := world.Pos[eID]
 		ascii, okASCII := world.Ascii[eID]
-		if !okPos || !okASCII || pos.X < 0 || pos.Y < 0 {
+		if !okPos || !okASCII || pos.X < 0 || pos.Y < 0 || isCoveredByPlayer(world, eID, pos) {
 			continue
 		}
 
@@ -38,4 +39,16 @@ func UpdateTerminal(world world.World) {
 	}
 
 	fmt.Printf("\033[%d;1H", maxY+2)
+}
+
+func isCoveredByPlayer(world world.World, eID int, pos component.Position) bool {
+	if _, isPlayer := world.Player[eID]; isPlayer {
+		return false
+	}
+	for playerID := range world.Player {
+		if world.Pos[playerID] == pos {
+			return true
+		}
+	}
+	return false
 }

@@ -52,19 +52,27 @@ func tryGoToPosition(w *world.World, moverID int, delta component.Position) erro
 	}
 
 	targetPos := component.Position{X: moverPos.X + delta.X, Y: moverPos.Y + delta.Y}
-	targetID, ok := w.EByPos[targetPos]
-	if !ok || !canMakeMove(w, targetID) {
+	targetIDs := world.GetEntitiesAtPosition(*w, targetPos)
+	if len(targetIDs) == 0 || !canMakeMove(w, targetIDs) {
 		return nil
 	}
 
 	w.Pos[moverID] = targetPos
 	w.EByPos[targetPos] = moverID
-	w.Pos[targetID] = moverPos
-	w.EByPos[moverPos] = targetID
+	entitiesAtOldPosition := world.GetEntitiesAtPosition(*w, moverPos)
+	if len(entitiesAtOldPosition) == 0 {
+		delete(w.EByPos, moverPos)
+	} else {
+		w.EByPos[moverPos] = entitiesAtOldPosition[len(entitiesAtOldPosition)-1]
+	}
 	return nil
 }
 
-func canMakeMove(w *world.World, targetID int) bool {
-	_, blocked := w.Impassable[targetID]
-	return !blocked
+func canMakeMove(w *world.World, targetIDs []int) bool {
+	for _, targetID := range targetIDs {
+		if _, blocked := w.Impassable[targetID]; blocked {
+			return false
+		}
+	}
+	return true
 }

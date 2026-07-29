@@ -22,9 +22,27 @@ func GetNeighbors(world World, target int) []int {
 	var neighbors []int
 	for _, delta := range deltas {
 		pos := component.Position{X: targetPos.X + delta.X, Y: targetPos.Y + delta.Y}
-		if eID, ok := world.EByPos[pos]; ok {
-			neighbors = append(neighbors, eID)
-		}
+		neighbors = append(neighbors, GetEntitiesAtPosition(world, pos)...)
 	}
 	return neighbors
+}
+
+func GetEntitiesAtPosition(world World, target component.Position) []int {
+	var entities []int
+	for _, eID := range world.Entities {
+		if pos, ok := world.Pos[eID]; ok && pos == target {
+			entities = append(entities, eID)
+		}
+	}
+	return entities
+}
+
+func GetInteractableNeighbors(world World, target int) []int {
+	var interactable []int
+	for _, neighborID := range GetNeighbors(world, target) {
+		if door, ok := world.Door[neighborID]; ok && door.IsInteractable {
+			interactable = append(interactable, neighborID)
+		}
+	}
+	return interactable
 }

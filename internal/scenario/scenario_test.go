@@ -110,10 +110,10 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	}
 }
 
-func TestGetAsciiMapAndEntitiesFromFileParsesMachine(t *testing.T) {
+func TestGetAsciiMapAndEntitiesFromFileParsesDoor(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
-	mapFile := "====MAP\nR\n====ENTITY\nradio\n- pos\n- ascii=R\n- impassable\n- machine\n"
+	mapFile := "====MAP\nD\n====ENTITY\ndoor\n- pos\n- ascii=D\n- impassable\n- door\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
@@ -124,13 +124,13 @@ func TestGetAsciiMapAndEntitiesFromFileParsesMachine(t *testing.T) {
 		t.Fatalf("GetAsciiMapAndEntitiesFromFile returned error: %v", err)
 	}
 
-	if got := entities['R']; got != "radio" {
-		t.Fatalf("expected rune 'R' to be radio, got %q", got)
+	if got := entities['D']; got != "door" {
+		t.Fatalf("expected rune 'D' to be door, got %q", got)
 	}
-	assertComponentValues(t, components, "radio", "pos")
-	assertComponentValues(t, components, "radio", "ascii", "R")
-	assertComponentValues(t, components, "radio", "impassable")
-	assertComponentValues(t, components, "radio", "machine")
+	assertComponentValues(t, components, "door", "pos")
+	assertComponentValues(t, components, "door", "ascii", "D")
+	assertComponentValues(t, components, "door", "impassable")
+	assertComponentValues(t, components, "door", "door")
 }
 
 func TestGetAsciiMapAndEntitiesFromFileReturnsError(t *testing.T) {

@@ -5,7 +5,7 @@ const (
 	NameASCII      = "ascii"
 	NameImpassable = "impassable"
 	NamePlayer     = "player"
-	NameMachine    = "machine"
+	NameDoor       = "door"
 )
 
 type Position struct {
@@ -21,6 +21,6 @@ type Impassable struct{}
 
 type Player struct{}
 
-type Machine struct {
-	IsOn bool
+type Door struct {
+	IsInteractable bool
 }

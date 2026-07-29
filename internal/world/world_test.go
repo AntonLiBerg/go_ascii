@@ -12,7 +12,7 @@ func TestAddEntityStoresComponents(t *testing.T) {
 		"pos":        {},
 		"ascii":      {"å"},
 		"impassable": {},
-		"machine":    {},
+		"door":       {},
 		"player":     {},
 	})
 	if err != nil {
@@ -37,8 +37,8 @@ func TestAddEntityStoresComponents(t *testing.T) {
 	if _, ok := gameWorld.Player[0]; !ok {
 		t.Fatal("expected player component")
 	}
-	if machine, ok := gameWorld.Machine[0]; !ok || machine.IsOn {
-		t.Fatalf("expected an off machine, got %+v, exists=%t", machine, ok)
+	if door, ok := gameWorld.Door[0]; !ok || !door.IsInteractable {
+		t.Fatalf("expected an interactable door, got %+v, exists=%t", door, ok)
 	}
 }
 
@@ -58,7 +58,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	gameWorld.HasChanged = true
 	gameWorld.IterationNr = 4
 	if err := gameWorld.AddEntity([2]int{4, 5}, map[string][]string{
-		"pos": {}, "ascii": {"o"}, "impassable": {}, "player": {}, "machine": {},
+		"pos": {}, "ascii": {"o"}, "impassable": {}, "player": {}, "door": {},
 	}); err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	clone.Ascii[0] = component.Ascii{Ascii: 'x'}
 	delete(clone.Impassable, 0)
 	delete(clone.Player, 0)
-	clone.Machine[0] = component.Machine{IsOn: true}
+	clone.Door[0] = component.Door{IsInteractable: false}
 
 	if gameWorld.Entities[0] != 0 {
 		t.Fatal("expected entities slice to be independent")
@@ -97,7 +97,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	if _, ok := gameWorld.Player[0]; !ok {
 		t.Fatal("expected player map to be independent")
 	}
-	if gameWorld.Machine[0].IsOn {
-		t.Fatal("expected machine map to be independent")
+	if !gameWorld.Door[0].IsInteractable {
+		t.Fatal("expected door map to be independent")
 	}
 }
