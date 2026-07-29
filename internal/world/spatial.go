@@ -1,12 +1,14 @@
 package world
 
+import component "go_ascii/internal"
+
 func GetNeighbors(world World, target int) []int {
 	targetPos, ok := world.Pos[target]
 	if !ok {
 		return nil
 	}
 
-	deltas := [...]Position{
+	deltas := [...]component.Position{
 		{X: -1, Y: -1},
 		{X: -1, Y: 0},
 		{X: -1, Y: 1},
@@ -19,7 +21,7 @@ func GetNeighbors(world World, target int) []int {
 
 	var neighbors []int
 	for _, delta := range deltas {
-		pos := Position{X: targetPos.X + delta.X, Y: targetPos.Y + delta.Y}
+		pos := component.Position{X: targetPos.X + delta.X, Y: targetPos.Y + delta.Y}
 		if eID, ok := world.EByPos[pos]; ok {
 			neighbors = append(neighbors, eID)
 		}

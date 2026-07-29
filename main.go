@@ -2,11 +2,11 @@ package main
 
 import (
 	"go_ascii/internal/game"
-	"go_ascii/internal/interaction"
-	"go_ascii/internal/movement"
-	"go_ascii/internal/quit"
-	"go_ascii/internal/render"
 	"go_ascii/internal/scenario"
+	"go_ascii/internal/service/interaction"
+	"go_ascii/internal/service/movement"
+	"go_ascii/internal/service/quit"
+	"go_ascii/internal/service/render"
 	"go_ascii/internal/world"
 	"os"
 

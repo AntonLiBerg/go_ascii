@@ -33,7 +33,9 @@ func (s ServiceTurnOnMachine) GetUpdateFunc(w world.World) game.UpdateFunc {
 		Order: 1,
 		UpdateFunc: func(w *world.World) {
 			if machineID != -1 {
-				w.Machine[machineID] = true
+				machine := w.Machine[machineID]
+				machine.IsOn = true
+				w.Machine[machineID] = machine
 				w.HasChanged = true
 			}
 			if w.KeyDown == interactKey {

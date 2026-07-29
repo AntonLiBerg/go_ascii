@@ -2,6 +2,7 @@ package movement
 
 import (
 	"fmt"
+	component "go_ascii/internal"
 	"go_ascii/internal/game"
 	"go_ascii/internal/world"
 )
@@ -13,17 +14,17 @@ func (s ServiceMovePlayer) GetUpdateFunc(w world.World) game.UpdateFunc {
 		return game.UpdateFunc{Order: 1}
 	}
 
-	moveDelta := world.Position{}
+	moveDelta := component.Position{}
 	keyToClear := w.KeyDown
 	switch w.KeyDown {
 	case w.UserInputProfile.KeyMoveUp:
-		moveDelta = world.Position{Y: -1}
+		moveDelta = component.Position{Y: -1}
 	case w.UserInputProfile.KeyMoveLeft:
-		moveDelta = world.Position{X: -1}
+		moveDelta = component.Position{X: -1}
 	case w.UserInputProfile.KeyMoveDown:
-		moveDelta = world.Position{Y: 1}
+		moveDelta = component.Position{Y: 1}
 	case w.UserInputProfile.KeyMoveRight:
-		moveDelta = world.Position{X: 1}
+		moveDelta = component.Position{X: 1}
 	default:
 		return game.UpdateFunc{Order: 1}
 	}
@@ -44,13 +45,13 @@ func (s ServiceMovePlayer) GetUpdateFunc(w world.World) game.UpdateFunc {
 	}
 }
 
-func tryGoToPosition(w *world.World, moverID int, delta world.Position) error {
+func tryGoToPosition(w *world.World, moverID int, delta component.Position) error {
 	moverPos, ok := w.Pos[moverID]
 	if !ok {
 		return fmt.Errorf("mover entity not found")
 	}
 
-	targetPos := world.Position{X: moverPos.X + delta.X, Y: moverPos.Y + delta.Y}
+	targetPos := component.Position{X: moverPos.X + delta.X, Y: moverPos.Y + delta.Y}
 	targetID, ok := w.EByPos[targetPos]
 	if !ok || !canMakeMove(w, targetID) {
 		return nil

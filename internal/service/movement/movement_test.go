@@ -1,6 +1,7 @@
 package movement
 
 import (
+	component "go_ascii/internal"
 	"go_ascii/internal/world"
 	"testing"
 )
@@ -9,12 +10,12 @@ func TestServiceMovesPlayerWithWASD(t *testing.T) {
 	tests := []struct {
 		name          string
 		key           string
-		wantPlayerPos world.Position
+		wantPlayerPos component.Position
 	}{
-		{name: "up blocked", key: "w", wantPlayerPos: world.Position{X: 1, Y: 1}},
-		{name: "left open", key: "a", wantPlayerPos: world.Position{X: 0, Y: 1}},
-		{name: "down open", key: "s", wantPlayerPos: world.Position{X: 1, Y: 2}},
-		{name: "right open", key: "d", wantPlayerPos: world.Position{X: 2, Y: 1}},
+		{name: "up blocked", key: "w", wantPlayerPos: component.Position{X: 1, Y: 1}},
+		{name: "left open", key: "a", wantPlayerPos: component.Position{X: 0, Y: 1}},
+		{name: "down open", key: "s", wantPlayerPos: component.Position{X: 1, Y: 2}},
+		{name: "right open", key: "d", wantPlayerPos: component.Position{X: 2, Y: 1}},
 	}
 
 	for _, tt := range tests {

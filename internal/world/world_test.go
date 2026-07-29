@@ -1,6 +1,9 @@
 package world
 
-import "testing"
+import (
+	component "go_ascii/internal"
+	"testing"
+)
 
 func TestAddEntityStoresComponents(t *testing.T) {
 	gameWorld := NewWorldEmpty()
@@ -19,13 +22,13 @@ func TestAddEntityStoresComponents(t *testing.T) {
 	if len(gameWorld.Entities) != 1 || gameWorld.Entities[0] != 0 {
 		t.Fatalf("expected entity 0, got %v", gameWorld.Entities)
 	}
-	if got := gameWorld.Pos[0]; got != (Position{X: 2, Y: 3}) {
+	if got := gameWorld.Pos[0]; got != (component.Position{X: 2, Y: 3}) {
 		t.Fatalf("expected position 2,3, got %+v", got)
 	}
-	if got := gameWorld.EByPos[Position{X: 2, Y: 3}]; got != 0 {
+	if got := gameWorld.EByPos[component.Position{X: 2, Y: 3}]; got != 0 {
 		t.Fatalf("expected reverse position index to point to entity 0, got %d", got)
 	}
-	if got := gameWorld.Ascii[0]; got != 'å' {
+	if got := gameWorld.Ascii[0].Ascii; got != 'å' {
 		t.Fatalf("expected glyph 'å', got %q", got)
 	}
 	if _, ok := gameWorld.Impassable[0]; !ok {
@@ -34,8 +37,8 @@ func TestAddEntityStoresComponents(t *testing.T) {
 	if _, ok := gameWorld.Player[0]; !ok {
 		t.Fatal("expected player component")
 	}
-	if isOn, ok := gameWorld.Machine[0]; !ok || isOn {
-		t.Fatalf("expected an off machine, got isOn=%t, exists=%t", isOn, ok)
+	if machine, ok := gameWorld.Machine[0]; !ok || machine.IsOn {
+		t.Fatalf("expected an off machine, got %+v, exists=%t", machine, ok)
 	}
 }
 
@@ -69,23 +72,23 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	}
 
 	clone.Entities[0] = 9
-	clone.Pos[0] = Position{X: 1, Y: 1}
-	clone.EByPos[Position{X: 1, Y: 1}] = 0
-	clone.Ascii[0] = 'x'
+	clone.Pos[0] = component.Position{X: 1, Y: 1}
+	clone.EByPos[component.Position{X: 1, Y: 1}] = 0
+	clone.Ascii[0] = component.Ascii{Ascii: 'x'}
 	delete(clone.Impassable, 0)
 	delete(clone.Player, 0)
-	clone.Machine[0] = true
+	clone.Machine[0] = component.Machine{IsOn: true}
 
 	if gameWorld.Entities[0] != 0 {
 		t.Fatal("expected entities slice to be independent")
 	}
-	if gameWorld.Pos[0] != (Position{X: 4, Y: 5}) {
+	if gameWorld.Pos[0] != (component.Position{X: 4, Y: 5}) {
 		t.Fatal("expected position map to be independent")
 	}
-	if _, ok := gameWorld.EByPos[Position{X: 1, Y: 1}]; ok {
+	if _, ok := gameWorld.EByPos[component.Position{X: 1, Y: 1}]; ok {
 		t.Fatal("expected reverse position map to be independent")
 	}
-	if gameWorld.Ascii[0] != 'o' {
+	if gameWorld.Ascii[0].Ascii != 'o' {
 		t.Fatal("expected glyph map to be independent")
 	}
 	if _, ok := gameWorld.Impassable[0]; !ok {
@@ -94,7 +97,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	if _, ok := gameWorld.Player[0]; !ok {
 		t.Fatal("expected player map to be independent")
 	}
-	if gameWorld.Machine[0] {
+	if gameWorld.Machine[0].IsOn {
 		t.Fatal("expected machine map to be independent")
 	}
 }

@@ -2,46 +2,34 @@ package world
 
 import (
 	"fmt"
+	component "go_ascii/internal"
 	"maps"
 	"slices"
 )
-
-const (
-	componentPosition   = "pos"
-	componentASCII      = "ascii"
-	componentImpassable = "impassable"
-	componentPlayer     = "player"
-	componentMachine    = "machine"
-)
-
-type Position struct {
-	X int
-	Y int
-}
 
 type World struct {
 	UserInputProfile UserInputProfile
 	KeyDown          string
 	ShouldQuit       bool
-	EByPos           map[Position]int
+	EByPos           map[component.Position]int
 	HasChanged       bool
 	IterationNr      int
 	Entities         []int
-	Pos              map[int]Position
-	Ascii            map[int]rune
-	Impassable       map[int]struct{}
-	Player           map[int]struct{}
-	Machine          map[int]bool
+	Pos              map[int]component.Position
+	Ascii            map[int]component.Ascii
+	Impassable       map[int]component.Impassable
+	Player           map[int]component.Player
+	Machine          map[int]component.Machine
 }
 
 func NewWorldEmpty() World {
 	return World{
-		EByPos:     make(map[Position]int),
-		Pos:        make(map[int]Position),
-		Ascii:      make(map[int]rune),
-		Impassable: make(map[int]struct{}),
-		Player:     make(map[int]struct{}),
-		Machine:    make(map[int]bool),
+		EByPos:     make(map[component.Position]int),
+		Pos:        make(map[int]component.Position),
+		Ascii:      make(map[int]component.Ascii),
+		Impassable: make(map[int]component.Impassable),
+		Player:     make(map[int]component.Player),
+		Machine:    make(map[int]component.Machine),
 	}
 }
 
@@ -73,15 +61,15 @@ func (w *World) AddEntity(pos [2]int, components map[string][]string) error {
 
 	for name, values := range components {
 		switch name {
-		case componentPosition:
+		case component.NamePosition:
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			position := Position{X: pos[0], Y: pos[1]}
+			position := component.Position{X: pos[0], Y: pos[1]}
 			w.Pos[eID] = position
 			w.EByPos[position] = eID
 
-		case componentASCII:
+		case component.NameASCII:
 			if len(values) != 1 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
@@ -89,25 +77,25 @@ func (w *World) AddEntity(pos [2]int, components map[string][]string) error {
 			if len(chars) != 1 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Ascii[eID] = chars[0]
+			w.Ascii[eID] = component.Ascii{Ascii: chars[0]}
 
-		case componentImpassable:
+		case component.NameImpassable:
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Impassable[eID] = struct{}{}
+			w.Impassable[eID] = component.Impassable{}
 
-		case componentPlayer:
+		case component.NamePlayer:
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Player[eID] = struct{}{}
+			w.Player[eID] = component.Player{}
 
-		case componentMachine:
+		case component.NameMachine:
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Machine[eID] = false
+			w.Machine[eID] = component.Machine{}
 
 		default:
 			return fmt.Errorf("component does not exist %q", name)

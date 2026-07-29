@@ -22,7 +22,7 @@ func TestServiceTurnsOnSingleNeighborAndClearsInteractKey(t *testing.T) {
 	}
 	result.UpdateFunc(&gameWorld)
 
-	if !gameWorld.Machine[machineID] {
+	if !gameWorld.Machine[machineID].IsOn {
 		t.Fatal("expected machine to be on after interaction")
 	}
 	if gameWorld.KeyDown != "" {
@@ -44,10 +44,10 @@ func TestServiceTurnsOnFirstNeighborMachine(t *testing.T) {
 	result := ServiceTurnOnMachine{}.GetUpdateFunc(gameWorld)
 	result.UpdateFunc(&gameWorld)
 
-	if !gameWorld.Machine[westMachine] {
+	if !gameWorld.Machine[westMachine].IsOn {
 		t.Fatal("expected first machine in neighbor order to be on")
 	}
-	if gameWorld.Machine[eastMachine] {
+	if gameWorld.Machine[eastMachine].IsOn {
 		t.Fatal("expected later machine in neighbor order to remain off")
 	}
 }

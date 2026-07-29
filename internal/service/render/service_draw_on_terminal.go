@@ -31,7 +31,7 @@ func UpdateTerminal(world world.World) {
 			continue
 		}
 
-		fmt.Printf("\033[%d;%dH%c", pos.Y+1, pos.X+1, ascii)
+		fmt.Printf("\033[%d;%dH%c", pos.Y+1, pos.X+1, ascii.Ascii)
 		if pos.Y > maxY {
 			maxY = pos.Y
 		}
