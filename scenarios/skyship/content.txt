@@ -1,0 +1,30 @@
+===ENTITY
+.:floor
+- pos
+- ascii:.
+@:player
+- pos
+- ascii:o
+- player
+-:horizontal-wall
+- pos
+- ascii:-
+- impassable
+- wall
+|:vertical-wall
+- pos
+- ascii:|
+- impassable
+- wall
+H:helm
+- pos
+- ascii:H
+- impassable
+- helm
+===USERINPUTPROFILE
+quitgame=q
+interact=e
+moveup=w
+moveleft=a
+movedown=s
+moveright=d

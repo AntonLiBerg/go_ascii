@@ -1,0 +1,18 @@
+# use the following for making services for your scenario
+
+package YOURSCENARIO
+
+import (
+	component "go_ascii/internal"
+	"go_ascii/internal/game"
+	"go_ascii/internal/world"
+)
+
+type ServiceX struct{}
+
+func (s ServiceX) GetUpdateFunc(w world.World) game.UpdateFunc {
+	return game.UpdateFunc{
+		Order: 1,
+		UpdateFunc: func(w *world.World) {}
+   }
+}
