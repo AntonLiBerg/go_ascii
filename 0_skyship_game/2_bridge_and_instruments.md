@@ -20,14 +20,15 @@ Rooms(change this later to be more exact)
 - server room: responsible for internal info instruments
 - supply storage: crew or player have to go her first to pick up supply for certain actions
 ```text
-#########################
-# N                   T #
-#                       #
-#     C           I     #
-#                       #
-# E         @         H #
-#                       #
-########### D ###########
+       --¤¤¤-----
+       |..H.....|
+       |....@...|
+       |........|
+       |N...C...|---|
+   ----|------+-|T..|
+   |...+........|...|
+   |S..|...E....+...|
+   ----|------+------
 ```
 
 Legend:
@@ -36,10 +37,9 @@ Legend:
 - `H` helm
 - `T` tactical display
 - `N` navigation chart
-- `I` internal monitor
 - `C` communications station
-- `E` engineering console
 - `D` bridge door
+- `¤` window
 
 This is a relationship diagram, not a final map. Walking distances must be tested in play.
 
@@ -50,9 +50,7 @@ This is a relationship diagram, not a final map. Walking distances must be teste
 | Helm | Current heading and speed | Change heading or speed | How should the ship move right now? |
 | Tactical display | Nearby objects, ships, and hazards | Focus a scan on one contact | What presents an immediate external danger? |
 | Navigation chart | Larger route, destination, and known regions | Set a waypoint | What course supports the voyage rather than only the current crisis? |
-| Internal monitor | Last known room, system, and crew status | Inspect one room in detail | Where is something going wrong inside the ship? |
 | Communications station | Crew locations, orders, and availability | Assign, cancel, or reprioritize one order | Who should handle a problem, and when? |
-| Engineering console | Power allocation and major system condition | Shift limited power between systems | Which capability matters most at this moment? |
 
 ## Instrument Rules
 
