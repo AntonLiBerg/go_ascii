@@ -50,28 +50,36 @@ func TestGetAsciiMapHandlesWindowsLineEndings(t *testing.T) {
 	}
 }
 
-func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
+func TestGetScenarioFromFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
-	mapFile := "====MAP\n#.\no#\n====ENTITY\nfloor\n- pos\n- ascii:.\nplayer\n- pos\n- ascii:o\n- player\nwall\n- pos\n- ascii=#\n- impassable\n====USERINPUTPROFILE\nquitgame=q\nmoveleft:a\n"
+	contentPath := filepath.Join(tempDir, "content.txt")
+	mapFile := "===layer[0]\n#.\n.#\n===layer[1]\n p\n"
+	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\np:player\n- pos\n- ascii:o\n- player\n#:wall\n- pos\n- ascii=#\n- impassable\n====USERINPUTPROFILE\nquitgame=q\nmoveleft:a\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
 	}
+	if err := os.WriteFile(contentPath, []byte(contentFile), 0o644); err != nil {
+		t.Fatalf("write temp content file: %v", err)
+	}
 
-	asciiMap, entities, components, userInputProfileMap, err := GetAsciiMapAndEntitiesFromFile(mapPath)
+	asciiMap, entities, components, userInputProfileMap, err := GetScenarioFromFiles(mapPath, contentPath)
 	if err != nil {
-		t.Fatalf("GetAsciiMapAndEntitiesFromFile returned error: %v", err)
+		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
 	}
 
-	if len(asciiMap) != 4 {
-		t.Fatalf("expected 4 map runes, got %d", len(asciiMap))
+	if len(asciiMap) != 2 {
+		t.Fatalf("expected 2 layers, got %d", len(asciiMap))
 	}
-	if got := asciiMap[[2]int{0, 1}]; got != 'o' {
-		t.Fatalf("expected coordinate 0,1 to be 'o', got %q", got)
+	if got := asciiMap[0][[2]int{0, 1}]; got != '.' {
+		t.Fatalf("expected layer 0 coordinate 0,1 to be '.', got %q", got)
 	}
-	if got := asciiMap[[2]int{1, 0}]; got != '.' {
-		t.Fatalf("expected coordinate 1,0 to be '.', got %q", got)
+	if got := asciiMap[1][[2]int{1, 0}]; got != 'p' {
+		t.Fatalf("expected layer 1 coordinate 1,0 to be 'p', got %q", got)
+	}
+	if _, ok := asciiMap[1][[2]int{0, 0}]; ok {
+		t.Fatal("expected spaces in higher layers to be transparent")
 	}
 
 	if len(entities) != 3 {
@@ -80,8 +88,11 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	if got := entities['.']; got != "floor" {
 		t.Fatalf("expected rune '.' to be floor, got %q", got)
 	}
-	if got := entities['o']; got != "player" {
-		t.Fatalf("expected rune 'o' to be player, got %q", got)
+	if got := entities['p']; got != "player" {
+		t.Fatalf("expected map key 'p' to be player, got %q", got)
+	}
+	if _, exists := entities['o']; exists {
+		t.Fatal("expected rendered ASCII 'o' not to become a map key")
 	}
 	if got := entities['#']; got != "wall" {
 		t.Fatalf("expected rune '#' to be wall, got %q", got)
@@ -110,22 +121,27 @@ func TestGetAsciiMapAndEntitiesFromFile(t *testing.T) {
 	}
 }
 
-func TestGetAsciiMapAndEntitiesFromFileParsesDoor(t *testing.T) {
+func TestGetScenarioFromFilesParsesDoor(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
-	mapFile := "====MAP\nD\n====ENTITY\ndoor\n- pos\n- ascii=D\n- impassable\n- door\n"
+	contentPath := filepath.Join(tempDir, "content.txt")
+	mapFile := "===layer[0]\n.\n===layer[1]\nd\n"
+	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\nd:door\n- pos\n- ascii=D\n- impassable\n- door\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
 	}
-
-	_, entities, components, _, err := GetAsciiMapAndEntitiesFromFile(mapPath)
-	if err != nil {
-		t.Fatalf("GetAsciiMapAndEntitiesFromFile returned error: %v", err)
+	if err := os.WriteFile(contentPath, []byte(contentFile), 0o644); err != nil {
+		t.Fatalf("write temp content file: %v", err)
 	}
 
-	if got := entities['D']; got != "door" {
-		t.Fatalf("expected rune 'D' to be door, got %q", got)
+	_, entities, components, _, err := GetScenarioFromFiles(mapPath, contentPath)
+	if err != nil {
+		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
+	}
+
+	if got := entities['d']; got != "door" {
+		t.Fatalf("expected map key 'd' to be door, got %q", got)
 	}
 	assertComponentValues(t, components, "door", "pos")
 	assertComponentValues(t, components, "door", "ascii", "D")
@@ -133,8 +149,39 @@ func TestGetAsciiMapAndEntitiesFromFileParsesDoor(t *testing.T) {
 	assertComponentValues(t, components, "door", "door")
 }
 
-func TestGetAsciiMapAndEntitiesFromFileReturnsError(t *testing.T) {
-	asciiMap, entities, components, userInputProfileMap, err := GetAsciiMapAndEntitiesFromFile(filepath.Join(t.TempDir(), "missing.txt"))
+func TestGetScenarioFromFilesRejectsSkippedLayerNumber(t *testing.T) {
+	_, err := GetLayeredAsciiMap("===layer[0]\n.\n===layer[2]\no")
+	if err == nil {
+		t.Fatal("expected skipped layer number error")
+	}
+}
+
+func TestScenarioContentRejectsEntityWithoutKey(t *testing.T) {
+	_, _, _, err := getEntitiesAndUserInputProfile("===ENTITY\nfloor\n- pos\n- ascii:.")
+	if err == nil {
+		t.Fatal("expected invalid entity header error")
+	}
+}
+
+func TestScenarioContentParsesHyphenEntityKey(t *testing.T) {
+	entities, components, _, err := getEntitiesAndUserInputProfile("===ENTITY\n-:wall\n- pos\n- ascii:#\n- impassable")
+	if err != nil {
+		t.Fatalf("getEntitiesAndUserInputProfile returned error: %v", err)
+	}
+	if got := entities['-']; got != "wall" {
+		t.Fatalf("expected map key '-' to be wall, got %q", got)
+	}
+	assertComponentValues(t, components, "wall", "pos")
+	assertComponentValues(t, components, "wall", "ascii", "#")
+	assertComponentValues(t, components, "wall", "impassable")
+}
+
+func TestGetScenarioFromFilesReturnsError(t *testing.T) {
+	tempDir := t.TempDir()
+	asciiMap, entities, components, userInputProfileMap, err := GetScenarioFromFiles(
+		filepath.Join(tempDir, "missing-map.txt"),
+		filepath.Join(tempDir, "missing-content.txt"),
+	)
 
 	if err == nil {
 		t.Fatal("expected error for missing map file")

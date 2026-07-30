@@ -28,7 +28,7 @@ func UpdateTerminal(world world.World) {
 	for _, eID := range world.Entities {
 		pos, okPos := world.Pos[eID]
 		ascii, okASCII := world.Ascii[eID]
-		if !okPos || !okASCII || pos.X < 0 || pos.Y < 0 || isCoveredByPlayer(world, eID, pos) {
+		if !okPos || !okASCII || pos.X < 0 || pos.Y < 0 || isCovered(world, eID, pos) {
 			continue
 		}
 
@@ -41,12 +41,23 @@ func UpdateTerminal(world world.World) {
 	fmt.Printf("\033[%d;1H", maxY+2)
 }
 
-func isCoveredByPlayer(world world.World, eID int, pos component.Position) bool {
-	if _, isPlayer := world.Player[eID]; isPlayer {
-		return false
-	}
-	for playerID := range world.Player {
-		if world.Pos[playerID] == pos {
+func isCovered(world world.World, eID int, pos component.Position) bool {
+	layer := world.Layer[eID].Nr
+	_, isPlayer := world.Player[eID]
+	for _, otherID := range world.Entities {
+		if otherID == eID || world.Pos[otherID] != pos {
+			continue
+		}
+		if _, hasASCII := world.Ascii[otherID]; !hasASCII {
+			continue
+		}
+
+		otherLayer := world.Layer[otherID].Nr
+		_, otherIsPlayer := world.Player[otherID]
+		if otherLayer > layer || (otherLayer == layer && otherIsPlayer && !isPlayer) {
+			return true
+		}
+		if otherLayer == layer && otherIsPlayer == isPlayer && otherID > eID {
 			return true
 		}
 	}

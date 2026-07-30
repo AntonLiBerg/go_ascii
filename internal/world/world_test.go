@@ -50,6 +50,67 @@ func TestAddEntityRejectsUnknownComponent(t *testing.T) {
 	}
 }
 
+func TestNewWorldStoresMapLayers(t *testing.T) {
+	gameWorld, err := NewWorld(
+		map[int]map[[2]int]rune{
+			0: {{1, 1}: '.'},
+			1: {{1, 1}: 'o'},
+		},
+		map[rune]string{'.': "floor", 'o': "player"},
+		map[string]map[string][]string{
+			"floor":  {"pos": {}, "ascii": {"."}},
+			"player": {"pos": {}, "ascii": {"o"}, "player": {}},
+		},
+	)
+	if err != nil {
+		t.Fatalf("NewWorld returned error: %v", err)
+	}
+
+	if gameWorld.Layer[0].Nr != 0 || gameWorld.Layer[1].Nr != 1 {
+		t.Fatalf("expected entity layers 0 and 1, got %v", gameWorld.Layer)
+	}
+	if gameWorld.Pos[0] != gameWorld.Pos[1] {
+		t.Fatalf("expected layered entities at the same position, got %v", gameWorld.Pos)
+	}
+}
+
+func TestNewWorldRejectsUndefinedMapKey(t *testing.T) {
+	_, err := NewWorld(
+		map[int]map[[2]int]rune{0: {{0, 0}: 'X'}},
+		map[rune]string{},
+		map[string]map[string][]string{},
+	)
+	if err == nil {
+		t.Fatal("expected undefined map key error")
+	}
+}
+
+func TestAddEntityStoresStructureComponents(t *testing.T) {
+	gameWorld := NewWorldEmpty()
+	err := gameWorld.AddEntity([2]int{}, map[string][]string{
+		"helm": {}, "commandtable": {}, "bunkbed": {}, "prisonbars": {}, "wall": {}, "window": {},
+	})
+	if err != nil {
+		t.Fatalf("AddEntity returned error: %v", err)
+	}
+
+	if !gameWorld.Helm[0].IsInteractable || !gameWorld.CommandTable[0].IsInteractable {
+		t.Fatal("expected helm and command table to be interactable")
+	}
+	if _, ok := gameWorld.BunkBed[0]; !ok {
+		t.Fatal("expected bunk bed component")
+	}
+	if _, ok := gameWorld.PrisonBars[0]; !ok {
+		t.Fatal("expected prison bars component")
+	}
+	if _, ok := gameWorld.Wall[0]; !ok {
+		t.Fatal("expected wall component")
+	}
+	if _, ok := gameWorld.Window[0]; !ok {
+		t.Fatal("expected window component")
+	}
+}
+
 func TestCloneCopiesMutableState(t *testing.T) {
 	gameWorld := NewWorldEmpty()
 	gameWorld.UserInputProfile = UserInputProfile{KeyQuitGame: "q"}
@@ -73,6 +134,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 
 	clone.Entities[0] = 9
 	clone.Pos[0] = component.Position{X: 1, Y: 1}
+	clone.Layer[0] = component.Layer{Nr: 2}
 	clone.EByPos[component.Position{X: 1, Y: 1}] = 0
 	clone.Ascii[0] = component.Ascii{Ascii: 'x'}
 	delete(clone.Impassable, 0)
@@ -84,6 +146,9 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	}
 	if gameWorld.Pos[0] != (component.Position{X: 4, Y: 5}) {
 		t.Fatal("expected position map to be independent")
+	}
+	if gameWorld.Layer[0].Nr != 0 {
+		t.Fatal("expected layer map to be independent")
 	}
 	if _, ok := gameWorld.EByPos[component.Position{X: 1, Y: 1}]; ok {
 		t.Fatal("expected reverse position map to be independent")

@@ -73,6 +73,44 @@ func TestServiceIgnoresMultipleNeighborDoors(t *testing.T) {
 	}
 }
 
+func TestServiceAcceptsNoOpInteractables(t *testing.T) {
+	tests := []struct {
+		name      string
+		component string
+	}{
+		{name: "helm", component: "helm"},
+		{name: "command table", component: "commandtable"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gameWorld := world.NewWorldEmpty()
+			gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}
+			addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
+			targetID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
+				"pos": {}, "impassable": {}, tt.component: {},
+			})
+			gameWorld.KeyDown = "e"
+
+			result := ServiceInteraction{}.GetUpdateFunc(gameWorld)
+			if result.UpdateFunc == nil {
+				t.Fatal("expected interact update func")
+			}
+			result.UpdateFunc(&gameWorld)
+
+			if gameWorld.KeyDown != "" {
+				t.Fatalf("expected interact key to be cleared, got %q", gameWorld.KeyDown)
+			}
+			if gameWorld.HasChanged {
+				t.Fatal("expected no-op interaction not to change world")
+			}
+			if _, blocked := gameWorld.Impassable[targetID]; !blocked {
+				t.Fatal("expected target to remain impassable")
+			}
+		})
+	}
+}
+
 func addTestEntity(t *testing.T, gameWorld *world.World, position [2]int, components map[string][]string) int {
 	t.Helper()
 	eID := len(gameWorld.Entities)

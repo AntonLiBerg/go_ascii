@@ -26,8 +26,16 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 		UpdateFunc: func(w *world.World) {
 			if len(targets) == 1 {
 				targetID := targets[0]
-				if _, isDoor := w.Door[targetID]; isDoor {
+				_, isDoor := w.Door[targetID]
+				_, isHelm := w.Helm[targetID]
+				_, isCommandTable := w.CommandTable[targetID]
+				switch {
+				case isDoor:
 					interactWithDoor(w, targetID)
+				case isHelm:
+					interactWithHelm(w, targetID)
+				case isCommandTable:
+					interactWithCommandTable(w, targetID)
 				}
 			}
 			if w.KeyDown == interactKey {
@@ -45,3 +53,7 @@ func interactWithDoor(w *world.World, doorID int) {
 	}
 	w.HasChanged = true
 }
+
+func interactWithHelm(*world.World, int) {}
+
+func interactWithCommandTable(*world.World, int) {}

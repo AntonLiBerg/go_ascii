@@ -24,7 +24,10 @@ func main() {
 }
 
 func runDemo() {
-	aMap, entities, components, userInputProfileMap, err := scenario.GetAsciiMapAndEntitiesFromFile("./scenarios/demo/map.txt")
+	aMap, entities, components, userInputProfileMap, err := scenario.GetScenarioFromFiles(
+		"./scenarios/demo/map.txt",
+		"./scenarios/demo/content.txt",
+	)
 	if err != nil {
 		panic(err)
 	}

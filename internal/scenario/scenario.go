@@ -1,7 +1,9 @@
 package scenario
 
 import (
+	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -48,6 +50,7 @@ func GetAsciiMap(mapText string) map[[2]int]rune {
 	}
 
 	for y, line := range strings.Split(mapSection, "\n") {
+		// Spaces are transparent so lower layers remain visible.
 		for x, char := range []rune(line) {
 			asciiMap[[2]int{x, y}] = char
 		}
@@ -56,31 +59,88 @@ func GetAsciiMap(mapText string) map[[2]int]rune {
 	return asciiMap
 }
 
-func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]string, map[string]map[string][]string, map[string]string, error) {
-	content, err := os.ReadFile(filePath)
+func GetScenarioFromFiles(mapFilePath string, contentFilePath string) (map[int]map[[2]int]rune, map[rune]string, map[string]map[string][]string, map[string]string, error) {
+	mapContent, err := os.ReadFile(mapFilePath)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	content, err := os.ReadFile(contentFilePath)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	asciiMap := make(map[[2]int]rune)
+	asciiMap, err := GetLayeredAsciiMap(string(mapContent))
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	entities, components, userInputProfile, err := getEntitiesAndUserInputProfile(string(content))
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	return asciiMap, entities, components, userInputProfile, nil
+}
+
+func GetLayeredAsciiMap(mapText string) (map[int]map[[2]int]rune, error) {
+	layers := make(map[int]map[[2]int]rune)
+	mapText = strings.ReplaceAll(mapText, "\r\n", "\n")
+	mapText = strings.ReplaceAll(mapText, "\r", "\n")
+	lines := strings.Split(strings.TrimRight(mapText, "\n"), "\n")
+	currentLayer := -1
+	expectedLayer := 0
+	y := 0
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "===layer[") && strings.HasSuffix(trimmed, "]") {
+			layerText := strings.TrimSuffix(strings.TrimPrefix(trimmed, "===layer["), "]")
+			layer, err := strconv.Atoi(layerText)
+			if err != nil || layer != expectedLayer {
+				return nil, fmt.Errorf("expected layer %d, got %q", expectedLayer, trimmed)
+			}
+			layers[layer] = make(map[[2]int]rune)
+			currentLayer = layer
+			expectedLayer++
+			y = 0
+			continue
+		}
+		if strings.HasPrefix(trimmed, "===layer") {
+			return nil, fmt.Errorf("invalid layer header %q", trimmed)
+		}
+		if currentLayer == -1 {
+			if trimmed == "" {
+				continue
+			}
+			return nil, fmt.Errorf("map content must start with ===layer[0]")
+		}
+
+		for x, char := range []rune(line) {
+			if char != ' ' {
+				layers[currentLayer][[2]int{x, y}] = char
+			}
+		}
+		y++
+	}
+
+	if _, ok := layers[0]; !ok {
+		return nil, fmt.Errorf("map content must start with ===layer[0]")
+	}
+	return layers, nil
+}
+
+func getEntitiesAndUserInputProfile(contentText string) (map[rune]string, map[string]map[string][]string, map[string]string, error) {
 	entities := make(map[rune]string)
 	components := make(map[string]map[string][]string)
 	userInputProfile := make(map[string]string)
-	text := strings.ReplaceAll(string(content), "\r\n", "\n")
+	text := strings.ReplaceAll(contentText, "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
 	lines := strings.Split(text, "\n")
 
-	mapStart := -1
 	entityStart := -1
 	userInputStart := -1
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
 		switch trimmed {
-		case SectionNameMap:
-			if mapStart == -1 {
-				mapStart = i + 1
-			}
 		case SectionNameEntity:
 			if entityStart == -1 {
 				entityStart = i + 1
@@ -92,30 +152,8 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 		}
 	}
 
-	mapEnd := len(lines)
-	if mapStart == -1 {
-		mapStart = 0
-	} else {
-		for i := mapStart; i < len(lines); i++ {
-			trimmed := strings.TrimSpace(lines[i])
-			trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
-			if trimmed == SectionNameMap || trimmed == SectionNameEntity || trimmed == SectionNameUserInputProfile {
-				mapEnd = i
-				break
-			}
-		}
-	}
-
-	mapSection := strings.Trim(strings.Join(lines[mapStart:mapEnd], "\n"), "\n")
-	if mapSection != "" {
-		for y, line := range strings.Split(mapSection, "\n") {
-			for x, char := range []rune(line) {
-				asciiMap[[2]int{x, y}] = char
-			}
-		}
-	}
-
 	currentEntity := ""
+	definedEntities := make(map[string]struct{})
 	if entityStart != -1 {
 		entityEnd := len(lines)
 		for i := entityStart; i < len(lines); i++ {
@@ -133,7 +171,7 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 				continue
 			}
 
-			if strings.HasPrefix(line, "-") {
+			if strings.HasPrefix(line, "- ") {
 				componentText := strings.TrimSpace(strings.TrimPrefix(line, "-"))
 				if componentText == "" {
 					continue
@@ -162,22 +200,26 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 
 				if currentEntity != "" {
 					components[currentEntity][componentName] = values
-					if componentName == "ascii" {
-						for _, value := range values {
-							symbol := []rune(value)
-							if len(symbol) == 1 {
-								entities[symbol[0]] = currentEntity
-							}
-						}
-					}
 				}
 				continue
 			}
 
-			name := strings.TrimSpace(line)
-			if _, exists := components[name]; !exists {
-				components[name] = make(map[string][]string)
+			keyText, name, ok := strings.Cut(line, ":")
+			key := []rune(strings.TrimSpace(keyText))
+			name = strings.TrimSpace(name)
+			if !ok || len(key) != 1 || name == "" {
+				return nil, nil, nil, fmt.Errorf("invalid entity header %q: expected key:name", line)
 			}
+			if existingName, exists := entities[key[0]]; exists {
+				return nil, nil, nil, fmt.Errorf("duplicate entity key %q for %q and %q", key[0], existingName, name)
+			}
+			if _, exists := definedEntities[name]; exists {
+				return nil, nil, nil, fmt.Errorf("duplicate entity name %q", name)
+			}
+
+			entities[key[0]] = name
+			definedEntities[name] = struct{}{}
+			components[name] = make(map[string][]string)
 			currentEntity = name
 		}
 	}
@@ -214,5 +256,5 @@ func GetAsciiMapAndEntitiesFromFile(filePath string) (map[[2]int]rune, map[rune]
 		}
 	}
 
-	return asciiMap, entities, components, userInputProfile, nil
+	return entities, components, userInputProfile, nil
 }
