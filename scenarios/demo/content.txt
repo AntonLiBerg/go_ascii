@@ -2,7 +2,7 @@
 .:floor
 - pos
 - ascii:.
-P:player
+@:player
 - pos
 - ascii:o
 - player
@@ -28,7 +28,7 @@ P:player
 - window
 D:door
 - pos
-- ascii=D
+- ascii=+
 - impassable
 - door
 H:helm

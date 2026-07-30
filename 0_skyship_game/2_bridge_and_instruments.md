@@ -20,7 +20,7 @@ Rooms(change this later to be more exact)
 - server room: responsible for internal info instruments
 - supply storage: crew or player have to go her first to pick up supply for certain actions
 ```text
-       --¤¤¤-----
+       ----------
        |..H.....|
        |....@...|
        |........|
@@ -38,7 +38,7 @@ Legend:
 - `T` tactical display
 - `N` navigation chart
 - `C` communications station
-- `D` bridge door
+- `+` bridge door
 - `¤` window
 
 This is a relationship diagram, not a final map. Walking distances must be tested in play.
