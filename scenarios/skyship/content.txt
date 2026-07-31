@@ -38,7 +38,7 @@ T:scantable
 - commandtable
 ö:void
 - pos
-- ascii:SPACE 
+- ascii:SPACE
 ===INPUTPROFILE
 topdown
 - quitgame=q
@@ -47,6 +47,6 @@ topdown
 - moveleft=a
 - movedown=s
 - moveright=d
-commandtable
+terminal_scan
 - quitgame=q
 - exit=e

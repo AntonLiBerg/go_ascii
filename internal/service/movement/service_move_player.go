@@ -10,7 +10,7 @@ import (
 type ServiceMovePlayer struct{}
 
 func (s ServiceMovePlayer) GetUpdateFunc(w world.World) game.UpdateFunc {
-	if w.KeyDown == "" {
+	if w.ViewRoom != "" || w.KeyDown == "" {
 		return game.UpdateFunc{Order: 1}
 	}
 
@@ -66,6 +66,9 @@ func tryGoToPosition(w *world.World, moverID int, delta component.Position) erro
 
 	w.Pos[moverID] = targetPos
 	w.EByPos[targetPos] = moverID
+	if moverPos.Room != targetPos.Room {
+		w.SetInputProfileForRoom(targetPos.Room)
+	}
 	entitiesAtOldPosition := world.GetEntitiesAtPosition(*w, moverPos)
 	if len(entitiesAtOldPosition) == 0 {
 		delete(w.EByPos, moverPos)

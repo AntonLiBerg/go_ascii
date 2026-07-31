@@ -9,6 +9,27 @@ import (
 type ServiceInteraction struct{}
 
 func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
+	exitKey := w.UserInputProfile.KeyExit
+	if w.ViewRoom != "" && exitKey != "" && w.KeyDown == exitKey {
+		return game.UpdateFunc{
+			Order: 1,
+			UpdateFunc: func(w *world.World) {
+				w.ViewRoom = ""
+				for playerID := range w.Player {
+					w.SetInputProfileForRoom(w.Pos[playerID].Room)
+					break
+				}
+				w.HasChanged = true
+				if w.KeyDown == exitKey {
+					w.KeyDown = ""
+				}
+			},
+		}
+	}
+	if w.ViewRoom != "" {
+		return game.UpdateFunc{Order: 1}
+	}
+
 	interactKey := w.UserInputProfile.KeyInteract
 	if interactKey == "" || w.KeyDown != interactKey {
 		return game.UpdateFunc{Order: 1}
@@ -54,8 +75,19 @@ func interactWithDoor(w *world.World, doorID int) {
 	w.HasChanged = true
 }
 
-func interactWithHelm(*world.World, int){
+func interactWithHelm(*world.World, int) {
 	//show UI
 }
 
-func interactWithCommandTable(*world.World, int) {}
+func interactWithCommandTable(w *world.World, commandTableID int) {
+	position, ok := w.Pos[commandTableID]
+	if !ok {
+		return
+	}
+	roomName, ok := w.Terminals[position]
+	if !ok || !w.SetInputProfileForRoom(roomName) {
+		return
+	}
+	w.ViewRoom = roomName
+	w.HasChanged = true
+}

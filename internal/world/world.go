@@ -9,57 +9,83 @@ import (
 )
 
 type World struct {
-	UserInputProfile UserInputProfile
-	KeyDown          string
-	ShouldQuit       bool
-	EByPos           map[component.Position]int
-	Portals          map[component.Position]component.Position
-	HasChanged       bool
-	IterationNr      int
-	Entities         []int
-	Pos              map[int]component.Position
-	Layer            map[int]component.Layer
-	Ascii            map[int]component.Ascii
-	Impassable       map[int]component.Impassable
-	Player           map[int]component.Player
-	Door             map[int]component.Door
-	Helm             map[int]component.Helm
-	CommandTable     map[int]component.CommandTable
-	BunkBed          map[int]component.BunkBed
-	PrisonBars       map[int]component.PrisonBars
-	Wall             map[int]component.Wall
-	Window           map[int]component.Window
+	UserInputProfile   UserInputProfile
+	InputProfiles      map[string]UserInputProfile
+	InputProfileByRoom map[string]string
+	KeyDown            string
+	ShouldQuit         bool
+	EByPos             map[component.Position]int
+	Portals            map[component.Position]component.Position
+	Terminals          map[component.Position]string
+	ViewRoom           string
+	HasChanged         bool
+	IterationNr        int
+	Entities           []int
+	Pos                map[int]component.Position
+	Layer              map[int]component.Layer
+	Ascii              map[int]component.Ascii
+	Impassable         map[int]component.Impassable
+	Player             map[int]component.Player
+	Door               map[int]component.Door
+	Helm               map[int]component.Helm
+	CommandTable       map[int]component.CommandTable
+	BunkBed            map[int]component.BunkBed
+	PrisonBars         map[int]component.PrisonBars
+	Wall               map[int]component.Wall
+	Window             map[int]component.Window
 }
 
 func NewWorldEmpty() World {
 	return World{
-		EByPos:       make(map[component.Position]int),
-		Portals:      make(map[component.Position]component.Position),
-		Pos:          make(map[int]component.Position),
-		Layer:        make(map[int]component.Layer),
-		Ascii:        make(map[int]component.Ascii),
-		Impassable:   make(map[int]component.Impassable),
-		Player:       make(map[int]component.Player),
-		Door:         make(map[int]component.Door),
-		Helm:         make(map[int]component.Helm),
-		CommandTable: make(map[int]component.CommandTable),
-		BunkBed:      make(map[int]component.BunkBed),
-		PrisonBars:   make(map[int]component.PrisonBars),
-		Wall:         make(map[int]component.Wall),
-		Window:       make(map[int]component.Window),
+		InputProfiles:      make(map[string]UserInputProfile),
+		InputProfileByRoom: make(map[string]string),
+		EByPos:             make(map[component.Position]int),
+		Portals:            make(map[component.Position]component.Position),
+		Terminals:          make(map[component.Position]string),
+		Pos:                make(map[int]component.Position),
+		Layer:              make(map[int]component.Layer),
+		Ascii:              make(map[int]component.Ascii),
+		Impassable:         make(map[int]component.Impassable),
+		Player:             make(map[int]component.Player),
+		Door:               make(map[int]component.Door),
+		Helm:               make(map[int]component.Helm),
+		CommandTable:       make(map[int]component.CommandTable),
+		BunkBed:            make(map[int]component.BunkBed),
+		PrisonBars:         make(map[int]component.PrisonBars),
+		Wall:               make(map[int]component.Wall),
+		Window:             make(map[int]component.Window),
 	}
 }
 
-func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[string]map[string][]string) (World, error) {
+func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[string]map[string][]string, inputProfiles map[string]map[string]string) (World, error) {
 	world := NewWorldEmpty()
-	groundComponents, ok := components[asciiMap.Ground]
-	if !ok {
-		return world, fmt.Errorf("ground entity %q does not exist", asciiMap.Ground)
+	for name, values := range inputProfiles {
+		world.InputProfiles[name] = NewUserInputProfile(values)
+	}
+	world.InputProfileByRoom = maps.Clone(asciiMap.InputProfiles)
+	for roomName, profileName := range world.InputProfileByRoom {
+		if _, ok := world.InputProfiles[profileName]; !ok {
+			return world, fmt.Errorf("input profile %q for room %q does not exist", profileName, roomName)
+		}
+	}
+
+	terminalRooms := make(map[string]struct{})
+	for _, roomName := range asciiMap.Terminals {
+		profileName := world.InputProfileByRoom[roomName]
+		if world.InputProfiles[profileName].KeyExit == "" {
+			return world, fmt.Errorf("terminal room %q input profile %q has no exit binding", roomName, profileName)
+		}
+		terminalRooms[roomName] = struct{}{}
 	}
 
 	roomNames := slices.Sorted(maps.Keys(asciiMap.Rooms))
 	for _, roomName := range roomNames {
 		room := asciiMap.Rooms[roomName]
+		groundName := asciiMap.Ground[roomName]
+		groundComponents, ok := components[groundName]
+		if !ok {
+			return world, fmt.Errorf("ground entity %q for room %q does not exist", groundName, roomName)
+		}
 		positions := slices.SortedFunc(maps.Keys(room), func(a, b [2]int) int {
 			if a[1] != b[1] {
 				return a[1] - b[1]
@@ -76,6 +102,15 @@ func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 			if char == ' ' {
 				continue
 			}
+			if _, isTerminalRoom := terminalRooms[roomName]; isTerminalRoom {
+				if err := world.addEntityAtPosition(position, 1, map[string][]string{
+					component.NamePosition: {},
+					component.NameASCII:    {string(char)},
+				}); err != nil {
+					return world, err
+				}
+				continue
+			}
 			if _, isPortal := asciiMap.Portals[position]; isPortal {
 				continue
 			}
@@ -83,7 +118,7 @@ func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 			if !ok {
 				return world, fmt.Errorf("map key %q in room %q has no entity", char, roomName)
 			}
-			if entityName == asciiMap.Ground {
+			if entityName == groundName {
 				continue
 			}
 			if err := world.addEntityAtPosition(position, 1, components[entityName]); err != nil {
@@ -92,14 +127,47 @@ func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 		}
 	}
 	world.Portals = maps.Clone(asciiMap.Portals)
+	world.Terminals = maps.Clone(asciiMap.Terminals)
+	for position := range world.Terminals {
+		isCommandTable := false
+		for _, entityID := range GetEntitiesAtPosition(world, position) {
+			if _, ok := world.CommandTable[entityID]; ok {
+				isCommandTable = true
+				break
+			}
+		}
+		if !isCommandTable {
+			return world, fmt.Errorf("terminal at %+v is not a commandtable entity", position)
+		}
+	}
+	for playerID := range world.Player {
+		world.SetInputProfileForRoom(world.Pos[playerID].Room)
+		break
+	}
 	return world, nil
+}
+
+func (w *World) SetInputProfileForRoom(roomName string) bool {
+	profileName, ok := w.InputProfileByRoom[roomName]
+	if !ok {
+		return false
+	}
+	profile, ok := w.InputProfiles[profileName]
+	if !ok {
+		return false
+	}
+	w.UserInputProfile = profile
+	return true
 }
 
 func (w World) Clone() World {
 	clone := w
 	clone.Entities = slices.Clone(w.Entities)
+	clone.InputProfiles = maps.Clone(w.InputProfiles)
+	clone.InputProfileByRoom = maps.Clone(w.InputProfileByRoom)
 	clone.EByPos = maps.Clone(w.EByPos)
 	clone.Portals = maps.Clone(w.Portals)
+	clone.Terminals = maps.Clone(w.Terminals)
 	clone.Pos = maps.Clone(w.Pos)
 	clone.Layer = maps.Clone(w.Layer)
 	clone.Ascii = maps.Clone(w.Ascii)

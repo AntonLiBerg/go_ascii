@@ -12,8 +12,12 @@
 features
 - ground:floor
 - portal:1,engine room,0
+- inputprofile:topdown
 ===engine room
 ---0---
 |     |
 |     |
 -------
+features
+- ground:floor
+- inputprofile:topdown

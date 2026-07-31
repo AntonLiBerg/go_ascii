@@ -24,13 +24,15 @@ func (s ServiceDrawOnTerminal) GetUpdateFunc(w world.World) game.UpdateFunc {
 func UpdateTerminal(world world.World) {
 	fmt.Print("\033[2J\033[H")
 
-	activeRoom := ""
-	hasActiveRoom := false
-	for playerID := range world.Player {
-		if pos, ok := world.Pos[playerID]; ok {
-			activeRoom = pos.Room
-			hasActiveRoom = true
-			break
+	activeRoom := world.ViewRoom
+	hasActiveRoom := activeRoom != ""
+	if !hasActiveRoom {
+		for playerID := range world.Player {
+			if pos, ok := world.Pos[playerID]; ok {
+				activeRoom = pos.Room
+				hasActiveRoom = true
+				break
+			}
 		}
 	}
 

@@ -46,10 +46,11 @@ B:bunk-bed
 - ascii:B
 - impassable
 - bunkbed
-===USERINPUTPROFILE
-quitgame=q
-interact=e
-moveup=w
-moveleft=a
-movedown=s
-moveright=d
+===INPUTPROFILE
+topdown
+- quitgame=q
+- interact=e
+- moveup=w
+- moveleft=a
+- movedown=s
+- moveright=d

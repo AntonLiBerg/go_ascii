@@ -3,3 +3,4 @@ set -euo pipefail
 
 repo_root=$(git rev-parse --show-toplevel)
 git -C "$repo_root" add -- ':(glob)**/*test*'
+git commit -m "tests"

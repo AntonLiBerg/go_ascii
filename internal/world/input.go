@@ -2,6 +2,7 @@ package world
 
 type UserInputProfile struct {
 	KeyQuitGame  string
+	KeyExit      string
 	KeyMoveUp    string
 	KeyMoveLeft  string
 	KeyMoveDown  string
@@ -12,6 +13,7 @@ type UserInputProfile struct {
 func NewUserInputProfile(values map[string]string) UserInputProfile {
 	return UserInputProfile{
 		KeyQuitGame:  values["quitgame"],
+		KeyExit:      values["exit"],
 		KeyMoveUp:    values["moveup"],
 		KeyMoveLeft:  values["moveleft"],
 		KeyMoveDown:  values["movedown"],

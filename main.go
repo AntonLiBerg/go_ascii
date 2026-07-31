@@ -24,19 +24,17 @@ func main() {
 }
 
 func runScenario(name string) {
-	aMap, entities, components, userInputProfileMap, err := scenario.GetScenarioFromFiles(
+	aMap, entities, components, inputProfiles, err := scenario.GetScenarioFromFiles(
 		"./scenarios/"+name+"/map.txt",
 		"./scenarios/"+name+"/content.txt",
 	)
 	if err != nil {
 		panic(err)
 	}
-	gameWorld, err := world.NewWorld(aMap, entities, components)
+	gameWorld, err := world.NewWorld(aMap, entities, components, inputProfiles)
 	if err != nil {
 		panic(err)
 	}
-	gameWorld.UserInputProfile = world.NewUserInputProfile(userInputProfileMap)
-
 	services := []game.IService{
 		quit.ServiceQuitGame{},
 		movement.ServiceMovePlayer{},
