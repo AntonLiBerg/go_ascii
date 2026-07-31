@@ -5,6 +5,7 @@ import "testing"
 func TestNewUserInputProfileUsesConfiguredKeys(t *testing.T) {
 	profile := NewUserInputProfile(map[string]string{
 		"quitgame":  "q",
+		"exit":      "x",
 		"moveup":    "w",
 		"moveleft":  "a",
 		"movedown":  "s",
@@ -13,6 +14,7 @@ func TestNewUserInputProfileUsesConfiguredKeys(t *testing.T) {
 	})
 	want := UserInputProfile{
 		KeyQuitGame:  "q",
+		KeyExit:      "x",
 		KeyMoveUp:    "w",
 		KeyMoveLeft:  "a",
 		KeyMoveDown:  "s",

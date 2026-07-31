@@ -55,8 +55,8 @@ func TestGetScenarioFromFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
 	contentPath := filepath.Join(tempDir, "content.txt")
-	mapFile := "===ship\n#p\n.0\nfeatures\n- ground:floor\n- portal:0,engine room,1 // paired rooms\n===engine room\n\n1#\n .\n"
-	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\np:player\n- pos\n- ascii:o\n- player\n#:wall\n- pos\n- ascii=#\n- impassable\n====USERINPUTPROFILE\nquitgame=q\nmoveleft:a\n"
+	mapFile := "===ship\n#p\n.0\nfeatures\n- ground:floor\n- portal:0,engine room,1 // paired rooms\n- inputprofile:topdown\n===engine room\n\n1#\n .\nfeatures\n- ground:floor\n- inputprofile:topdown\n"
+	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\np:player\n- pos\n- ascii:o\n- player\n#:wall\n- pos\n- ascii=#\n- impassable\n====INPUTPROFILE\ntopdown\n- quitgame=q\n- moveleft:a\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
@@ -82,8 +82,11 @@ func TestGetScenarioFromFiles(t *testing.T) {
 	if got := asciiMap.Rooms["engine room"][[2]int{0, 1}]; got != ' ' {
 		t.Fatalf("expected room spaces to be retained for ground, got %q", got)
 	}
-	if asciiMap.Ground != "floor" {
-		t.Fatalf("expected floor ground, got %q", asciiMap.Ground)
+	if asciiMap.Ground["ship"] != "floor" || asciiMap.Ground["engine room"] != "floor" {
+		t.Fatalf("expected floor ground in both rooms, got %v", asciiMap.Ground)
+	}
+	if asciiMap.InputProfiles["ship"] != "topdown" || asciiMap.InputProfiles["engine room"] != "topdown" {
+		t.Fatalf("expected topdown profile in both rooms, got %v", asciiMap.InputProfiles)
 	}
 	shipPortal := component.Position{Room: "ship", X: 1, Y: 1}
 	enginePortal := component.Position{Room: "engine room", X: 0, Y: 0}
@@ -122,13 +125,13 @@ func TestGetScenarioFromFiles(t *testing.T) {
 	assertComponentValues(t, components, "wall", "ascii", "#")
 	assertComponentValues(t, components, "wall", "impassable")
 
-	if len(userInputProfileMap) != 2 {
-		t.Fatalf("expected 2 user input profile entries, got %d", len(userInputProfileMap))
+	if len(userInputProfileMap) != 1 {
+		t.Fatalf("expected 1 input profile, got %d", len(userInputProfileMap))
 	}
-	if got := userInputProfileMap["quitgame"]; got != "q" {
+	if got := userInputProfileMap["topdown"]["quitgame"]; got != "q" {
 		t.Fatalf("expected quitgame button to be q, got %q", got)
 	}
-	if got := userInputProfileMap["moveleft"]; got != "a" {
+	if got := userInputProfileMap["topdown"]["moveleft"]; got != "a" {
 		t.Fatalf("expected moveleft button to be a, got %q", got)
 	}
 }
@@ -137,8 +140,8 @@ func TestGetScenarioFromFilesParsesDoor(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
 	contentPath := filepath.Join(tempDir, "content.txt")
-	mapFile := "===room\n.d\nfeatures\n- ground:floor\n"
-	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\nd:door\n- pos\n- ascii=D\n- impassable\n- door\n"
+	mapFile := "===room\n.d\nfeatures\n- ground:floor\n- inputprofile:topdown\n"
+	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\nd:door\n- pos\n- ascii=D\n- impassable\n- door\n====INPUTPROFILE\ntopdown\n- interact=e\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
@@ -162,30 +165,30 @@ func TestGetScenarioFromFilesParsesDoor(t *testing.T) {
 }
 
 func TestGetRoomMapRejectsMissingPortalMarker(t *testing.T) {
-	_, err := GetRoomMap("===first\n0\nfeatures\n- ground:floor\n- portal:0,second,1\n===second\n.")
+	_, err := GetRoomMap("===first\n0\nfeatures\n- ground:floor\n- portal:0,second,1\n- inputprofile:topdown\n===second\n.\nfeatures\n- ground:floor\n- inputprofile:topdown")
 	if err == nil {
 		t.Fatal("expected missing portal marker error")
 	}
 }
 
 func TestGetRoomMapRejectsDuplicateRoom(t *testing.T) {
-	_, err := GetRoomMap("===room\n.\nfeatures\n- ground:floor\n===room\n.")
+	_, err := GetRoomMap("===room\n.\nfeatures\n- ground:floor\n- inputprofile:topdown\n===room\n.")
 	if err == nil {
 		t.Fatal("expected duplicate room error")
 	}
 }
 
 func TestScenarioContentRejectsEntityWithoutKey(t *testing.T) {
-	_, _, _, err := getEntitiesAndUserInputProfile("===ENTITY\nfloor\n- pos\n- ascii:.")
+	_, _, _, err := getEntitiesAndInputProfiles("===ENTITY\nfloor\n- pos\n- ascii:.")
 	if err == nil {
 		t.Fatal("expected invalid entity header error")
 	}
 }
 
 func TestScenarioContentParsesHyphenEntityKey(t *testing.T) {
-	entities, components, _, err := getEntitiesAndUserInputProfile("===ENTITY\n-:wall\n- pos\n- ascii:#\n- impassable")
+	entities, components, _, err := getEntitiesAndInputProfiles("===ENTITY\n-:wall\n- pos\n- ascii:#\n- impassable")
 	if err != nil {
-		t.Fatalf("getEntitiesAndUserInputProfile returned error: %v", err)
+		t.Fatalf("getEntitiesAndInputProfiles returned error: %v", err)
 	}
 	if got := entities['-']; got != "wall" {
 		t.Fatalf("expected map key '-' to be wall, got %q", got)
@@ -193,6 +196,25 @@ func TestScenarioContentParsesHyphenEntityKey(t *testing.T) {
 	assertComponentValues(t, components, "wall", "pos")
 	assertComponentValues(t, components, "wall", "ascii", "#")
 	assertComponentValues(t, components, "wall", "impassable")
+}
+
+func TestScenarioContentParsesSpaceASCII(t *testing.T) {
+	_, components, _, err := getEntitiesAndInputProfiles("===ENTITY\nv:void\n- pos\n- ascii:SPACE")
+	if err != nil {
+		t.Fatalf("getEntitiesAndInputProfiles returned error: %v", err)
+	}
+	assertComponentValues(t, components, "void", "ascii", " ")
+}
+
+func TestGetRoomMapParsesTerminal(t *testing.T) {
+	asciiMap, err := GetRoomMap("===comms\nT\nfeatures\n- ground:floor\n- inputprofile:topdown\n- terminal:T,scan\n===scan\n+\nfeatures\n- ground:void\n- inputprofile:scan")
+	if err != nil {
+		t.Fatalf("GetRoomMap returned error: %v", err)
+	}
+	source := component.Position{Room: "comms", X: 0, Y: 0}
+	if got := asciiMap.Terminals[source]; got != "scan" {
+		t.Fatalf("expected terminal target scan, got %q", got)
+	}
 }
 
 func TestGetScenarioFromFilesReturnsError(t *testing.T) {
@@ -205,7 +227,7 @@ func TestGetScenarioFromFilesReturnsError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing map file")
 	}
-	if len(asciiMap.Rooms) != 0 || asciiMap.Ground != "" || len(asciiMap.Portals) != 0 {
+	if len(asciiMap.Rooms) != 0 || len(asciiMap.Ground) != 0 || len(asciiMap.InputProfiles) != 0 || len(asciiMap.Portals) != 0 || len(asciiMap.Terminals) != 0 {
 		t.Fatalf("expected empty asciiMap on error, got %v", asciiMap)
 	}
 	if entities != nil {

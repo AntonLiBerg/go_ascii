@@ -95,7 +95,13 @@ func TestMovementKeepsUnderlyingDoorInPlace(t *testing.T) {
 
 func TestMovementTraversesPortalBetweenRooms(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
-	gameWorld.UserInputProfile = world.UserInputProfile{KeyMoveUp: "w", KeyMoveDown: "s"}
+	bridgeProfile := world.UserInputProfile{KeyMoveUp: "w", KeyMoveDown: "s", KeyInteract: "b"}
+	commsProfile := world.UserInputProfile{KeyMoveUp: "w", KeyMoveDown: "s", KeyInteract: "c"}
+	gameWorld.InputProfiles["bridge"] = bridgeProfile
+	gameWorld.InputProfiles["comms"] = commsProfile
+	gameWorld.InputProfileByRoom["bridge"] = "bridge"
+	gameWorld.InputProfileByRoom["comms"] = "comms"
+	gameWorld.UserInputProfile = bridgeProfile
 	if err := gameWorld.AddEntityInRoom("bridge", [2]int{1, 1}, map[string][]string{
 		"pos": {}, "ascii": {"o"}, "player": {},
 	}); err != nil {
@@ -134,6 +140,9 @@ func TestMovementTraversesPortalBetweenRooms(t *testing.T) {
 	if gameWorld.EByPos[bridgePortal] != 1 {
 		t.Fatal("expected bridge ground restored in position index")
 	}
+	if gameWorld.UserInputProfile != commsProfile {
+		t.Fatalf("expected comms input profile, got %+v", gameWorld.UserInputProfile)
+	}
 
 	gameWorld.KeyDown = "s"
 	move = ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
@@ -143,6 +152,9 @@ func TestMovementTraversesPortalBetweenRooms(t *testing.T) {
 	move.UpdateFunc(&gameWorld)
 	if got := gameWorld.Pos[0]; got != bridgePortal {
 		t.Fatalf("expected reverse portal traversal to %+v, got %+v", bridgePortal, got)
+	}
+	if gameWorld.UserInputProfile != bridgeProfile {
+		t.Fatalf("expected bridge input profile, got %+v", gameWorld.UserInputProfile)
 	}
 }
 
