@@ -15,8 +15,9 @@ const (
 )
 
 type Position struct {
-	X int
-	Y int
+	Room string
+	X    int
+	Y    int
 }
 
 type Layer struct {

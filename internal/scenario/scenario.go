@@ -2,8 +2,8 @@ package scenario
 
 import (
 	"fmt"
+	component "go_ascii/internal"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -13,6 +13,12 @@ const (
 	SectionNameUserInputProfile string = "USERINPUTPROFILE"
 	SectionNameDivider          string = "="
 )
+
+type Map struct {
+	Rooms   map[string]map[[2]int]rune
+	Ground  string
+	Portals map[component.Position]component.Position
+}
 
 func GetAsciiMap(mapText string) map[[2]int]rune {
 	asciiMap := make(map[[2]int]rune)
@@ -59,72 +65,187 @@ func GetAsciiMap(mapText string) map[[2]int]rune {
 	return asciiMap
 }
 
-func GetScenarioFromFiles(mapFilePath string, contentFilePath string) (map[int]map[[2]int]rune, map[rune]string, map[string]map[string][]string, map[string]string, error) {
+func GetScenarioFromFiles(mapFilePath string, contentFilePath string) (Map, map[rune]string, map[string]map[string][]string, map[string]string, error) {
 	mapContent, err := os.ReadFile(mapFilePath)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return Map{}, nil, nil, nil, err
 	}
 	content, err := os.ReadFile(contentFilePath)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return Map{}, nil, nil, nil, err
 	}
 
-	asciiMap, err := GetLayeredAsciiMap(string(mapContent))
+	asciiMap, err := GetRoomMap(string(mapContent))
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return Map{}, nil, nil, nil, err
 	}
 	entities, components, userInputProfile, err := getEntitiesAndUserInputProfile(string(content))
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return Map{}, nil, nil, nil, err
 	}
 	return asciiMap, entities, components, userInputProfile, nil
 }
 
-func GetLayeredAsciiMap(mapText string) (map[int]map[[2]int]rune, error) {
-	layers := make(map[int]map[[2]int]rune)
+func GetRoomMap(mapText string) (Map, error) {
+	asciiMap := Map{
+		Rooms:   make(map[string]map[[2]int]rune),
+		Portals: make(map[component.Position]component.Position),
+	}
 	mapText = strings.ReplaceAll(mapText, "\r\n", "\n")
 	mapText = strings.ReplaceAll(mapText, "\r", "\n")
 	lines := strings.Split(strings.TrimRight(mapText, "\n"), "\n")
-	currentLayer := -1
-	expectedLayer := 0
-	y := 0
+	currentRoom := ""
+	roomLines := []string(nil)
+	inFeatures := false
+	portalFeatures := [][4]string{}
 
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "===layer[") && strings.HasSuffix(trimmed, "]") {
-			layerText := strings.TrimSuffix(strings.TrimPrefix(trimmed, "===layer["), "]")
-			layer, err := strconv.Atoi(layerText)
-			if err != nil || layer != expectedLayer {
-				return nil, fmt.Errorf("expected layer %d, got %q", expectedLayer, trimmed)
+	storeRoom := func() error {
+		for len(roomLines) > 0 && roomLines[0] == "" {
+			roomLines = roomLines[1:]
+		}
+		for len(roomLines) > 0 && roomLines[len(roomLines)-1] == "" {
+			roomLines = roomLines[:len(roomLines)-1]
+		}
+		if len(roomLines) == 0 {
+			return fmt.Errorf("room %q has no map", currentRoom)
+		}
+
+		room := make(map[[2]int]rune)
+		for y, line := range roomLines {
+			for x, char := range []rune(line) {
+				room[[2]int{x, y}] = char
 			}
-			layers[layer] = make(map[[2]int]rune)
-			currentLayer = layer
-			expectedLayer++
-			y = 0
+		}
+		asciiMap.Rooms[currentRoom] = room
+		return nil
+	}
+
+	for lineNumber, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "===") {
+			if currentRoom != "" {
+				if err := storeRoom(); err != nil {
+					return Map{}, err
+				}
+			}
+			currentRoom = strings.TrimSpace(strings.TrimPrefix(trimmed, "==="))
+			if currentRoom == "" {
+				return Map{}, fmt.Errorf("room header on line %d has no name", lineNumber+1)
+			}
+			if _, exists := asciiMap.Rooms[currentRoom]; exists {
+				return Map{}, fmt.Errorf("duplicate room %q", currentRoom)
+			}
+			roomLines = nil
+			inFeatures = false
 			continue
 		}
-		if strings.HasPrefix(trimmed, "===layer") {
-			return nil, fmt.Errorf("invalid layer header %q", trimmed)
-		}
-		if currentLayer == -1 {
+		if currentRoom == "" {
 			if trimmed == "" {
 				continue
 			}
-			return nil, fmt.Errorf("map content must start with ===layer[0]")
+			return Map{}, fmt.Errorf("map content must start with a room header")
+		}
+		if trimmed == "features" {
+			inFeatures = true
+			continue
+		}
+		if !inFeatures {
+			roomLines = append(roomLines, line)
+			continue
+		}
+		if trimmed == "" {
+			continue
 		}
 
-		for x, char := range []rune(line) {
-			if char != ' ' {
-				layers[currentLayer][[2]int{x, y}] = char
+		featureText, _, _ := strings.Cut(trimmed, "//")
+		featureText = strings.TrimSpace(featureText)
+		if !strings.HasPrefix(featureText, "- ") {
+			return Map{}, fmt.Errorf("invalid feature on line %d", lineNumber+1)
+		}
+		name, value, ok := strings.Cut(strings.TrimSpace(strings.TrimPrefix(featureText, "-")), ":")
+		name = strings.TrimSpace(name)
+		value = strings.TrimSpace(value)
+		if !ok || value == "" {
+			return Map{}, fmt.Errorf("invalid feature on line %d", lineNumber+1)
+		}
+		switch name {
+		case "ground":
+			if asciiMap.Ground != "" {
+				return Map{}, fmt.Errorf("duplicate ground feature")
 			}
+			asciiMap.Ground = value
+		case "portal":
+			values := strings.Split(value, ",")
+			if len(values) != 3 {
+				return Map{}, fmt.Errorf("invalid portal on line %d", lineNumber+1)
+			}
+			for i := range values {
+				values[i] = strings.TrimSpace(values[i])
+			}
+			if len([]rune(values[0])) != 1 || values[1] == "" || len([]rune(values[2])) != 1 {
+				return Map{}, fmt.Errorf("invalid portal on line %d", lineNumber+1)
+			}
+			portalFeatures = append(portalFeatures, [4]string{currentRoom, values[0], values[1], values[2]})
+		default:
+			return Map{}, fmt.Errorf("unknown feature %q on line %d", name, lineNumber+1)
 		}
-		y++
 	}
 
-	if _, ok := layers[0]; !ok {
-		return nil, fmt.Errorf("map content must start with ===layer[0]")
+	if currentRoom == "" {
+		return Map{}, fmt.Errorf("map has no rooms")
 	}
-	return layers, nil
+	if err := storeRoom(); err != nil {
+		return Map{}, err
+	}
+	if asciiMap.Ground == "" {
+		return Map{}, fmt.Errorf("map has no ground feature")
+	}
+
+	findPortal := func(roomName string, marker rune) (component.Position, error) {
+		room, ok := asciiMap.Rooms[roomName]
+		if !ok {
+			return component.Position{}, fmt.Errorf("portal references unknown room %q", roomName)
+		}
+		position := component.Position{}
+		found := false
+		for xy, char := range room {
+			if char != marker {
+				continue
+			}
+			if found {
+				return component.Position{}, fmt.Errorf("portal marker %q appears more than once in room %q", marker, roomName)
+			}
+			position = component.Position{Room: roomName, X: xy[0], Y: xy[1]}
+			found = true
+		}
+		if !found {
+			return component.Position{}, fmt.Errorf("portal marker %q not found in room %q", marker, roomName)
+		}
+		return position, nil
+	}
+
+	for _, feature := range portalFeatures {
+		sourceMarker := []rune(feature[1])[0]
+		targetMarker := []rune(feature[3])[0]
+		source, err := findPortal(feature[0], sourceMarker)
+		if err != nil {
+			return Map{}, err
+		}
+		target, err := findPortal(feature[2], targetMarker)
+		if err != nil {
+			return Map{}, err
+		}
+		if _, exists := asciiMap.Portals[source]; exists {
+			return Map{}, fmt.Errorf("portal at %+v is already connected", source)
+		}
+		if _, exists := asciiMap.Portals[target]; exists {
+			return Map{}, fmt.Errorf("portal at %+v is already connected", target)
+		}
+		asciiMap.Portals[source] = target
+		asciiMap.Portals[target] = source
+	}
+
+	return asciiMap, nil
 }
 
 func getEntitiesAndUserInputProfile(contentText string) (map[rune]string, map[string]map[string][]string, map[string]string, error) {
