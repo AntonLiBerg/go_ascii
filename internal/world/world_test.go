@@ -2,6 +2,7 @@ package world
 
 import (
 	component "go_ascii/internal"
+	"go_ascii/internal/scenario"
 	"testing"
 )
 
@@ -50,11 +51,12 @@ func TestAddEntityRejectsUnknownComponent(t *testing.T) {
 	}
 }
 
-func TestNewWorldStoresMapLayers(t *testing.T) {
+func TestNewWorldBuildsGroundAndRoomEntities(t *testing.T) {
 	gameWorld, err := NewWorld(
-		map[int]map[[2]int]rune{
-			0: {{1, 1}: '.'},
-			1: {{1, 1}: 'o'},
+		scenario.Map{
+			Rooms:   map[string]map[[2]int]rune{"bridge": {{1, 1}: 'o'}},
+			Ground:  "floor",
+			Portals: make(map[component.Position]component.Position),
 		},
 		map[rune]string{'.': "floor", 'o': "player"},
 		map[string]map[string][]string{
@@ -72,13 +74,16 @@ func TestNewWorldStoresMapLayers(t *testing.T) {
 	if gameWorld.Pos[0] != gameWorld.Pos[1] {
 		t.Fatalf("expected layered entities at the same position, got %v", gameWorld.Pos)
 	}
+	if gameWorld.Pos[0].Room != "bridge" {
+		t.Fatalf("expected entities in bridge, got %+v", gameWorld.Pos)
+	}
 }
 
 func TestNewWorldRejectsUndefinedMapKey(t *testing.T) {
 	_, err := NewWorld(
-		map[int]map[[2]int]rune{0: {{0, 0}: 'X'}},
+		scenario.Map{Rooms: map[string]map[[2]int]rune{"room": {{0, 0}: 'X'}}, Ground: "floor"},
 		map[rune]string{},
-		map[string]map[string][]string{},
+		map[string]map[string][]string{"floor": {"pos": {}, "ascii": {"."}}},
 	)
 	if err == nil {
 		t.Fatal("expected undefined map key error")
@@ -118,6 +123,9 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	gameWorld.ShouldQuit = true
 	gameWorld.HasChanged = true
 	gameWorld.IterationNr = 4
+	portalFrom := component.Position{Room: "bridge", X: 1, Y: 2}
+	portalTo := component.Position{Room: "comms", X: 3, Y: 4}
+	gameWorld.Portals[portalFrom] = portalTo
 	if err := gameWorld.AddEntity([2]int{4, 5}, map[string][]string{
 		"pos": {}, "ascii": {"o"}, "impassable": {}, "player": {}, "door": {},
 	}); err != nil {
@@ -136,6 +144,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	clone.Pos[0] = component.Position{X: 1, Y: 1}
 	clone.Layer[0] = component.Layer{Nr: 2}
 	clone.EByPos[component.Position{X: 1, Y: 1}] = 0
+	delete(clone.Portals, portalFrom)
 	clone.Ascii[0] = component.Ascii{Ascii: 'x'}
 	delete(clone.Impassable, 0)
 	delete(clone.Player, 0)
@@ -152,6 +161,9 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	}
 	if _, ok := gameWorld.EByPos[component.Position{X: 1, Y: 1}]; ok {
 		t.Fatal("expected reverse position map to be independent")
+	}
+	if gameWorld.Portals[portalFrom] != portalTo {
+		t.Fatal("expected portal map to be independent")
 	}
 	if gameWorld.Ascii[0].Ascii != 'o' {
 		t.Fatal("expected glyph map to be independent")

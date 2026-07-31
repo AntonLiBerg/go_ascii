@@ -1,6 +1,7 @@
 package scenario
 
 import (
+	component "go_ascii/internal"
 	"os"
 	"path/filepath"
 	"testing"
@@ -54,7 +55,7 @@ func TestGetScenarioFromFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
 	contentPath := filepath.Join(tempDir, "content.txt")
-	mapFile := "===layer[0]\n#.\n.#\n===layer[1]\n p\n"
+	mapFile := "===ship\n#p\n.0\nfeatures\n- ground:floor\n- portal:0,engine room,1 // paired rooms\n===engine room\n\n1#\n .\n"
 	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\np:player\n- pos\n- ascii:o\n- player\n#:wall\n- pos\n- ascii=#\n- impassable\n====USERINPUTPROFILE\nquitgame=q\nmoveleft:a\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
@@ -69,17 +70,28 @@ func TestGetScenarioFromFiles(t *testing.T) {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
 	}
 
-	if len(asciiMap) != 2 {
-		t.Fatalf("expected 2 layers, got %d", len(asciiMap))
+	if len(asciiMap.Rooms) != 2 {
+		t.Fatalf("expected 2 rooms, got %d", len(asciiMap.Rooms))
 	}
-	if got := asciiMap[0][[2]int{0, 1}]; got != '.' {
-		t.Fatalf("expected layer 0 coordinate 0,1 to be '.', got %q", got)
+	if got := asciiMap.Rooms["ship"][[2]int{0, 1}]; got != '.' {
+		t.Fatalf("expected ship coordinate 0,1 to be '.', got %q", got)
 	}
-	if got := asciiMap[1][[2]int{1, 0}]; got != 'p' {
-		t.Fatalf("expected layer 1 coordinate 1,0 to be 'p', got %q", got)
+	if got := asciiMap.Rooms["engine room"][[2]int{0, 0}]; got != '1' {
+		t.Fatalf("expected leading blank separator to be ignored, got %q", got)
 	}
-	if _, ok := asciiMap[1][[2]int{0, 0}]; ok {
-		t.Fatal("expected spaces in higher layers to be transparent")
+	if got := asciiMap.Rooms["engine room"][[2]int{0, 1}]; got != ' ' {
+		t.Fatalf("expected room spaces to be retained for ground, got %q", got)
+	}
+	if asciiMap.Ground != "floor" {
+		t.Fatalf("expected floor ground, got %q", asciiMap.Ground)
+	}
+	shipPortal := component.Position{Room: "ship", X: 1, Y: 1}
+	enginePortal := component.Position{Room: "engine room", X: 0, Y: 0}
+	if got := asciiMap.Portals[shipPortal]; got != enginePortal {
+		t.Fatalf("expected ship portal to lead to %+v, got %+v", enginePortal, got)
+	}
+	if got := asciiMap.Portals[enginePortal]; got != shipPortal {
+		t.Fatalf("expected engine portal to lead back to %+v, got %+v", shipPortal, got)
 	}
 
 	if len(entities) != 3 {
@@ -125,7 +137,7 @@ func TestGetScenarioFromFilesParsesDoor(t *testing.T) {
 	tempDir := t.TempDir()
 	mapPath := filepath.Join(tempDir, "map.txt")
 	contentPath := filepath.Join(tempDir, "content.txt")
-	mapFile := "===layer[0]\n.\n===layer[1]\nd\n"
+	mapFile := "===room\n.d\nfeatures\n- ground:floor\n"
 	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\nd:door\n- pos\n- ascii=D\n- impassable\n- door\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
@@ -149,10 +161,17 @@ func TestGetScenarioFromFilesParsesDoor(t *testing.T) {
 	assertComponentValues(t, components, "door", "door")
 }
 
-func TestGetScenarioFromFilesRejectsSkippedLayerNumber(t *testing.T) {
-	_, err := GetLayeredAsciiMap("===layer[0]\n.\n===layer[2]\no")
+func TestGetRoomMapRejectsMissingPortalMarker(t *testing.T) {
+	_, err := GetRoomMap("===first\n0\nfeatures\n- ground:floor\n- portal:0,second,1\n===second\n.")
 	if err == nil {
-		t.Fatal("expected skipped layer number error")
+		t.Fatal("expected missing portal marker error")
+	}
+}
+
+func TestGetRoomMapRejectsDuplicateRoom(t *testing.T) {
+	_, err := GetRoomMap("===room\n.\nfeatures\n- ground:floor\n===room\n.")
+	if err == nil {
+		t.Fatal("expected duplicate room error")
 	}
 }
 
@@ -186,8 +205,8 @@ func TestGetScenarioFromFilesReturnsError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing map file")
 	}
-	if asciiMap != nil {
-		t.Fatalf("expected nil asciiMap on error, got %v", asciiMap)
+	if len(asciiMap.Rooms) != 0 || asciiMap.Ground != "" || len(asciiMap.Portals) != 0 {
+		t.Fatalf("expected empty asciiMap on error, got %v", asciiMap)
 	}
 	if entities != nil {
 		t.Fatalf("expected nil entities on error, got %v", entities)

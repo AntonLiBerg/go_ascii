@@ -93,6 +93,59 @@ func TestMovementKeepsUnderlyingDoorInPlace(t *testing.T) {
 	}
 }
 
+func TestMovementTraversesPortalBetweenRooms(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.UserInputProfile = world.UserInputProfile{KeyMoveUp: "w", KeyMoveDown: "s"}
+	if err := gameWorld.AddEntityInRoom("bridge", [2]int{1, 1}, map[string][]string{
+		"pos": {}, "ascii": {"o"}, "player": {},
+	}); err != nil {
+		t.Fatalf("add player: %v", err)
+	}
+	if err := gameWorld.AddEntityInRoom("bridge", [2]int{1, 0}, map[string][]string{
+		"pos": {}, "ascii": {"."},
+	}); err != nil {
+		t.Fatalf("add bridge portal ground: %v", err)
+	}
+	if err := gameWorld.AddEntityInRoom("comms", [2]int{2, 3}, map[string][]string{
+		"pos": {}, "ascii": {"."},
+	}); err != nil {
+		t.Fatalf("add comms portal ground: %v", err)
+	}
+	if err := gameWorld.AddEntityInRoom("comms", [2]int{2, 4}, map[string][]string{
+		"pos": {}, "ascii": {"."},
+	}); err != nil {
+		t.Fatalf("add comms interior ground: %v", err)
+	}
+	bridgePortal := component.Position{Room: "bridge", X: 1, Y: 0}
+	commsPortal := component.Position{Room: "comms", X: 2, Y: 3}
+	gameWorld.Portals[bridgePortal] = commsPortal
+	gameWorld.Portals[commsPortal] = bridgePortal
+
+	gameWorld.KeyDown = "w"
+	move := ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	move.UpdateFunc(&gameWorld)
+
+	if got := gameWorld.Pos[0]; got != commsPortal {
+		t.Fatalf("expected player at comms portal %+v, got %+v", commsPortal, got)
+	}
+	if gameWorld.EByPos[commsPortal] != 0 {
+		t.Fatal("expected player indexed at destination portal")
+	}
+	if gameWorld.EByPos[bridgePortal] != 1 {
+		t.Fatal("expected bridge ground restored in position index")
+	}
+
+	gameWorld.KeyDown = "s"
+	move = ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	move.UpdateFunc(&gameWorld)
+	gameWorld.KeyDown = "w"
+	move = ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	move.UpdateFunc(&gameWorld)
+	if got := gameWorld.Pos[0]; got != bridgePortal {
+		t.Fatalf("expected reverse portal traversal to %+v, got %+v", bridgePortal, got)
+	}
+}
+
 func newTestWorld(t *testing.T) world.World {
 	t.Helper()
 

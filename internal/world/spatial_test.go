@@ -1,6 +1,7 @@
 package world
 
 import (
+	component "go_ascii/internal"
 	"slices"
 	"testing"
 )
@@ -37,5 +38,25 @@ func TestGetNeighbors(t *testing.T) {
 	}
 	if got := GetNeighbors(gameWorld, -1); len(got) != 0 {
 		t.Fatalf("expected no neighbors for missing target, got %v", got)
+	}
+}
+
+func TestGetNeighborsOnlyReturnsEntitiesInSameRoom(t *testing.T) {
+	gameWorld := NewWorldEmpty()
+	if err := gameWorld.AddEntityInRoom("bridge", [2]int{1, 1}, map[string][]string{"pos": {}}); err != nil {
+		t.Fatalf("add target: %v", err)
+	}
+	if err := gameWorld.AddEntityInRoom("bridge", [2]int{2, 1}, map[string][]string{"pos": {}}); err != nil {
+		t.Fatalf("add bridge neighbor: %v", err)
+	}
+	if err := gameWorld.AddEntityInRoom("comms", [2]int{2, 1}, map[string][]string{"pos": {}}); err != nil {
+		t.Fatalf("add comms entity: %v", err)
+	}
+
+	if got := GetNeighbors(gameWorld, 0); !slices.Equal(got, []int{1}) {
+		t.Fatalf("expected only bridge neighbor, got %v", got)
+	}
+	if gameWorld.Pos[2] != (component.Position{Room: "comms", X: 2, Y: 1}) {
+		t.Fatalf("expected comms entity position, got %+v", gameWorld.Pos[2])
 	}
 }
