@@ -14,7 +14,10 @@ features
 |         |
 |    T    |
 -----------
-===popup_commandterminal
+features
+- ground:floor
+- terminal:T,terminal_scan //special portal: you go to a new room by interacting with target entity. you exit by using the "exit" bound button in the inputprofile. inputs: entity to interact with to trigger,target room you enter
+===terminal_scan
 ++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++
 ++     .                    ++
@@ -32,4 +35,4 @@ features
 ++++++++++++++++++++++++++++++
 features
 - ground:void
-- inputprofile:commandterminal
+- inputprofile:terminal_scan

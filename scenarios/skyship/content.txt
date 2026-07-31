@@ -31,14 +31,14 @@ H:helm
 - ascii:H
 - impassable
 - helm
-T:commandtable
+T:scantable
 - pos
 - ascii:T
 - impassable
 - commandtable
 ö:void
 - pos
-- ascii: 
+- ascii:SPACE 
 ===INPUTPROFILE
 topdown
 - quitgame=q
