@@ -21,7 +21,7 @@ func GetNeighbors(world World, target int) []int {
 
 	var neighbors []int
 	for _, delta := range deltas {
-		pos := component.Position{X: targetPos.X + delta.X, Y: targetPos.Y + delta.Y}
+		pos := component.Position{Room: targetPos.Room, X: targetPos.X + delta.X, Y: targetPos.Y + delta.Y}
 		neighbors = append(neighbors, GetEntitiesAtPosition(world, pos)...)
 	}
 	return neighbors

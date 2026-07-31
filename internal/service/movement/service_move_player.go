@@ -51,10 +51,17 @@ func tryGoToPosition(w *world.World, moverID int, delta component.Position) erro
 		return fmt.Errorf("mover entity not found")
 	}
 
-	targetPos := component.Position{X: moverPos.X + delta.X, Y: moverPos.Y + delta.Y}
+	targetPos := component.Position{Room: moverPos.Room, X: moverPos.X + delta.X, Y: moverPos.Y + delta.Y}
 	targetIDs := world.GetEntitiesAtPosition(*w, targetPos)
 	if len(targetIDs) == 0 || !canMakeMove(w, targetIDs) {
 		return nil
+	}
+	if portalTarget, isPortal := w.Portals[targetPos]; isPortal {
+		targetPos = portalTarget
+		targetIDs = world.GetEntitiesAtPosition(*w, targetPos)
+		if len(targetIDs) == 0 || !canMakeMove(w, targetIDs) {
+			return nil
+		}
 	}
 
 	w.Pos[moverID] = targetPos

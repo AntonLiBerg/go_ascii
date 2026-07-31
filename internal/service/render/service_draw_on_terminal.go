@@ -24,11 +24,21 @@ func (s ServiceDrawOnTerminal) GetUpdateFunc(w world.World) game.UpdateFunc {
 func UpdateTerminal(world world.World) {
 	fmt.Print("\033[2J\033[H")
 
+	activeRoom := ""
+	hasActiveRoom := false
+	for playerID := range world.Player {
+		if pos, ok := world.Pos[playerID]; ok {
+			activeRoom = pos.Room
+			hasActiveRoom = true
+			break
+		}
+	}
+
 	maxY := 0
 	for _, eID := range world.Entities {
 		pos, okPos := world.Pos[eID]
 		ascii, okASCII := world.Ascii[eID]
-		if !okPos || !okASCII || pos.X < 0 || pos.Y < 0 || isCovered(world, eID, pos) {
+		if !okPos || !okASCII || (hasActiveRoom && pos.Room != activeRoom) || pos.X < 0 || pos.Y < 0 || isCovered(world, eID, pos) {
 			continue
 		}
 

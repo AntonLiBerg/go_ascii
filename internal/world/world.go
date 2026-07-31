@@ -3,6 +3,7 @@ package world
 import (
 	"fmt"
 	component "go_ascii/internal"
+	"go_ascii/internal/scenario"
 	"maps"
 	"slices"
 )
@@ -12,6 +13,7 @@ type World struct {
 	KeyDown          string
 	ShouldQuit       bool
 	EByPos           map[component.Position]int
+	Portals          map[component.Position]component.Position
 	HasChanged       bool
 	IterationNr      int
 	Entities         []int
@@ -32,6 +34,7 @@ type World struct {
 func NewWorldEmpty() World {
 	return World{
 		EByPos:       make(map[component.Position]int),
+		Portals:      make(map[component.Position]component.Position),
 		Pos:          make(map[int]component.Position),
 		Layer:        make(map[int]component.Layer),
 		Ascii:        make(map[int]component.Ascii),
@@ -47,20 +50,48 @@ func NewWorldEmpty() World {
 	}
 }
 
-func NewWorld(asciiMap map[int]map[[2]int]rune, entities map[rune]string, components map[string]map[string][]string) (World, error) {
+func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[string]map[string][]string) (World, error) {
 	world := NewWorldEmpty()
-	layers := slices.Sorted(maps.Keys(asciiMap))
-	for _, layer := range layers {
-		for pos, char := range asciiMap[layer] {
+	groundComponents, ok := components[asciiMap.Ground]
+	if !ok {
+		return world, fmt.Errorf("ground entity %q does not exist", asciiMap.Ground)
+	}
+
+	roomNames := slices.Sorted(maps.Keys(asciiMap.Rooms))
+	for _, roomName := range roomNames {
+		room := asciiMap.Rooms[roomName]
+		positions := slices.SortedFunc(maps.Keys(room), func(a, b [2]int) int {
+			if a[1] != b[1] {
+				return a[1] - b[1]
+			}
+			return a[0] - b[0]
+		})
+		for _, xy := range positions {
+			position := component.Position{Room: roomName, X: xy[0], Y: xy[1]}
+			if err := world.addEntityAtPosition(position, 0, groundComponents); err != nil {
+				return world, err
+			}
+
+			char := room[xy]
+			if char == ' ' {
+				continue
+			}
+			if _, isPortal := asciiMap.Portals[position]; isPortal {
+				continue
+			}
 			entityName, ok := entities[char]
 			if !ok {
-				return world, fmt.Errorf("map key %q on layer %d has no entity", char, layer)
+				return world, fmt.Errorf("map key %q in room %q has no entity", char, roomName)
 			}
-			if err := world.AddEntityAtLayer(pos, layer, components[entityName]); err != nil {
+			if entityName == asciiMap.Ground {
+				continue
+			}
+			if err := world.addEntityAtPosition(position, 1, components[entityName]); err != nil {
 				return world, err
 			}
 		}
 	}
+	world.Portals = maps.Clone(asciiMap.Portals)
 	return world, nil
 }
 
@@ -68,6 +99,7 @@ func (w World) Clone() World {
 	clone := w
 	clone.Entities = slices.Clone(w.Entities)
 	clone.EByPos = maps.Clone(w.EByPos)
+	clone.Portals = maps.Clone(w.Portals)
 	clone.Pos = maps.Clone(w.Pos)
 	clone.Layer = maps.Clone(w.Layer)
 	clone.Ascii = maps.Clone(w.Ascii)
@@ -88,6 +120,14 @@ func (w *World) AddEntity(pos [2]int, components map[string][]string) error {
 }
 
 func (w *World) AddEntityAtLayer(pos [2]int, layer int, components map[string][]string) error {
+	return w.addEntityAtPosition(component.Position{X: pos[0], Y: pos[1]}, layer, components)
+}
+
+func (w *World) AddEntityInRoom(room string, pos [2]int, components map[string][]string) error {
+	return w.addEntityAtPosition(component.Position{Room: room, X: pos[0], Y: pos[1]}, 0, components)
+}
+
+func (w *World) addEntityAtPosition(position component.Position, layer int, components map[string][]string) error {
 	eID := len(w.Entities)
 	w.Entities = append(w.Entities, eID)
 	w.Layer[eID] = component.Layer{Nr: layer}
@@ -98,7 +138,6 @@ func (w *World) AddEntityAtLayer(pos [2]int, layer int, components map[string][]
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			position := component.Position{X: pos[0], Y: pos[1]}
 			w.Pos[eID] = position
 			w.EByPos[position] = eID
 
