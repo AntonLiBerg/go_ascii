@@ -20,13 +20,13 @@ func main() {
 	}
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
 
-	runDemo()
+	runScenario("skyship")
 }
 
-func runDemo() {
+func runScenario(name string) {
 	aMap, entities, components, userInputProfileMap, err := scenario.GetScenarioFromFiles(
-		"./scenarios/demo/map.txt",
-		"./scenarios/demo/content.txt",
+		"./scenarios/"+name+"/map.txt",
+		"./scenarios/"+name+"/content.txt",
 	)
 	if err != nil {
 		panic(err)
