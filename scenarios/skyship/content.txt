@@ -16,6 +16,16 @@
 - ascii:|
 - impassable
 - wall
+\:diag-l-wall
+- pos
+- ascii:|
+- impassable
+- wall
+/:diag-r-wall
+- pos
+- ascii:|
+- impassable
+- wall
 H:helm
 - pos
 - ascii:H
@@ -26,10 +36,17 @@ T:commandtable
 - ascii:T
 - impassable
 - commandtable
-===USERINPUTPROFILE
-quitgame=q
-interact=e
-moveup=w
-moveleft=a
-movedown=s
-moveright=d
+ö:void
+- pos
+- ascii: 
+===INPUTPROFILE
+topdown
+- quitgame=q
+- interact=e
+- moveup=w
+- moveleft=a
+- movedown=s
+- moveright=d
+commandtable
+- quitgame=q
+- exit=e

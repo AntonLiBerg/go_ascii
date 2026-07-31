@@ -5,11 +5,31 @@
 |         |
 -----0-----
 features
-- ground:floor //makes the entity be on every position on the map. everythings else on the map is "above" that
-- portal:0,comms,0 //this room's portal,target room,portal in target room. portal takes you to another room. 1to1 relationship.
+- ground:floor
+- portal:0,comms,0
+- inputprofile:topdown
 ===comms
 -----0-----
 |         |
 |         |
 |    T    |
 -----------
+===popup_commandterminal
+++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++
+++     .                    ++
+++    . .                   ++
+++    .. .                  ++
+++      .                   ++
+++             ^            ++
+++______                    ++
+++######\                   ++
+++#######\                  ++
+++########|                 ++
+++++++++++++++++++++++++++++++
+++   ship:^                 ++
+++   asteroid:.             ++
+++++++++++++++++++++++++++++++
+features
+- ground:void
+- inputprofile:commandterminal
