@@ -21,6 +21,11 @@ H:helm
 - ascii:H
 - impassable
 - helm
+T:commandtable
+- pos
+- ascii:T
+- impassable
+- commandtable
 ===USERINPUTPROFILE
 quitgame=q
 interact=e

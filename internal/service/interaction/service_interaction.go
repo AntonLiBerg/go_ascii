@@ -54,6 +54,8 @@ func interactWithDoor(w *world.World, doorID int) {
 	w.HasChanged = true
 }
 
-func interactWithHelm(*world.World, int) {}
+func interactWithHelm(*world.World, int){
+	//show UI
+}
 
 func interactWithCommandTable(*world.World, int) {}

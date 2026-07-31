@@ -1,12 +1,15 @@
-===layer0
+===bridge
 -----------
-|.........|
-|.........|
-|.........|
+|    H    |
+|    @    |
+|         |
+-----0-----
+features
+- ground:floor //makes the entity be on every position on the map. everythings else on the map is "above" that
+- portal:0,comms,0 //this room's portal,target room,portal in target room. portal takes you to another room. 1to1 relationship.
+===comms
+-----0-----
+|         |
+|         |
+|    T    |
 -----------
-===layer1
-           
-     H     
-     @     
-           
-           
