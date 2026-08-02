@@ -27,9 +27,6 @@ type World struct {
 	Impassable         map[int]component.Impassable
 	Player             map[int]component.Player
 	Interactable       map[int]component.Interactable
-	Door               map[int]component.Door
-	Helm               map[int]component.Helm
-	CommandTable       map[int]component.CommandTable
 	BunkBed            map[int]component.BunkBed
 	PrisonBars         map[int]component.PrisonBars
 	Wall               map[int]component.Wall
@@ -49,9 +46,6 @@ func NewWorldEmpty() World {
 		Impassable:         make(map[int]component.Impassable),
 		Player:             make(map[int]component.Player),
 		Interactable:       make(map[int]component.Interactable),
-		Door:               make(map[int]component.Door),
-		Helm:               make(map[int]component.Helm),
-		CommandTable:       make(map[int]component.CommandTable),
 		BunkBed:            make(map[int]component.BunkBed),
 		PrisonBars:         make(map[int]component.PrisonBars),
 		Wall:               make(map[int]component.Wall),
@@ -134,7 +128,7 @@ func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 		isCommandTableInteraction := false
 		for _, entityID := range GetEntitiesAtPosition(world, position) {
 			interactable, ok := world.Interactable[entityID]
-			if ok && interactable.InteractionType == component.NameCommandTable {
+			if ok && interactable.InteractionType == component.InteractionTypeCommandTable {
 				isCommandTableInteraction = true
 				break
 			}
@@ -177,9 +171,6 @@ func (w World) Clone() World {
 	clone.Impassable = maps.Clone(w.Impassable)
 	clone.Player = maps.Clone(w.Player)
 	clone.Interactable = maps.Clone(w.Interactable)
-	clone.Door = maps.Clone(w.Door)
-	clone.Helm = maps.Clone(w.Helm)
-	clone.CommandTable = maps.Clone(w.CommandTable)
 	clone.BunkBed = maps.Clone(w.BunkBed)
 	clone.PrisonBars = maps.Clone(w.PrisonBars)
 	clone.Wall = maps.Clone(w.Wall)
@@ -240,24 +231,6 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 				return fmt.Errorf("invalid values for component %q", name)
 			}
 			w.Interactable[eID] = component.Interactable{InteractionType: values[0]}
-
-		case component.NameDoor:
-			if len(values) != 0 {
-				return fmt.Errorf("invalid values for component %q", name)
-			}
-			w.Door[eID] = component.Door{}
-
-		case component.NameHelm:
-			if len(values) != 0 {
-				return fmt.Errorf("invalid values for component %q", name)
-			}
-			w.Helm[eID] = component.Helm{}
-
-		case component.NameCommandTable:
-			if len(values) != 0 {
-				return fmt.Errorf("invalid values for component %q", name)
-			}
-			w.CommandTable[eID] = component.CommandTable{}
 
 		case component.NameBunkBed:
 			if len(values) != 0 {

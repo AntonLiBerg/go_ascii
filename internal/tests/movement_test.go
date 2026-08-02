@@ -64,7 +64,7 @@ func TestMovementKeepsUnderlyingDoorInPlace(t *testing.T) {
 		"pos": {}, "ascii": {"o"}, "player": {},
 	})
 	doorID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
-		"pos": {}, "ascii": {"D"}, "door": {},
+		"pos": {}, "ascii": {"D"},
 	})
 	addTestEntity(t, &gameWorld, [2]int{3, 1}, map[string][]string{
 		"pos": {}, "ascii": {"."},

@@ -30,19 +30,16 @@ D:door
 - pos
 - ascii=+
 - impassable
-- door
 - interactable:door
 H:helm
 - pos
 - ascii:H
 - impassable
-- helm
 - interactable:helm
 T:command-table
 - pos
 - ascii:T
 - impassable
-- commandtable
 - interactable:commandtable
 B:bunk-bed
 - pos

@@ -13,7 +13,7 @@ func TestPlayerCoversEntityAtSamePosition(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	position := [2]int{1, 1}
 	if err := gameWorld.AddEntity(position, map[string][]string{
-		"pos": {}, "ascii": {"D"}, "door": {},
+		"pos": {}, "ascii": {"D"},
 	}); err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestHigherLayerCoversLowerLayer(t *testing.T) {
 		t.Fatalf("AddEntityAtLayer returned error: %v", err)
 	}
 	if err := gameWorld.AddEntityAtLayer(position, 1, map[string][]string{
-		"pos": {}, "ascii": {"D"}, "door": {},
+		"pos": {}, "ascii": {"D"},
 	}); err != nil {
 		t.Fatalf("AddEntityAtLayer returned error: %v", err)
 	}

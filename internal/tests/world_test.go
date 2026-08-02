@@ -14,8 +14,7 @@ func TestAddEntityStoresComponents(t *testing.T) {
 		"pos":          {},
 		"ascii":        {"å"},
 		"impassable":   {},
-		"door":         {},
-		"interactable": {"door"},
+		"interactable": {component.InteractionTypeDoor},
 		"player":       {},
 	})
 	if err != nil {
@@ -40,10 +39,7 @@ func TestAddEntityStoresComponents(t *testing.T) {
 	if _, ok := gameWorld.Player[0]; !ok {
 		t.Fatal("expected player component")
 	}
-	if _, ok := gameWorld.Door[0]; !ok {
-		t.Fatal("expected door component")
-	}
-	if got := gameWorld.Interactable[0].InteractionType; got != component.NameDoor {
+	if got := gameWorld.Interactable[0].InteractionType; got != component.InteractionTypeDoor {
 		t.Fatalf("expected door interaction, got %q", got)
 	}
 }
@@ -130,7 +126,7 @@ func TestNewWorldBuildsTerminalRoomFromLiteralASCII(t *testing.T) {
 		map[string]map[string][]string{
 			"floor":    {"pos": {}, "ascii": {"."}},
 			"void":     {"pos": {}, "ascii": {" "}},
-			"terminal": {"pos": {}, "ascii": {"T"}, "commandtable": {}, "interactable": {"commandtable"}},
+			"terminal": {"pos": {}, "ascii": {"T"}, "interactable": {component.InteractionTypeCommandTable}},
 		},
 		map[string]map[string]string{
 			"topdown": {"interact": "e"},
@@ -175,7 +171,7 @@ func TestNewWorldRejectsTerminalProfileWithoutExit(t *testing.T) {
 		map[string]map[string][]string{
 			"floor":    {"pos": {}, "ascii": {"."}},
 			"void":     {"pos": {}, "ascii": {" "}},
-			"terminal": {"pos": {}, "ascii": {"T"}, "commandtable": {}, "interactable": {"commandtable"}},
+			"terminal": {"pos": {}, "ascii": {"T"}, "interactable": {component.InteractionTypeCommandTable}},
 		},
 		map[string]map[string]string{
 			"topdown": {"interact": "e"},
@@ -190,22 +186,12 @@ func TestNewWorldRejectsTerminalProfileWithoutExit(t *testing.T) {
 func TestAddEntityStoresStructureComponents(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	err := gameWorld.AddEntity([2]int{}, map[string][]string{
-		"helm": {}, "commandtable": {}, "bunkbed": {}, "prisonbars": {}, "wall": {}, "window": {},
-		"interactable": {"helm"},
+		"bunkbed": {}, "prisonbars": {}, "wall": {}, "window": {},
 	})
 	if err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
 
-	if _, ok := gameWorld.Helm[0]; !ok {
-		t.Fatal("expected helm component")
-	}
-	if _, ok := gameWorld.CommandTable[0]; !ok {
-		t.Fatal("expected command table component")
-	}
-	if gameWorld.Interactable[0].InteractionType != component.NameHelm {
-		t.Fatal("expected helm interaction")
-	}
 	if _, ok := gameWorld.BunkBed[0]; !ok {
 		t.Fatal("expected bunk bed component")
 	}
@@ -235,7 +221,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	gameWorld.Portals[portalFrom] = portalTo
 	gameWorld.Terminals[portalFrom] = "scan"
 	if err := gameWorld.AddEntity([2]int{4, 5}, map[string][]string{
-		"pos": {}, "ascii": {"o"}, "impassable": {}, "player": {}, "door": {}, "interactable": {"door"},
+		"pos": {}, "ascii": {"o"}, "impassable": {}, "player": {}, "interactable": {component.InteractionTypeDoor},
 	}); err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
@@ -262,8 +248,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	clone.Ascii[0] = component.Ascii{Ascii: 'x'}
 	delete(clone.Impassable, 0)
 	delete(clone.Player, 0)
-	clone.Interactable[0] = component.Interactable{InteractionType: component.NameHelm}
-	delete(clone.Door, 0)
+	clone.Interactable[0] = component.Interactable{InteractionType: component.InteractionTypeHelm}
 
 	if gameWorld.Entities[0] != 0 {
 		t.Fatal("expected entities slice to be independent")
@@ -295,10 +280,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	if _, ok := gameWorld.Player[0]; !ok {
 		t.Fatal("expected player map to be independent")
 	}
-	if gameWorld.Interactable[0].InteractionType != component.NameDoor {
+	if gameWorld.Interactable[0].InteractionType != component.InteractionTypeDoor {
 		t.Fatal("expected interactable map to be independent")
-	}
-	if _, ok := gameWorld.Door[0]; !ok {
-		t.Fatal("expected door map to be independent")
 	}
 }

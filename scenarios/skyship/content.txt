@@ -30,13 +30,11 @@ H:helm
 - pos
 - ascii:H
 - impassable
-- helm
 - interactable:helm
 T:scantable
 - pos
 - ascii:T
 - impassable
-- commandtable
 - interactable:commandtable
 ö:void
 - pos

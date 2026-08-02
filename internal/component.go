@@ -1,18 +1,18 @@
 package component
 
 const (
-	NamePosition     = "pos"
-	NameASCII        = "ascii"
-	NameImpassable   = "impassable"
-	NamePlayer       = "player"
-	NameInteractable = "interactable"
-	NameDoor         = "door"
-	NameHelm         = "helm"
-	NameCommandTable = "commandtable"
-	NameBunkBed      = "bunkbed"
-	NamePrisonBars   = "prisonbars"
-	NameWall         = "wall"
-	NameWindow       = "window"
+	NamePosition                = "pos"
+	NameASCII                   = "ascii"
+	NameImpassable              = "impassable"
+	NamePlayer                  = "player"
+	NameInteractable            = "interactable"
+	InteractionTypeDoor         = "door"
+	InteractionTypeHelm         = "helm"
+	InteractionTypeCommandTable = "commandtable"
+	NameBunkBed                 = "bunkbed"
+	NamePrisonBars              = "prisonbars"
+	NameWall                    = "wall"
+	NameWindow                  = "window"
 )
 
 type Position struct {
@@ -36,12 +36,6 @@ type Player struct{}
 type Interactable struct {
 	InteractionType string
 }
-
-type Door struct{}
-
-type Helm struct{}
-
-type CommandTable struct{}
 
 type BunkBed struct{}
 

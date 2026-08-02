@@ -51,7 +51,6 @@ D:door
 - pos
 - ascii:+
 - impassable
-- door
 - interactable:door
 ```
 

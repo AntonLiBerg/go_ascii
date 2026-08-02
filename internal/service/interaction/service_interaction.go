@@ -49,11 +49,11 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 				targetID := targets[0]
 				interaction := w.Interactable[targetID]
 				switch interaction.InteractionType {
-				case component.NameDoor:
+				case component.InteractionTypeDoor:
 					interactWithDoor(w, targetID)
-				case component.NameHelm:
+				case component.InteractionTypeHelm:
 					interactWithHelm(w, targetID)
-				case component.NameCommandTable:
+				case component.InteractionTypeCommandTable:
 					interactWithCommandTable(w, targetID)
 				}
 			}

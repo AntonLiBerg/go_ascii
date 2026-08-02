@@ -21,9 +21,6 @@ func TestDemoScenarioLoadsAllMapEntities(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWorld returned error: %v", err)
 	}
-	if len(gameWorld.Helm) != 1 || len(gameWorld.CommandTable) != 1 {
-		t.Fatalf("expected one helm and command table, got helm=%d commandTable=%d", len(gameWorld.Helm), len(gameWorld.CommandTable))
-	}
 	if len(gameWorld.Interactable) != 4 {
 		t.Fatalf("expected four interactable entities, got %d", len(gameWorld.Interactable))
 	}
@@ -61,16 +58,18 @@ func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 	if len(asciiMap.Rooms) != 3 || len(asciiMap.Portals) != 2 || len(asciiMap.Terminals) != 1 {
 		t.Fatalf("expected three rooms, paired portals, and a terminal, got rooms=%d portals=%d terminals=%d", len(asciiMap.Rooms), len(asciiMap.Portals), len(asciiMap.Terminals))
 	}
-	if len(gameWorld.Helm) != 1 || len(gameWorld.CommandTable) != 1 {
-		t.Fatalf("expected skyship instruments, got helm=%d commandTable=%d", len(gameWorld.Helm), len(gameWorld.CommandTable))
-	}
 	if len(gameWorld.Interactable) != 2 {
 		t.Fatalf("expected two interactable instruments, got %d", len(gameWorld.Interactable))
 	}
-	for commandTableID := range gameWorld.CommandTable {
-		if gameWorld.Pos[commandTableID].Room != "comms" {
-			t.Fatalf("expected command table in comms, got %+v", gameWorld.Pos[commandTableID])
+	commandTableID := -1
+	for entityID, interactable := range gameWorld.Interactable {
+		if interactable.InteractionType == component.InteractionTypeCommandTable {
+			commandTableID = entityID
+			break
 		}
+	}
+	if commandTableID == -1 || gameWorld.Pos[commandTableID].Room != "comms" {
+		t.Fatalf("expected command table in comms, got %+v", gameWorld.Pos[commandTableID])
 	}
 	if got := inputProfiles["terminal_scan"]["exit"]; got != "e" {
 		t.Fatalf("expected terminal exit binding e, got %q", got)
@@ -107,9 +106,11 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 		break
 	}
 	commandTableID := -1
-	for entityID := range gameWorld.CommandTable {
-		commandTableID = entityID
-		break
+	for entityID, interactable := range gameWorld.Interactable {
+		if interactable.InteractionType == component.InteractionTypeCommandTable {
+			commandTableID = entityID
+			break
+		}
 	}
 	if playerID == -1 || commandTableID == -1 {
 		t.Fatal("expected player and command table")

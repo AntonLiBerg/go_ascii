@@ -65,9 +65,9 @@ func TestGetNeighborsOnlyReturnsEntitiesInSameRoom(t *testing.T) {
 func TestGetInteractableNeighborsUsesInteractableComponent(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	target := addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}})
-	addTestEntity(t, &gameWorld, [2]int{0, 1}, map[string][]string{"pos": {}, "door": {}})
+	addTestEntity(t, &gameWorld, [2]int{0, 1}, map[string][]string{"pos": {}})
 	interactable := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
-		"pos": {}, "interactable": {"helm"},
+		"pos": {}, "interactable": {component.InteractionTypeHelm},
 	})
 
 	if got := world.GetInteractableNeighbors(gameWorld, target); !slices.Equal(got, []int{interactable}) {
