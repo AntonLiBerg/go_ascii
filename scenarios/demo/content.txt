@@ -10,22 +10,18 @@
 - pos
 - ascii=#
 - impassable
-- prisonbars
 -:horizontal-wall
 - pos
 - ascii:-
 - impassable
-- wall
 |:vertical-wall
 - pos
 - ascii:|
 - impassable
-- wall
 ¤:window
 - pos
 - ascii:¤
 - impassable
-- window
 D:door
 - pos
 - ascii=+
@@ -45,7 +41,6 @@ B:bunk-bed
 - pos
 - ascii:B
 - impassable
-- bunkbed
 ===INPUTPROFILE
 topdown
 - quitgame=q

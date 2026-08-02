@@ -10,22 +10,18 @@
 - pos
 - ascii:-
 - impassable
-- wall
 |:vertical-wall
 - pos
 - ascii:|
 - impassable
-- wall
 \:diag-l-wall
 - pos
 - ascii:|
 - impassable
-- wall
 /:diag-r-wall
 - pos
 - ascii:|
 - impassable
-- wall
 H:helm
 - pos
 - ascii:H

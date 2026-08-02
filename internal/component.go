@@ -9,10 +9,6 @@ const (
 	InteractionTypeDoor         = "door"
 	InteractionTypeHelm         = "helm"
 	InteractionTypeCommandTable = "commandtable"
-	NameBunkBed                 = "bunkbed"
-	NamePrisonBars              = "prisonbars"
-	NameWall                    = "wall"
-	NameWindow                  = "window"
 )
 
 type Position struct {
@@ -36,11 +32,3 @@ type Player struct{}
 type Interactable struct {
 	InteractionType string
 }
-
-type BunkBed struct{}
-
-type PrisonBars struct{}
-
-type Wall struct{}
-
-type Window struct{}

@@ -27,10 +27,6 @@ type World struct {
 	Impassable         map[int]component.Impassable
 	Player             map[int]component.Player
 	Interactable       map[int]component.Interactable
-	BunkBed            map[int]component.BunkBed
-	PrisonBars         map[int]component.PrisonBars
-	Wall               map[int]component.Wall
-	Window             map[int]component.Window
 }
 
 func NewWorldEmpty() World {
@@ -46,10 +42,6 @@ func NewWorldEmpty() World {
 		Impassable:         make(map[int]component.Impassable),
 		Player:             make(map[int]component.Player),
 		Interactable:       make(map[int]component.Interactable),
-		BunkBed:            make(map[int]component.BunkBed),
-		PrisonBars:         make(map[int]component.PrisonBars),
-		Wall:               make(map[int]component.Wall),
-		Window:             make(map[int]component.Window),
 	}
 }
 
@@ -171,10 +163,6 @@ func (w World) Clone() World {
 	clone.Impassable = maps.Clone(w.Impassable)
 	clone.Player = maps.Clone(w.Player)
 	clone.Interactable = maps.Clone(w.Interactable)
-	clone.BunkBed = maps.Clone(w.BunkBed)
-	clone.PrisonBars = maps.Clone(w.PrisonBars)
-	clone.Wall = maps.Clone(w.Wall)
-	clone.Window = maps.Clone(w.Window)
 	return clone
 }
 
@@ -231,30 +219,6 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 				return fmt.Errorf("invalid values for component %q", name)
 			}
 			w.Interactable[eID] = component.Interactable{InteractionType: values[0]}
-
-		case component.NameBunkBed:
-			if len(values) != 0 {
-				return fmt.Errorf("invalid values for component %q", name)
-			}
-			w.BunkBed[eID] = component.BunkBed{}
-
-		case component.NamePrisonBars:
-			if len(values) != 0 {
-				return fmt.Errorf("invalid values for component %q", name)
-			}
-			w.PrisonBars[eID] = component.PrisonBars{}
-
-		case component.NameWall:
-			if len(values) != 0 {
-				return fmt.Errorf("invalid values for component %q", name)
-			}
-			w.Wall[eID] = component.Wall{}
-
-		case component.NameWindow:
-			if len(values) != 0 {
-				return fmt.Errorf("invalid values for component %q", name)
-			}
-			w.Window[eID] = component.Window{}
 
 		default:
 			return fmt.Errorf("component does not exist %q", name)
