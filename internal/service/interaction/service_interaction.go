@@ -47,15 +47,13 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 		UpdateFunc: func(w *world.World) {
 			if len(targets) == 1 {
 				targetID := targets[0]
-				_, isDoor := w.Door[targetID]
-				_, isHelm := w.Helm[targetID]
-				_, isCommandTable := w.CommandTable[targetID]
-				switch {
-				case isDoor:
+				interaction := w.Interactable[targetID]
+				switch interaction.InteractionType {
+				case component.NameDoor:
 					interactWithDoor(w, targetID)
-				case isHelm:
+				case component.NameHelm:
 					interactWithHelm(w, targetID)
-				case isCommandTable:
+				case component.NameCommandTable:
 					interactWithCommandTable(w, targetID)
 				}
 			}

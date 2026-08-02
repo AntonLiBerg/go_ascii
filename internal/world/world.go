@@ -26,6 +26,7 @@ type World struct {
 	Ascii              map[int]component.Ascii
 	Impassable         map[int]component.Impassable
 	Player             map[int]component.Player
+	Interactable       map[int]component.Interactable
 	Door               map[int]component.Door
 	Helm               map[int]component.Helm
 	CommandTable       map[int]component.CommandTable
@@ -47,6 +48,7 @@ func NewWorldEmpty() World {
 		Ascii:              make(map[int]component.Ascii),
 		Impassable:         make(map[int]component.Impassable),
 		Player:             make(map[int]component.Player),
+		Interactable:       make(map[int]component.Interactable),
 		Door:               make(map[int]component.Door),
 		Helm:               make(map[int]component.Helm),
 		CommandTable:       make(map[int]component.CommandTable),
@@ -129,15 +131,16 @@ func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 	world.Portals = maps.Clone(asciiMap.Portals)
 	world.Terminals = maps.Clone(asciiMap.Terminals)
 	for position := range world.Terminals {
-		isCommandTable := false
+		isCommandTableInteraction := false
 		for _, entityID := range GetEntitiesAtPosition(world, position) {
-			if _, ok := world.CommandTable[entityID]; ok {
-				isCommandTable = true
+			interactable, ok := world.Interactable[entityID]
+			if ok && interactable.InteractionType == component.NameCommandTable {
+				isCommandTableInteraction = true
 				break
 			}
 		}
-		if !isCommandTable {
-			return world, fmt.Errorf("terminal at %+v is not a commandtable entity", position)
+		if !isCommandTableInteraction {
+			return world, fmt.Errorf("terminal at %+v does not have a commandtable interaction", position)
 		}
 	}
 	for playerID := range world.Player {
@@ -173,6 +176,7 @@ func (w World) Clone() World {
 	clone.Ascii = maps.Clone(w.Ascii)
 	clone.Impassable = maps.Clone(w.Impassable)
 	clone.Player = maps.Clone(w.Player)
+	clone.Interactable = maps.Clone(w.Interactable)
 	clone.Door = maps.Clone(w.Door)
 	clone.Helm = maps.Clone(w.Helm)
 	clone.CommandTable = maps.Clone(w.CommandTable)
@@ -231,23 +235,29 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 			}
 			w.Player[eID] = component.Player{}
 
+		case component.NameInteractable:
+			if len(values) != 1 {
+				return fmt.Errorf("invalid values for component %q", name)
+			}
+			w.Interactable[eID] = component.Interactable{InteractionType: values[0]}
+
 		case component.NameDoor:
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Door[eID] = component.Door{IsInteractable: true}
+			w.Door[eID] = component.Door{}
 
 		case component.NameHelm:
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Helm[eID] = component.Helm{IsInteractable: true}
+			w.Helm[eID] = component.Helm{}
 
 		case component.NameCommandTable:
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.CommandTable[eID] = component.CommandTable{IsInteractable: true}
+			w.CommandTable[eID] = component.CommandTable{}
 
 		case component.NameBunkBed:
 			if len(values) != 0 {

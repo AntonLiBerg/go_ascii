@@ -22,7 +22,7 @@ Available room features:
 - `ground:<entity>` places that entity below every map cell.
 - `inputprofile:<name>` selects a profile from `content.txt` while viewing the room.
 - `portal:<marker>,<room>,<marker>` connects two markers for movement in both directions.
-- `terminal:<entity marker>,<room>` opens another room when that neighboring `commandtable` entity is interacted with.
+- `terminal:<entity marker>,<room>` opens another room when that neighboring entity has `interactable:commandtable`.
 
 A terminal target room is rendered as literal ASCII, so text and symbols do not need entity definitions. Its `exit` input closes the terminal without moving the player.
 
@@ -43,6 +43,19 @@ Entity headers map one character to an entity name, followed by components:
 ```
 
 Use `ascii:SPACE` when an entity should render as a blank space.
+
+An interactive entity declares one interaction type with the `interactable` component:
+
+```text
+D:door
+- pos
+- ascii:+
+- impassable
+- door
+- interactable:door
+```
+
+The supported interaction types are `door`, `helm`, and `commandtable`.
 
 Define named input profiles after the entities:
 

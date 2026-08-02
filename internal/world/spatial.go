@@ -40,22 +40,9 @@ func GetEntitiesAtPosition(world World, target component.Position) []int {
 func GetInteractableNeighbors(world World, target int) []int {
 	var interactable []int
 	for _, neighborID := range GetNeighbors(world, target) {
-		if isInteractable(world, neighborID) {
+		if _, ok := world.Interactable[neighborID]; ok {
 			interactable = append(interactable, neighborID)
 		}
 	}
 	return interactable
-}
-
-func isInteractable(world World, eID int) bool {
-	if door, ok := world.Door[eID]; ok && door.IsInteractable {
-		return true
-	}
-	if helm, ok := world.Helm[eID]; ok && helm.IsInteractable {
-		return true
-	}
-	if commandTable, ok := world.CommandTable[eID]; ok && commandTable.IsInteractable {
-		return true
-	}
-	return false
 }

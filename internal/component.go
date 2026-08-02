@@ -5,6 +5,7 @@ const (
 	NameASCII        = "ascii"
 	NameImpassable   = "impassable"
 	NamePlayer       = "player"
+	NameInteractable = "interactable"
 	NameDoor         = "door"
 	NameHelm         = "helm"
 	NameCommandTable = "commandtable"
@@ -32,17 +33,15 @@ type Impassable struct{}
 
 type Player struct{}
 
-type Door struct {
-	IsInteractable bool
+type Interactable struct {
+	InteractionType string
 }
 
-type Helm struct {
-	IsInteractable bool
-}
+type Door struct{}
 
-type CommandTable struct {
-	IsInteractable bool
-}
+type Helm struct{}
+
+type CommandTable struct{}
 
 type BunkBed struct{}
 
