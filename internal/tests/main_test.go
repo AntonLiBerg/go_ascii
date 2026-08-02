@@ -24,6 +24,9 @@ func TestDemoScenarioLoadsAllMapEntities(t *testing.T) {
 	if len(gameWorld.Helm) != 1 || len(gameWorld.CommandTable) != 1 {
 		t.Fatalf("expected one helm and command table, got helm=%d commandTable=%d", len(gameWorld.Helm), len(gameWorld.CommandTable))
 	}
+	if len(gameWorld.Interactable) != 4 {
+		t.Fatalf("expected four interactable entities, got %d", len(gameWorld.Interactable))
+	}
 	if len(gameWorld.BunkBed) == 0 || len(gameWorld.PrisonBars) == 0 || len(gameWorld.Wall) == 0 || len(gameWorld.Window) == 0 {
 		t.Fatal("expected demo structure components to be populated")
 	}
@@ -60,6 +63,9 @@ func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 	}
 	if len(gameWorld.Helm) != 1 || len(gameWorld.CommandTable) != 1 {
 		t.Fatalf("expected skyship instruments, got helm=%d commandTable=%d", len(gameWorld.Helm), len(gameWorld.CommandTable))
+	}
+	if len(gameWorld.Interactable) != 2 {
+		t.Fatalf("expected two interactable instruments, got %d", len(gameWorld.Interactable))
 	}
 	for commandTableID := range gameWorld.CommandTable {
 		if gameWorld.Pos[commandTableID].Room != "comms" {

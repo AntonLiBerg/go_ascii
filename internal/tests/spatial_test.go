@@ -61,3 +61,16 @@ func TestGetNeighborsOnlyReturnsEntitiesInSameRoom(t *testing.T) {
 		t.Fatalf("expected comms entity position, got %+v", gameWorld.Pos[2])
 	}
 }
+
+func TestGetInteractableNeighborsUsesInteractableComponent(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	target := addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}})
+	addTestEntity(t, &gameWorld, [2]int{0, 1}, map[string][]string{"pos": {}, "door": {}})
+	interactable := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
+		"pos": {}, "interactable": {"helm"},
+	})
+
+	if got := world.GetInteractableNeighbors(gameWorld, target); !slices.Equal(got, []int{interactable}) {
+		t.Fatalf("expected only entity with Interactable component, got %v", got)
+	}
+}

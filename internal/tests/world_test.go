@@ -11,11 +11,12 @@ func TestAddEntityStoresComponents(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 
 	err := gameWorld.AddEntity([2]int{2, 3}, map[string][]string{
-		"pos":        {},
-		"ascii":      {"å"},
-		"impassable": {},
-		"door":       {},
-		"player":     {},
+		"pos":          {},
+		"ascii":        {"å"},
+		"impassable":   {},
+		"door":         {},
+		"interactable": {"door"},
+		"player":       {},
 	})
 	if err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
@@ -39,8 +40,11 @@ func TestAddEntityStoresComponents(t *testing.T) {
 	if _, ok := gameWorld.Player[0]; !ok {
 		t.Fatal("expected player component")
 	}
-	if door, ok := gameWorld.Door[0]; !ok || !door.IsInteractable {
-		t.Fatalf("expected an interactable door, got %+v, exists=%t", door, ok)
+	if _, ok := gameWorld.Door[0]; !ok {
+		t.Fatal("expected door component")
+	}
+	if got := gameWorld.Interactable[0].InteractionType; got != component.NameDoor {
+		t.Fatalf("expected door interaction, got %q", got)
 	}
 }
 
@@ -49,6 +53,15 @@ func TestAddEntityRejectsUnknownComponent(t *testing.T) {
 
 	if err := gameWorld.AddEntity([2]int{}, map[string][]string{"visible": {}}); err == nil {
 		t.Fatal("expected unknown component error")
+	}
+}
+
+func TestAddEntityRequiresOneInteractionType(t *testing.T) {
+	for _, values := range [][]string{nil, {"door", "helm"}} {
+		gameWorld := world.NewWorldEmpty()
+		if err := gameWorld.AddEntity([2]int{}, map[string][]string{"interactable": values}); err == nil {
+			t.Fatalf("expected interaction values %v to be rejected", values)
+		}
 	}
 }
 
@@ -117,7 +130,7 @@ func TestNewWorldBuildsTerminalRoomFromLiteralASCII(t *testing.T) {
 		map[string]map[string][]string{
 			"floor":    {"pos": {}, "ascii": {"."}},
 			"void":     {"pos": {}, "ascii": {" "}},
-			"terminal": {"pos": {}, "ascii": {"T"}, "commandtable": {}},
+			"terminal": {"pos": {}, "ascii": {"T"}, "commandtable": {}, "interactable": {"commandtable"}},
 		},
 		map[string]map[string]string{
 			"topdown": {"interact": "e"},
@@ -162,7 +175,7 @@ func TestNewWorldRejectsTerminalProfileWithoutExit(t *testing.T) {
 		map[string]map[string][]string{
 			"floor":    {"pos": {}, "ascii": {"."}},
 			"void":     {"pos": {}, "ascii": {" "}},
-			"terminal": {"pos": {}, "ascii": {"T"}, "commandtable": {}},
+			"terminal": {"pos": {}, "ascii": {"T"}, "commandtable": {}, "interactable": {"commandtable"}},
 		},
 		map[string]map[string]string{
 			"topdown": {"interact": "e"},
@@ -178,13 +191,20 @@ func TestAddEntityStoresStructureComponents(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	err := gameWorld.AddEntity([2]int{}, map[string][]string{
 		"helm": {}, "commandtable": {}, "bunkbed": {}, "prisonbars": {}, "wall": {}, "window": {},
+		"interactable": {"helm"},
 	})
 	if err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
 
-	if !gameWorld.Helm[0].IsInteractable || !gameWorld.CommandTable[0].IsInteractable {
-		t.Fatal("expected helm and command table to be interactable")
+	if _, ok := gameWorld.Helm[0]; !ok {
+		t.Fatal("expected helm component")
+	}
+	if _, ok := gameWorld.CommandTable[0]; !ok {
+		t.Fatal("expected command table component")
+	}
+	if gameWorld.Interactable[0].InteractionType != component.NameHelm {
+		t.Fatal("expected helm interaction")
 	}
 	if _, ok := gameWorld.BunkBed[0]; !ok {
 		t.Fatal("expected bunk bed component")
@@ -215,7 +235,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	gameWorld.Portals[portalFrom] = portalTo
 	gameWorld.Terminals[portalFrom] = "scan"
 	if err := gameWorld.AddEntity([2]int{4, 5}, map[string][]string{
-		"pos": {}, "ascii": {"o"}, "impassable": {}, "player": {}, "door": {},
+		"pos": {}, "ascii": {"o"}, "impassable": {}, "player": {}, "door": {}, "interactable": {"door"},
 	}); err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
@@ -242,7 +262,8 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	clone.Ascii[0] = component.Ascii{Ascii: 'x'}
 	delete(clone.Impassable, 0)
 	delete(clone.Player, 0)
-	clone.Door[0] = component.Door{IsInteractable: false}
+	clone.Interactable[0] = component.Interactable{InteractionType: component.NameHelm}
+	delete(clone.Door, 0)
 
 	if gameWorld.Entities[0] != 0 {
 		t.Fatal("expected entities slice to be independent")
@@ -274,7 +295,10 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	if _, ok := gameWorld.Player[0]; !ok {
 		t.Fatal("expected player map to be independent")
 	}
-	if !gameWorld.Door[0].IsInteractable {
+	if gameWorld.Interactable[0].InteractionType != component.NameDoor {
+		t.Fatal("expected interactable map to be independent")
+	}
+	if _, ok := gameWorld.Door[0]; !ok {
 		t.Fatal("expected door map to be independent")
 	}
 }

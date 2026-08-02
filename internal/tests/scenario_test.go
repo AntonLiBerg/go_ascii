@@ -142,7 +142,7 @@ func TestGetScenarioFromFilesParsesDoor(t *testing.T) {
 	mapPath := filepath.Join(tempDir, "map.txt")
 	contentPath := filepath.Join(tempDir, "content.txt")
 	mapFile := "===room\n.d\nfeatures\n- ground:floor\n- inputprofile:topdown\n"
-	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\nd:door\n- pos\n- ascii=D\n- impassable\n- door\n====INPUTPROFILE\ntopdown\n- interact=e\n"
+	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\nd:door\n- pos\n- ascii=D\n- impassable\n- door\n- interactable:door\n====INPUTPROFILE\ntopdown\n- interact=e\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
@@ -163,6 +163,7 @@ func TestGetScenarioFromFilesParsesDoor(t *testing.T) {
 	assertComponentValues(t, components, "door", "ascii", "D")
 	assertComponentValues(t, components, "door", "impassable")
 	assertComponentValues(t, components, "door", "door")
+	assertComponentValues(t, components, "door", "interactable", "door")
 }
 
 func TestGetRoomMapRejectsMissingPortalMarker(t *testing.T) {

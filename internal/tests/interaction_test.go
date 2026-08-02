@@ -14,7 +14,7 @@ func TestServiceOpensSingleNeighborDoorAndClearsInteractKey(t *testing.T) {
 		"pos": {}, "ascii": {"o"}, "player": {},
 	})
 	doorID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
-		"pos": {}, "ascii": {"D"}, "impassable": {}, "door": {},
+		"pos": {}, "ascii": {"D"}, "impassable": {}, "door": {}, "interactable": {"door"},
 	})
 	gameWorld.KeyDown = "e"
 
@@ -48,7 +48,7 @@ func TestServiceOpensAndExitsTerminalRoom(t *testing.T) {
 		"pos": {}, "ascii": {"o"}, "player": {},
 	})
 	commandTableID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
-		"pos": {}, "ascii": {"T"}, "impassable": {}, "commandtable": {},
+		"pos": {}, "ascii": {"T"}, "impassable": {}, "commandtable": {}, "interactable": {"commandtable"},
 	})
 	gameWorld.Terminals[component.Position{X: 2, Y: 1}] = "terminal"
 	playerPosition := gameWorld.Pos[playerID]
@@ -87,7 +87,9 @@ func TestServiceClosesOpenDoor(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}
 	addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
-	doorID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{"pos": {}, "door": {}})
+	doorID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
+		"pos": {}, "door": {}, "interactable": {"door"},
+	})
 	gameWorld.KeyDown = "e"
 
 	result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
@@ -102,8 +104,12 @@ func TestServiceIgnoresMultipleNeighborDoors(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}
 	addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
-	eastDoor := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{"pos": {}, "impassable": {}, "door": {}})
-	westDoor := addTestEntity(t, &gameWorld, [2]int{0, 1}, map[string][]string{"pos": {}, "impassable": {}, "door": {}})
+	eastDoor := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
+		"pos": {}, "impassable": {}, "door": {}, "interactable": {"door"},
+	})
+	westDoor := addTestEntity(t, &gameWorld, [2]int{0, 1}, map[string][]string{
+		"pos": {}, "impassable": {}, "door": {}, "interactable": {"door"},
+	})
 	gameWorld.KeyDown = "e"
 
 	result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
@@ -138,7 +144,7 @@ func TestServiceAcceptsNoOpInteractables(t *testing.T) {
 			gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}
 			addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
 			targetID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
-				"pos": {}, "impassable": {}, tt.component: {},
+				"pos": {}, "impassable": {}, tt.component: {}, "interactable": {tt.component},
 			})
 			gameWorld.KeyDown = "e"
 
@@ -158,6 +164,23 @@ func TestServiceAcceptsNoOpInteractables(t *testing.T) {
 				t.Fatal("expected target to remain impassable")
 			}
 		})
+	}
+}
+
+func TestServiceUsesInteractionTypeInsteadOfDomainComponent(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}
+	addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
+	doorID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
+		"pos": {}, "impassable": {}, "door": {}, "interactable": {"helm"},
+	})
+	gameWorld.KeyDown = "e"
+
+	result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
+	result.UpdateFunc(&gameWorld)
+
+	if _, isClosed := gameWorld.Impassable[doorID]; !isClosed {
+		t.Fatal("expected helm interaction not to toggle the door")
 	}
 }
 
