@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	component "go_ascii/internal"
@@ -10,8 +10,8 @@ import (
 
 func TestDemoScenarioLoadsAllMapEntities(t *testing.T) {
 	asciiMap, entities, components, inputProfiles, err := scenario.GetScenarioFromFiles(
-		"./scenarios/demo/map.txt",
-		"./scenarios/demo/content.txt",
+		"../../scenarios/demo/map.txt",
+		"../../scenarios/demo/content.txt",
 	)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
@@ -44,8 +44,8 @@ func TestDemoScenarioLoadsAllMapEntities(t *testing.T) {
 
 func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 	asciiMap, entities, components, inputProfiles, err := scenario.GetScenarioFromFiles(
-		"./scenarios/skyship/map.txt",
-		"./scenarios/skyship/content.txt",
+		"../../scenarios/skyship/map.txt",
+		"../../scenarios/skyship/content.txt",
 	)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
@@ -84,8 +84,8 @@ func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 
 func TestSkyshipCommandTerminalFlow(t *testing.T) {
 	asciiMap, entities, components, inputProfiles, err := scenario.GetScenarioFromFiles(
-		"./scenarios/skyship/map.txt",
-		"./scenarios/skyship/content.txt",
+		"../../scenarios/skyship/map.txt",
+		"../../scenarios/skyship/content.txt",
 	)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)

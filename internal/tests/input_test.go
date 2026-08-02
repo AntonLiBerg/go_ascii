@@ -1,9 +1,12 @@
-package world
+package tests
 
-import "testing"
+import (
+	"go_ascii/internal/world"
+	"testing"
+)
 
 func TestNewUserInputProfileUsesConfiguredKeys(t *testing.T) {
-	profile := NewUserInputProfile(map[string]string{
+	profile := world.NewUserInputProfile(map[string]string{
 		"quitgame":  "q",
 		"exit":      "x",
 		"moveup":    "w",
@@ -12,7 +15,7 @@ func TestNewUserInputProfileUsesConfiguredKeys(t *testing.T) {
 		"moveright": "d",
 		"interact":  "e",
 	})
-	want := UserInputProfile{
+	want := world.UserInputProfile{
 		KeyQuitGame:  "q",
 		KeyExit:      "x",
 		KeyMoveUp:    "w",

@@ -1,13 +1,14 @@
-package world
+package tests
 
 import (
 	component "go_ascii/internal"
 	"go_ascii/internal/scenario"
+	"go_ascii/internal/world"
 	"testing"
 )
 
 func TestAddEntityStoresComponents(t *testing.T) {
-	gameWorld := NewWorldEmpty()
+	gameWorld := world.NewWorldEmpty()
 
 	err := gameWorld.AddEntity([2]int{2, 3}, map[string][]string{
 		"pos":        {},
@@ -44,7 +45,7 @@ func TestAddEntityStoresComponents(t *testing.T) {
 }
 
 func TestAddEntityRejectsUnknownComponent(t *testing.T) {
-	gameWorld := NewWorldEmpty()
+	gameWorld := world.NewWorldEmpty()
 
 	if err := gameWorld.AddEntity([2]int{}, map[string][]string{"visible": {}}); err == nil {
 		t.Fatal("expected unknown component error")
@@ -52,7 +53,7 @@ func TestAddEntityRejectsUnknownComponent(t *testing.T) {
 }
 
 func TestNewWorldBuildsGroundAndRoomEntities(t *testing.T) {
-	gameWorld, err := NewWorld(
+	gameWorld, err := world.NewWorld(
 		scenario.Map{
 			Rooms:         map[string]map[[2]int]rune{"bridge": {{1, 1}: 'o'}},
 			Ground:        map[string]string{"bridge": "floor"},
@@ -85,7 +86,7 @@ func TestNewWorldBuildsGroundAndRoomEntities(t *testing.T) {
 }
 
 func TestNewWorldRejectsUndefinedMapKey(t *testing.T) {
-	_, err := NewWorld(
+	_, err := world.NewWorld(
 		scenario.Map{
 			Rooms:         map[string]map[[2]int]rune{"room": {{0, 0}: 'X'}},
 			Ground:        map[string]string{"room": "floor"},
@@ -102,7 +103,7 @@ func TestNewWorldRejectsUndefinedMapKey(t *testing.T) {
 
 func TestNewWorldBuildsTerminalRoomFromLiteralASCII(t *testing.T) {
 	terminalPosition := component.Position{Room: "comms", X: 0, Y: 0}
-	gameWorld, err := NewWorld(
+	gameWorld, err := world.NewWorld(
 		scenario.Map{
 			Rooms: map[string]map[[2]int]rune{
 				"comms": {{0, 0}: 'T'},
@@ -133,7 +134,7 @@ func TestNewWorldBuildsTerminalRoomFromLiteralASCII(t *testing.T) {
 	}
 	for position, glyph := range want {
 		found := false
-		for _, entityID := range GetEntitiesAtPosition(gameWorld, position) {
+		for _, entityID := range world.GetEntitiesAtPosition(gameWorld, position) {
 			if gameWorld.Layer[entityID].Nr == 1 && gameWorld.Ascii[entityID].Ascii == glyph {
 				found = true
 				break
@@ -147,7 +148,7 @@ func TestNewWorldBuildsTerminalRoomFromLiteralASCII(t *testing.T) {
 
 func TestNewWorldRejectsTerminalProfileWithoutExit(t *testing.T) {
 	terminalPosition := component.Position{Room: "comms", X: 0, Y: 0}
-	_, err := NewWorld(
+	_, err := world.NewWorld(
 		scenario.Map{
 			Rooms: map[string]map[[2]int]rune{
 				"comms": {{0, 0}: 'T'},
@@ -174,7 +175,7 @@ func TestNewWorldRejectsTerminalProfileWithoutExit(t *testing.T) {
 }
 
 func TestAddEntityStoresStructureComponents(t *testing.T) {
-	gameWorld := NewWorldEmpty()
+	gameWorld := world.NewWorldEmpty()
 	err := gameWorld.AddEntity([2]int{}, map[string][]string{
 		"helm": {}, "commandtable": {}, "bunkbed": {}, "prisonbars": {}, "wall": {}, "window": {},
 	})
@@ -200,14 +201,14 @@ func TestAddEntityStoresStructureComponents(t *testing.T) {
 }
 
 func TestCloneCopiesMutableState(t *testing.T) {
-	gameWorld := NewWorldEmpty()
-	gameWorld.UserInputProfile = UserInputProfile{KeyQuitGame: "q"}
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.UserInputProfile = world.UserInputProfile{KeyQuitGame: "q"}
 	gameWorld.KeyDown = "q"
 	gameWorld.ShouldQuit = true
 	gameWorld.HasChanged = true
 	gameWorld.IterationNr = 4
 	gameWorld.ViewRoom = "scan"
-	gameWorld.InputProfiles["topdown"] = UserInputProfile{KeyMoveUp: "w"}
+	gameWorld.InputProfiles["topdown"] = world.UserInputProfile{KeyMoveUp: "w"}
 	gameWorld.InputProfileByRoom["bridge"] = "topdown"
 	portalFrom := component.Position{Room: "bridge", X: 1, Y: 2}
 	portalTo := component.Position{Room: "comms", X: 3, Y: 4}

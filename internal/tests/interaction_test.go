@@ -1,7 +1,8 @@
-package interaction
+package tests
 
 import (
 	component "go_ascii/internal"
+	"go_ascii/internal/service/interaction"
 	"go_ascii/internal/world"
 	"testing"
 )
@@ -17,7 +18,7 @@ func TestServiceOpensSingleNeighborDoorAndClearsInteractKey(t *testing.T) {
 	})
 	gameWorld.KeyDown = "e"
 
-	result := ServiceInteraction{}.GetUpdateFunc(gameWorld)
+	result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	if result.UpdateFunc == nil {
 		t.Fatal("expected interact update func")
 	}
@@ -53,7 +54,7 @@ func TestServiceOpensAndExitsTerminalRoom(t *testing.T) {
 	playerPosition := gameWorld.Pos[playerID]
 	gameWorld.KeyDown = "e"
 
-	open := ServiceInteraction{}.GetUpdateFunc(gameWorld)
+	open := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	open.UpdateFunc(&gameWorld)
 
 	if gameWorld.ViewRoom != "terminal" {
@@ -68,7 +69,7 @@ func TestServiceOpensAndExitsTerminalRoom(t *testing.T) {
 
 	gameWorld.HasChanged = false
 	gameWorld.KeyDown = "e"
-	closeTerminal := ServiceInteraction{}.GetUpdateFunc(gameWorld)
+	closeTerminal := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	closeTerminal.UpdateFunc(&gameWorld)
 
 	if gameWorld.ViewRoom != "" {
@@ -89,7 +90,7 @@ func TestServiceClosesOpenDoor(t *testing.T) {
 	doorID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{"pos": {}, "door": {}})
 	gameWorld.KeyDown = "e"
 
-	result := ServiceInteraction{}.GetUpdateFunc(gameWorld)
+	result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	result.UpdateFunc(&gameWorld)
 
 	if _, isClosed := gameWorld.Impassable[doorID]; !isClosed {
@@ -105,7 +106,7 @@ func TestServiceIgnoresMultipleNeighborDoors(t *testing.T) {
 	westDoor := addTestEntity(t, &gameWorld, [2]int{0, 1}, map[string][]string{"pos": {}, "impassable": {}, "door": {}})
 	gameWorld.KeyDown = "e"
 
-	result := ServiceInteraction{}.GetUpdateFunc(gameWorld)
+	result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	result.UpdateFunc(&gameWorld)
 
 	if _, isClosed := gameWorld.Impassable[eastDoor]; !isClosed {
@@ -141,7 +142,7 @@ func TestServiceAcceptsNoOpInteractables(t *testing.T) {
 			})
 			gameWorld.KeyDown = "e"
 
-			result := ServiceInteraction{}.GetUpdateFunc(gameWorld)
+			result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 			if result.UpdateFunc == nil {
 				t.Fatal("expected interact update func")
 			}

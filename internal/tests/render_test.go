@@ -1,7 +1,7 @@
-package render
+package tests
 
 import (
-	component "go_ascii/internal"
+	"go_ascii/internal/service/render"
 	"go_ascii/internal/world"
 	"io"
 	"os"
@@ -23,12 +23,12 @@ func TestPlayerCoversEntityAtSamePosition(t *testing.T) {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
 
-	pos := component.Position{X: 1, Y: 1}
-	if !isCovered(gameWorld, 0, pos) {
-		t.Fatal("expected door to be covered by player")
+	output := captureTerminalOutput(t, gameWorld)
+	if !strings.Contains(output, "o") {
+		t.Fatalf("expected player in output %q", output)
 	}
-	if isCovered(gameWorld, 1, pos) {
-		t.Fatal("expected player to remain visible")
+	if strings.Contains(output, "D") {
+		t.Fatalf("expected door to be covered by player in output %q", output)
 	}
 }
 
@@ -81,7 +81,7 @@ func captureTerminalOutput(t *testing.T, gameWorld world.World) string {
 	}
 	originalStdout := os.Stdout
 	os.Stdout = writer
-	UpdateTerminal(gameWorld)
+	render.UpdateTerminal(gameWorld)
 	os.Stdout = originalStdout
 	if err := writer.Close(); err != nil {
 		t.Fatalf("close output pipe: %v", err)
@@ -110,11 +110,11 @@ func TestHigherLayerCoversLowerLayer(t *testing.T) {
 		t.Fatalf("AddEntityAtLayer returned error: %v", err)
 	}
 
-	pos := component.Position{X: 1, Y: 1}
-	if !isCovered(gameWorld, 0, pos) {
-		t.Fatal("expected layer 0 entity to be covered")
+	output := captureTerminalOutput(t, gameWorld)
+	if !strings.Contains(output, "D") {
+		t.Fatalf("expected higher-layer door in output %q", output)
 	}
-	if isCovered(gameWorld, 1, pos) {
-		t.Fatal("expected layer 1 entity to remain visible")
+	if strings.Contains(output, ".") {
+		t.Fatalf("expected lower-layer entity to be covered in output %q", output)
 	}
 }

@@ -1,7 +1,8 @@
-package movement
+package tests
 
 import (
 	component "go_ascii/internal"
+	"go_ascii/internal/service/movement"
 	"go_ascii/internal/world"
 	"testing"
 )
@@ -23,7 +24,7 @@ func TestServiceMovesPlayerWithWASD(t *testing.T) {
 			gameWorld := newTestWorld(t)
 			gameWorld.KeyDown = tt.key
 
-			result := ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+			result := movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
 			if result.UpdateFunc == nil {
 				t.Fatal("expected movement update func")
 			}
@@ -46,7 +47,7 @@ func TestServiceMovesPlayerWithWASD(t *testing.T) {
 func TestMovementDoesNotClearNewerKey(t *testing.T) {
 	gameWorld := newTestWorld(t)
 	gameWorld.KeyDown = "a"
-	result := ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	result := movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
 
 	gameWorld.KeyDown = "e"
 	result.UpdateFunc(&gameWorld)
@@ -70,7 +71,7 @@ func TestMovementKeepsUnderlyingDoorInPlace(t *testing.T) {
 	})
 
 	gameWorld.KeyDown = "d"
-	firstMove := ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	firstMove := movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
 	firstMove.UpdateFunc(&gameWorld)
 
 	doorPos := component.Position{X: 2, Y: 1}
@@ -82,7 +83,7 @@ func TestMovementKeepsUnderlyingDoorInPlace(t *testing.T) {
 	}
 
 	gameWorld.KeyDown = "d"
-	secondMove := ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	secondMove := movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
 	secondMove.UpdateFunc(&gameWorld)
 
 	if gameWorld.Pos[doorID] != doorPos {
@@ -128,7 +129,7 @@ func TestMovementTraversesPortalBetweenRooms(t *testing.T) {
 	gameWorld.Portals[commsPortal] = bridgePortal
 
 	gameWorld.KeyDown = "w"
-	move := ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	move := movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
 	move.UpdateFunc(&gameWorld)
 
 	if got := gameWorld.Pos[0]; got != commsPortal {
@@ -145,10 +146,10 @@ func TestMovementTraversesPortalBetweenRooms(t *testing.T) {
 	}
 
 	gameWorld.KeyDown = "s"
-	move = ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	move = movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
 	move.UpdateFunc(&gameWorld)
 	gameWorld.KeyDown = "w"
-	move = ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
+	move = movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
 	move.UpdateFunc(&gameWorld)
 	if got := gameWorld.Pos[0]; got != bridgePortal {
 		t.Fatalf("expected reverse portal traversal to %+v, got %+v", bridgePortal, got)
@@ -182,15 +183,6 @@ func newTestWorld(t *testing.T) world.World {
 	}
 
 	return gameWorld
-}
-
-func addTestEntity(t *testing.T, gameWorld *world.World, position [2]int, components map[string][]string) int {
-	t.Helper()
-	eID := len(gameWorld.Entities)
-	if err := gameWorld.AddEntity(position, components); err != nil {
-		t.Fatalf("AddEntity returned error: %v", err)
-	}
-	return eID
 }
 
 func getSinglePlayerID(t *testing.T, gameWorld world.World) int {

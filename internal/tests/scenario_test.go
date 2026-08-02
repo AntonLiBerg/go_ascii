@@ -1,7 +1,8 @@
-package scenario
+package tests
 
 import (
 	component "go_ascii/internal"
+	"go_ascii/internal/scenario"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,7 +10,7 @@ import (
 
 func TestGetAsciiMapFromMapFileContent(t *testing.T) {
 
-	asciiMap := GetAsciiMap("===MAP\nab\ncd\n===ENTITY\nfirst\n- ascii:a")
+	asciiMap := scenario.GetAsciiMap("===MAP\nab\ncd\n===ENTITY\nfirst\n- ascii:a")
 
 	if len(asciiMap) != 4 {
 		t.Fatalf("expected 4 map runes, got %d", len(asciiMap))
@@ -30,7 +31,7 @@ func TestGetAsciiMapFromMapFileContent(t *testing.T) {
 
 func TestGetAsciiMapFromRawMapText(t *testing.T) {
 
-	asciiMap := GetAsciiMap("å.\n#o")
+	asciiMap := scenario.GetAsciiMap("å.\n#o")
 
 	if got := asciiMap[[2]int{0, 0}]; got != 'å' {
 		t.Fatalf("expected coordinate 0,0 to be 'å', got %q", got)
@@ -41,7 +42,7 @@ func TestGetAsciiMapFromRawMapText(t *testing.T) {
 }
 
 func TestGetAsciiMapHandlesWindowsLineEndings(t *testing.T) {
-	asciiMap := GetAsciiMap("===MAP\r\nab\r\ncd\r\n===ENTITY\r\nfirst\r\n- ascii:a")
+	asciiMap := scenario.GetAsciiMap("===MAP\r\nab\r\ncd\r\n===ENTITY\r\nfirst\r\n- ascii:a")
 
 	if got := asciiMap[[2]int{0, 0}]; got != 'a' {
 		t.Fatalf("expected coordinate 0,0 to be 'a', got %q", got)
@@ -65,7 +66,7 @@ func TestGetScenarioFromFiles(t *testing.T) {
 		t.Fatalf("write temp content file: %v", err)
 	}
 
-	asciiMap, entities, components, userInputProfileMap, err := GetScenarioFromFiles(mapPath, contentPath)
+	asciiMap, entities, components, userInputProfileMap, err := scenario.GetScenarioFromFiles(mapPath, contentPath)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
 	}
@@ -150,7 +151,7 @@ func TestGetScenarioFromFilesParsesDoor(t *testing.T) {
 		t.Fatalf("write temp content file: %v", err)
 	}
 
-	_, entities, components, _, err := GetScenarioFromFiles(mapPath, contentPath)
+	_, entities, components, _, err := scenario.GetScenarioFromFiles(mapPath, contentPath)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
 	}
@@ -165,28 +166,28 @@ func TestGetScenarioFromFilesParsesDoor(t *testing.T) {
 }
 
 func TestGetRoomMapRejectsMissingPortalMarker(t *testing.T) {
-	_, err := GetRoomMap("===first\n0\nfeatures\n- ground:floor\n- portal:0,second,1\n- inputprofile:topdown\n===second\n.\nfeatures\n- ground:floor\n- inputprofile:topdown")
+	_, err := scenario.GetRoomMap("===first\n0\nfeatures\n- ground:floor\n- portal:0,second,1\n- inputprofile:topdown\n===second\n.\nfeatures\n- ground:floor\n- inputprofile:topdown")
 	if err == nil {
 		t.Fatal("expected missing portal marker error")
 	}
 }
 
 func TestGetRoomMapRejectsDuplicateRoom(t *testing.T) {
-	_, err := GetRoomMap("===room\n.\nfeatures\n- ground:floor\n- inputprofile:topdown\n===room\n.")
+	_, err := scenario.GetRoomMap("===room\n.\nfeatures\n- ground:floor\n- inputprofile:topdown\n===room\n.")
 	if err == nil {
 		t.Fatal("expected duplicate room error")
 	}
 }
 
 func TestScenarioContentRejectsEntityWithoutKey(t *testing.T) {
-	_, _, _, err := getEntitiesAndInputProfiles("===ENTITY\nfloor\n- pos\n- ascii:.")
+	_, _, _, err := getScenarioContent(t, "===ENTITY\nfloor\n- pos\n- ascii:.")
 	if err == nil {
 		t.Fatal("expected invalid entity header error")
 	}
 }
 
 func TestScenarioContentParsesHyphenEntityKey(t *testing.T) {
-	entities, components, _, err := getEntitiesAndInputProfiles("===ENTITY\n-:wall\n- pos\n- ascii:#\n- impassable")
+	entities, components, _, err := getScenarioContent(t, "===ENTITY\n-:wall\n- pos\n- ascii:#\n- impassable")
 	if err != nil {
 		t.Fatalf("getEntitiesAndInputProfiles returned error: %v", err)
 	}
@@ -199,7 +200,7 @@ func TestScenarioContentParsesHyphenEntityKey(t *testing.T) {
 }
 
 func TestScenarioContentParsesSpaceASCII(t *testing.T) {
-	_, components, _, err := getEntitiesAndInputProfiles("===ENTITY\nv:void\n- pos\n- ascii:SPACE")
+	_, components, _, err := getScenarioContent(t, "===ENTITY\nv:void\n- pos\n- ascii:SPACE")
 	if err != nil {
 		t.Fatalf("getEntitiesAndInputProfiles returned error: %v", err)
 	}
@@ -207,7 +208,7 @@ func TestScenarioContentParsesSpaceASCII(t *testing.T) {
 }
 
 func TestGetRoomMapParsesTerminal(t *testing.T) {
-	asciiMap, err := GetRoomMap("===comms\nT\nfeatures\n- ground:floor\n- inputprofile:topdown\n- terminal:T,scan\n===scan\n+\nfeatures\n- ground:void\n- inputprofile:scan")
+	asciiMap, err := scenario.GetRoomMap("===comms\nT\nfeatures\n- ground:floor\n- inputprofile:topdown\n- terminal:T,scan\n===scan\n+\nfeatures\n- ground:void\n- inputprofile:scan")
 	if err != nil {
 		t.Fatalf("GetRoomMap returned error: %v", err)
 	}
@@ -219,7 +220,7 @@ func TestGetRoomMapParsesTerminal(t *testing.T) {
 
 func TestGetScenarioFromFilesReturnsError(t *testing.T) {
 	tempDir := t.TempDir()
-	asciiMap, entities, components, userInputProfileMap, err := GetScenarioFromFiles(
+	asciiMap, entities, components, userInputProfileMap, err := scenario.GetScenarioFromFiles(
 		filepath.Join(tempDir, "missing-map.txt"),
 		filepath.Join(tempDir, "missing-content.txt"),
 	)
@@ -239,6 +240,23 @@ func TestGetScenarioFromFilesReturnsError(t *testing.T) {
 	if userInputProfileMap != nil {
 		t.Fatalf("expected nil userInputProfileMap on error, got %v", userInputProfileMap)
 	}
+}
+
+func getScenarioContent(t *testing.T, content string) (map[rune]string, map[string]map[string][]string, map[string]map[string]string, error) {
+	t.Helper()
+	tempDir := t.TempDir()
+	mapPath := filepath.Join(tempDir, "map.txt")
+	contentPath := filepath.Join(tempDir, "content.txt")
+	mapFile := "===room\n.\nfeatures\n- ground:floor\n- inputprofile:topdown\n"
+	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
+		t.Fatalf("write temp map file: %v", err)
+	}
+	if err := os.WriteFile(contentPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write temp content file: %v", err)
+	}
+
+	_, entities, components, inputProfiles, err := scenario.GetScenarioFromFiles(mapPath, contentPath)
+	return entities, components, inputProfiles, err
 }
 
 func assertComponentValues(t *testing.T, components map[string]map[string][]string, entity string, component string, want ...string) {

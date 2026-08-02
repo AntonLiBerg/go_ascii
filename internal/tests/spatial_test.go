@@ -1,13 +1,14 @@
-package world
+package tests
 
 import (
 	component "go_ascii/internal"
+	"go_ascii/internal/world"
 	"slices"
 	"testing"
 )
 
 func TestGetNeighbors(t *testing.T) {
-	gameWorld := NewWorldEmpty()
+	gameWorld := world.NewWorldEmpty()
 	addEntity := func(pos [2]int) int {
 		t.Helper()
 		eID := len(gameWorld.Entities)
@@ -33,16 +34,16 @@ func TestGetNeighbors(t *testing.T) {
 		want = append(want, addEntity(position))
 	}
 
-	if got := GetNeighbors(gameWorld, target); !slices.Equal(got, want) {
+	if got := world.GetNeighbors(gameWorld, target); !slices.Equal(got, want) {
 		t.Fatalf("expected neighbors %v, got %v", want, got)
 	}
-	if got := GetNeighbors(gameWorld, -1); len(got) != 0 {
+	if got := world.GetNeighbors(gameWorld, -1); len(got) != 0 {
 		t.Fatalf("expected no neighbors for missing target, got %v", got)
 	}
 }
 
 func TestGetNeighborsOnlyReturnsEntitiesInSameRoom(t *testing.T) {
-	gameWorld := NewWorldEmpty()
+	gameWorld := world.NewWorldEmpty()
 	if err := gameWorld.AddEntityInRoom("bridge", [2]int{1, 1}, map[string][]string{"pos": {}}); err != nil {
 		t.Fatalf("add target: %v", err)
 	}
@@ -53,7 +54,7 @@ func TestGetNeighborsOnlyReturnsEntitiesInSameRoom(t *testing.T) {
 		t.Fatalf("add comms entity: %v", err)
 	}
 
-	if got := GetNeighbors(gameWorld, 0); !slices.Equal(got, []int{1}) {
+	if got := world.GetNeighbors(gameWorld, 0); !slices.Equal(got, []int{1}) {
 		t.Fatalf("expected only bridge neighbor, got %v", got)
 	}
 	if gameWorld.Pos[2] != (component.Position{Room: "comms", X: 2, Y: 1}) {
