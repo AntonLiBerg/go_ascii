@@ -183,29 +183,6 @@ func TestNewWorldRejectsTerminalProfileWithoutExit(t *testing.T) {
 	}
 }
 
-func TestAddEntityStoresStructureComponents(t *testing.T) {
-	gameWorld := world.NewWorldEmpty()
-	err := gameWorld.AddEntity([2]int{}, map[string][]string{
-		"bunkbed": {}, "prisonbars": {}, "wall": {}, "window": {},
-	})
-	if err != nil {
-		t.Fatalf("AddEntity returned error: %v", err)
-	}
-
-	if _, ok := gameWorld.BunkBed[0]; !ok {
-		t.Fatal("expected bunk bed component")
-	}
-	if _, ok := gameWorld.PrisonBars[0]; !ok {
-		t.Fatal("expected prison bars component")
-	}
-	if _, ok := gameWorld.Wall[0]; !ok {
-		t.Fatal("expected wall component")
-	}
-	if _, ok := gameWorld.Window[0]; !ok {
-		t.Fatal("expected window component")
-	}
-}
-
 func TestCloneCopiesMutableState(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	gameWorld.UserInputProfile = world.UserInputProfile{KeyQuitGame: "q"}

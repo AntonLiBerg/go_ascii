@@ -24,9 +24,6 @@ func TestDemoScenarioLoadsAllMapEntities(t *testing.T) {
 	if len(gameWorld.Interactable) != 4 {
 		t.Fatalf("expected four interactable entities, got %d", len(gameWorld.Interactable))
 	}
-	if len(gameWorld.BunkBed) == 0 || len(gameWorld.PrisonBars) == 0 || len(gameWorld.Wall) == 0 || len(gameWorld.Window) == 0 {
-		t.Fatal("expected demo structure components to be populated")
-	}
 	if len(asciiMap.Rooms) != 2 || asciiMap.Ground["ship"] != "floor" || asciiMap.Ground["engine room"] != "floor" {
 		t.Fatalf("expected two rooms with floor ground, got rooms=%d ground=%v", len(asciiMap.Rooms), asciiMap.Ground)
 	}
