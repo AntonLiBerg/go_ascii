@@ -26,7 +26,7 @@ H:helm
 - pos
 - ascii:H
 - impassable
-- interactable:helm
+- interactable:commandtable
 T:scantable
 - pos
 - ascii:T
@@ -44,5 +44,8 @@ topdown
 - movedown=s
 - moveright=d
 terminal_scan
+- quitgame=q
+- exit=e
+terminal_helm
 - quitgame=q
 - exit=e

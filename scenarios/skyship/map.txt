@@ -8,6 +8,7 @@ features
 - ground:floor
 - portal:0,comms,0
 - inputprofile:topdown
+- terminal:H,terminal_helm
 ===comms
 -----0-----
 |         |
@@ -19,25 +20,40 @@ features
 - inputprofile:topdown
 - terminal:T,terminal_scan //special portal: you go to a new room by interacting with target entity. you exit by using the "exit" bound button in the inputprofile. inputs: entity to interact with to trigger,target room you enter
 ===terminal_scan
-++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++
-+1    ......                ++
-+2     ...          ...     ++
-+3                ........  ++
-+4                ........  ++
-+5            ^    ......   ++
-+6  ###            .....    ++
-+7####                      ++
-+8#####                     ++
-+9####                      ++
-++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++
-++   ship:^                 ++
-++   forest:.               ++
-++   mountain:#             ++
-++++++++++++++++++++++++++++++
+¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
+¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
+¤4¤                   ¤¤¤
+¤3¤                   ¤¤¤
+¤2¤                   ¤¤¤
+¤1¤                   ¤¤¤
+¤0¤         ^         ¤¤¤
+¤1¤                   ¤¤¤
+¤2¤                   ¤¤¤
+¤3¤                   ¤¤¤
+¤4¤                   ¤¤¤
+¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
+¤¤ 9876543210123456789 ¤¤
+¤¤ negative | positive ¤¤
+¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
+¤¤     ship:^          ¤¤
+¤¤     enemy:x         ¤¤
+¤¤     obstacle:#      ¤¤
+¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
 features
 - ground:void
 - inputprofile:terminal_scan
 ===terminal_helm
-
+¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
+¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
+¤¤                        ¤¤
+¤¤   X-moves    Y-moves   ¤¤
+¤¤     +-+        +-+     ¤¤
+¤¤     |0|        |0|     ¤¤
+¤¤     +-+        +-+     ¤¤
+¤¤                        ¤¤
+¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
+¤¤    x:a,d      y:w,s    ¤¤
+¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
+features
+- ground:void
+- inputprofile:terminal_helm
