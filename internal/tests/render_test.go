@@ -93,3 +93,24 @@ func TestHigherLayerCoversLowerLayer(t *testing.T) {
 		t.Fatalf("expected lower-layer entity to be covered in output %q", output)
 	}
 }
+
+func TestTerminalFrameDrawsLayoutInOrder(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.UILayout = []string{"room", "infobox"}
+	gameWorld.UIContent["infobox"] = []string{"+---+", "| i |", "+---+"}
+	if err := gameWorld.AddEntity([2]int{0, 0}, map[string][]string{
+		"pos": {}, "ascii": {"R"},
+	}); err != nil {
+		t.Fatalf("AddEntity returned error: %v", err)
+	}
+
+	output := render.TerminalFrame(gameWorld)
+	roomIndex := strings.Index(output, "R")
+	uiIndex := strings.Index(output, "+---+")
+	if roomIndex == -1 || uiIndex == -1 {
+		t.Fatalf("expected room and infobox in output %q", output)
+	}
+	if roomIndex > uiIndex {
+		t.Fatalf("expected room before infobox, got output %q", output)
+	}
+}

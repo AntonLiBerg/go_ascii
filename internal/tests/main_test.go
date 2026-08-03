@@ -5,11 +5,12 @@ import (
 	"go_ascii/internal/scenario"
 	"go_ascii/internal/service/interaction"
 	"go_ascii/internal/world"
+	"slices"
 	"testing"
 )
 
 func TestDemoScenarioLoadsAllMapEntities(t *testing.T) {
-	asciiMap, entities, components, inputProfiles, err := scenario.GetScenarioFromFiles(
+	asciiMap, entities, components, inputProfiles, _, _, err := scenario.GetScenarioFromFiles(
 		"../../scenarios/demo/map.txt",
 		"../../scenarios/demo/content.txt",
 	)
@@ -40,27 +41,34 @@ func TestDemoScenarioLoadsAllMapEntities(t *testing.T) {
 }
 
 func TestSkyshipScenarioLoadsRooms(t *testing.T) {
-	asciiMap, entities, components, inputProfiles, err := scenario.GetScenarioFromFiles(
+	asciiMap, entities, components, inputProfiles, uiLayout, uis, err := scenario.GetScenarioFromFiles(
 		"../../scenarios/skyship/map.txt",
 		"../../scenarios/skyship/content.txt",
+		"../../scenarios/skyship/ui.txt",
 	)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
 	}
+	if !slices.Equal(uiLayout, []string{"room", "infobox"}) || !slices.Equal(uis, []string{"infobox"}) {
+		t.Fatalf("expected skyship UI layout, got layout=%v UIs=%v", uiLayout, uis)
+	}
 
-	gameWorld, err := world.NewWorld(asciiMap, entities, components, inputProfiles)
+	gameWorld, err := world.NewWorldWithUI(asciiMap, entities, components, inputProfiles, uiLayout, uis)
 	if err != nil {
 		t.Fatalf("NewWorld returned error: %v", err)
 	}
-	if len(asciiMap.Rooms) != 3 || len(asciiMap.Portals) != 2 || len(asciiMap.Terminals) != 1 {
-		t.Fatalf("expected three rooms, paired portals, and a terminal, got rooms=%d portals=%d terminals=%d", len(asciiMap.Rooms), len(asciiMap.Portals), len(asciiMap.Terminals))
+	if len(asciiMap.Rooms) != 4 || len(asciiMap.Portals) != 2 || len(asciiMap.Terminals) != 2 {
+		t.Fatalf("expected four rooms, paired portals, and two terminals, got rooms=%d portals=%d terminals=%d", len(asciiMap.Rooms), len(asciiMap.Portals), len(asciiMap.Terminals))
 	}
 	if len(gameWorld.Interactable) != 2 {
 		t.Fatalf("expected two interactable instruments, got %d", len(gameWorld.Interactable))
 	}
+	if got := gameWorld.UIContent["infobox"]; len(got) != 6 {
+		t.Fatalf("expected six infobox lines, got %d", len(got))
+	}
 	commandTableID := -1
 	for entityID, interactable := range gameWorld.Interactable {
-		if interactable.InteractionType == component.InteractionTypeCommandTable {
+		if interactable.InteractionType == component.InteractionTypeCommandTable && gameWorld.Pos[entityID].Room == "comms" {
 			commandTableID = entityID
 			break
 		}
@@ -85,9 +93,10 @@ func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 }
 
 func TestSkyshipCommandTerminalFlow(t *testing.T) {
-	asciiMap, entities, components, inputProfiles, err := scenario.GetScenarioFromFiles(
+	asciiMap, entities, components, inputProfiles, _, _, err := scenario.GetScenarioFromFiles(
 		"../../scenarios/skyship/map.txt",
 		"../../scenarios/skyship/content.txt",
+		"../../scenarios/skyship/ui.txt",
 	)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
@@ -104,7 +113,7 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 	}
 	commandTableID := -1
 	for entityID, interactable := range gameWorld.Interactable {
-		if interactable.InteractionType == component.InteractionTypeCommandTable {
+		if interactable.InteractionType == component.InteractionTypeCommandTable && gameWorld.Pos[entityID].Room == "comms" {
 			commandTableID = entityID
 			break
 		}

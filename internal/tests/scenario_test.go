@@ -66,7 +66,7 @@ func TestGetScenarioFromFiles(t *testing.T) {
 		t.Fatalf("write temp content file: %v", err)
 	}
 
-	asciiMap, entities, components, userInputProfileMap, err := scenario.GetScenarioFromFiles(mapPath, contentPath)
+	asciiMap, entities, components, userInputProfileMap, _, _, err := scenario.GetScenarioFromFiles(mapPath, contentPath)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestGetScenarioFromFilesParsesDoor(t *testing.T) {
 		t.Fatalf("write temp content file: %v", err)
 	}
 
-	_, entities, components, _, err := scenario.GetScenarioFromFiles(mapPath, contentPath)
+	_, entities, components, _, _, _, err := scenario.GetScenarioFromFiles(mapPath, contentPath)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
 	}
@@ -220,7 +220,7 @@ func TestGetRoomMapParsesTerminal(t *testing.T) {
 
 func TestGetScenarioFromFilesReturnsError(t *testing.T) {
 	tempDir := t.TempDir()
-	asciiMap, entities, components, userInputProfileMap, err := scenario.GetScenarioFromFiles(
+	asciiMap, entities, components, userInputProfileMap, _, _, err := scenario.GetScenarioFromFiles(
 		filepath.Join(tempDir, "missing-map.txt"),
 		filepath.Join(tempDir, "missing-content.txt"),
 	)
@@ -255,7 +255,7 @@ func getScenarioContent(t *testing.T, content string) (map[rune]string, map[stri
 		t.Fatalf("write temp content file: %v", err)
 	}
 
-	_, entities, components, inputProfiles, err := scenario.GetScenarioFromFiles(mapPath, contentPath)
+	_, entities, components, inputProfiles, _, _, err := scenario.GetScenarioFromFiles(mapPath, contentPath)
 	return entities, components, inputProfiles, err
 }
 
