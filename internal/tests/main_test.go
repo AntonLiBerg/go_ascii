@@ -62,6 +62,11 @@ func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 	if len(gameWorld.Interactable) != 2 {
 		t.Fatalf("expected two interactable instruments, got %d", len(gameWorld.Interactable))
 	}
+	for _, entity := range []rune{'.', '@', 'H', 'T'} {
+		if _, ok := asciiMap.EntityGroups["bridge"][entity]; !ok {
+			t.Fatalf("expected bridge group composition to include %q", entity)
+		}
+	}
 	if got := gameWorld.UIContent["infobox"]; len(got) != 6 {
 		t.Fatalf("expected six infobox lines, got %d", len(got))
 	}

@@ -5,6 +5,7 @@ import (
 	"go_ascii/internal/scenario"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -215,6 +216,16 @@ func TestGetRoomMapParsesTerminal(t *testing.T) {
 	source := component.Position{Room: "comms", X: 0, Y: 0}
 	if got := asciiMap.Terminals[source]; got != "scan" {
 		t.Fatalf("expected terminal target scan, got %q", got)
+	}
+}
+
+func TestGetRoomMapParsesEntityGroups(t *testing.T) {
+	asciiMap, err := scenario.GetRoomMap("===bridge: base, instruments\n.\nfeatures\n- ground:floor\n- inputprofile:topdown")
+	if err != nil {
+		t.Fatalf("GetRoomMap returned error: %v", err)
+	}
+	if got := asciiMap.RoomGroups["bridge"]; !slices.Equal(got, []string{"base", "instruments"}) {
+		t.Fatalf("expected bridge groups, got %v", got)
 	}
 }
 
