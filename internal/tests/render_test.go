@@ -114,3 +114,45 @@ func TestTerminalFrameDrawsLayoutInOrder(t *testing.T) {
 		t.Fatalf("expected room before infobox, got output %q", output)
 	}
 }
+
+func TestTerminalFrameCentersRoomWithinUIWidth(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.UILayout = []string{"room", "infobox"}
+	gameWorld.UIContent["infobox"] = []string{"----------"}
+	if err := gameWorld.AddEntity([2]int{0, 0}, map[string][]string{
+		"pos": {}, "ascii": {"R"},
+	}); err != nil {
+		t.Fatalf("AddEntity returned error: %v", err)
+	}
+	if err := gameWorld.AddEntity([2]int{3, 0}, map[string][]string{
+		"pos": {}, "ascii": {"R"},
+	}); err != nil {
+		t.Fatalf("AddEntity returned error: %v", err)
+	}
+
+	output := render.TerminalFrame(gameWorld)
+	if !strings.Contains(output, "\033[1;4HR") {
+		t.Fatalf("expected four-column room centering offset, got output %q", output)
+	}
+}
+
+func TestTerminalFrameDoesNotCenterRoomWiderThanUI(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.UILayout = []string{"room", "infobox"}
+	gameWorld.UIContent["infobox"] = []string{"----------"}
+	if err := gameWorld.AddEntity([2]int{0, 0}, map[string][]string{
+		"pos": {}, "ascii": {"R"},
+	}); err != nil {
+		t.Fatalf("AddEntity returned error: %v", err)
+	}
+	if err := gameWorld.AddEntity([2]int{10, 0}, map[string][]string{
+		"pos": {}, "ascii": {"R"},
+	}); err != nil {
+		t.Fatalf("AddEntity returned error: %v", err)
+	}
+
+	output := render.TerminalFrame(gameWorld)
+	if !strings.Contains(output, "\033[1;1HR") {
+		t.Fatalf("expected wide room to remain left-aligned, got output %q", output)
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"go_ascii/internal/world"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 func TerminalFrame(gameWorld world.World) string {
@@ -12,12 +13,14 @@ func TerminalFrame(gameWorld world.World) string {
 	frame.WriteString("\033[2J\033[H")
 
 	nextY := 0
+	activeRoom := getActiveRoom(gameWorld)
+	roomXOffset := roomHorizontalOffset(gameWorld, activeRoom, uiWidth(gameWorld))
 	if len(gameWorld.UILayout) == 0 {
-		nextY = drawRoom(&frame, gameWorld, nextY)
+		nextY = drawRoom(&frame, gameWorld, activeRoom, nextY, 0)
 	} else {
 		for _, name := range gameWorld.UILayout {
 			if name == "room" {
-				nextY = drawRoom(&frame, gameWorld, nextY)
+				nextY = drawRoom(&frame, gameWorld, activeRoom, nextY, roomXOffset)
 				continue
 			}
 			nextY = drawUI(&frame, gameWorld.UIContent[name], nextY)
@@ -28,35 +31,73 @@ func TerminalFrame(gameWorld world.World) string {
 	return frame.String()
 }
 
-func drawRoom(frame *strings.Builder, gameWorld world.World, yOffset int) int {
-	activeRoom := gameWorld.ViewRoom
-	hasActiveRoom := activeRoom != ""
-	if !hasActiveRoom {
-		for _, playerID := range world.GetPlayerIDs(gameWorld) {
-			if pos, ok := gameWorld.Pos[playerID]; ok {
-				activeRoom = pos.Room
-				hasActiveRoom = true
-				break
-			}
-		}
-	}
-
+func drawRoom(frame *strings.Builder, gameWorld world.World, activeRoom string, yOffset int, xOffset int) int {
 	nextY := yOffset
 	for _, eID := range gameWorld.Entities {
 		pos, okPos := gameWorld.Pos[eID]
 		ascii, okASCII := gameWorld.Ascii[eID]
-		if !okPos || !okASCII || (hasActiveRoom && pos.Room != activeRoom) || pos.X < 0 || pos.Y < 0 || isCovered(gameWorld, eID, pos) {
+		if !okPos || !okASCII || (activeRoom != "" && pos.Room != activeRoom) || pos.X < 0 || pos.Y < 0 || isCovered(gameWorld, eID, pos) {
 			continue
 		}
 
 		screenY := pos.Y + yOffset + 1
-		writeCursor(frame, screenY, pos.X+1)
+		writeCursor(frame, screenY, pos.X+xOffset+1)
 		frame.WriteRune(ascii.Ascii)
 		if screenY > nextY {
 			nextY = screenY
 		}
 	}
 	return nextY
+}
+
+func getActiveRoom(gameWorld world.World) string {
+	if gameWorld.ViewRoom != "" {
+		return gameWorld.ViewRoom
+	}
+	for _, playerID := range world.GetPlayerIDs(gameWorld) {
+		if pos, ok := gameWorld.Pos[playerID]; ok {
+			return pos.Room
+		}
+	}
+	return ""
+}
+
+func uiWidth(gameWorld world.World) int {
+	width := 0
+	for _, name := range gameWorld.UILayout {
+		if name == "room" {
+			continue
+		}
+		for _, line := range gameWorld.UIContent[name] {
+			if lineWidth := utf8.RuneCountInString(line); lineWidth > width {
+				width = lineWidth
+			}
+		}
+	}
+	return width
+}
+
+func roomWidth(gameWorld world.World, activeRoom string) int {
+	width := 0
+	for _, eID := range gameWorld.Entities {
+		pos, okPos := gameWorld.Pos[eID]
+		_, okASCII := gameWorld.Ascii[eID]
+		if !okPos || !okASCII || (activeRoom != "" && pos.Room != activeRoom) || pos.X < 0 {
+			continue
+		}
+		if pos.X+1 > width {
+			width = pos.X + 1
+		}
+	}
+	return width
+}
+
+func roomHorizontalOffset(gameWorld world.World, activeRoom string, width int) int {
+	roomWidth := roomWidth(gameWorld, activeRoom)
+	if roomWidth == 0 || roomWidth >= width {
+		return 0
+	}
+	return (width - roomWidth) / 2
 }
 
 func drawUI(frame *strings.Builder, lines []string, yOffset int) int {
