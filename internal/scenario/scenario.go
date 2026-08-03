@@ -175,6 +175,7 @@ func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]stri
 		}
 		uis = append(uis, section.name)
 		uiLines := section.lines
+		// UI metadata is not part of the rendered lines.
 		for i, line := range uiLines {
 			if strings.TrimSpace(line) == "features" {
 				uiLines = uiLines[:i]

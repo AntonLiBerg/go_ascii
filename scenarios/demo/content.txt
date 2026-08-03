@@ -36,7 +36,6 @@ T:command-table
 - pos
 - ascii:T
 - impassable
-- interactable:commandtable
 B:bunk-bed
 - pos
 - ascii:B

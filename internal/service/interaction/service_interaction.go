@@ -19,7 +19,7 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 			Order: 1,
 			UpdateFunc: func(w world.World) (world.World, error) {
 				next := w
-				playerID := world.GetPlayerIDs(w)[0]
+				playerID := world.GetPlayerID(w)
 				position, ok := w.Pos[playerID]
 				if ok {
 					profile, ok := w.InputProfileForRoom(position.Room)
@@ -46,7 +46,7 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 	//
 	//interact with one of the neighbors
 	//
-	playerID := world.GetPlayerIDs(w)[0]
+	playerID := world.GetPlayerID(w)
 	targets := world.GetInteractableNeighbors(w, playerID)
 	return game.UpdateFunc{
 		Order: 1,
@@ -60,7 +60,7 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 					case component.InteractionTypeDoor:
 						next = interactWithDoor(next, targetID)
 					case component.InteractionTypeTerminal:
-						next,err = interactWithTerminal(next, targetID)
+						next, err = interactWithTerminal(next, targetID)
 					}
 				}
 			}
@@ -83,22 +83,22 @@ func interactWithDoor(w world.World, doorID int) world.World {
 	return next
 }
 
-func interactWithTerminal(w world.World, terminalID int) (world.World,error) {
+func interactWithTerminal(w world.World, terminalID int) (world.World, error) {
 	position, ok := w.Pos[terminalID]
 	if !ok {
-		return w,fmt.Errorf("Position for terminal not found!")
+		return w, fmt.Errorf("Position for terminal not found!")
 	}
 	roomName, ok := w.Terminals[position]
 	if !ok {
-		return w,fmt.Errorf("Terminal not found!")
+		return w, fmt.Errorf("Terminal not found!")
 	}
 	profile, ok := w.InputProfileForRoom(roomName)
 	if !ok {
-		return w,fmt.Errorf("inputprofile not found!")
+		return w, fmt.Errorf("inputprofile not found!")
 	}
 	next := w
 	next.UserInputProfile = profile
 	next.HasChanged = true
 	next.Room = roomName
-	return next,nil
+	return next, nil
 }

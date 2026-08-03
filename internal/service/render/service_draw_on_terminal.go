@@ -17,6 +17,7 @@ func TerminalFrame(gameWorld world.World) string {
 	if len(gameWorld.UILayout) == 0 {
 		nextY = drawRoom(&frame, gameWorld, gameWorld.Room, nextY, 0)
 	} else {
+		// Layout order controls the vertical composition of the frame.
 		for _, name := range gameWorld.UILayout {
 			if name == "room" {
 				nextY = drawRoom(&frame, gameWorld, gameWorld.Room, nextY, roomXOffset)

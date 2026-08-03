@@ -43,12 +43,11 @@ func (s ServiceMovePlayer) GetUpdateFunc(w world.World) game.UpdateFunc {
 		UpdateFunc: func(w world.World) (world.World, error) {
 			next := w.Clone()
 			next.HasChanged = true
-			for _, eID := range world.GetPlayerIDs(w) {
-				var err error
-				next, err = tryGoToPosition(next, eID, moveDelta)
-				if err != nil {
-					return w, err
-				}
+			playerID := world.GetPlayerID(w)
+			var err error
+			next, err = tryGoToPosition(next, playerID, moveDelta)
+			if err != nil {
+				return w, err
 			}
 			if next.KeyDown == keyToClear {
 				next.KeyDown = ""

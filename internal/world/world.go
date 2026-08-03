@@ -9,7 +9,7 @@ import (
 )
 
 type World struct {
-	Room string
+	Room               string
 	UserInputProfile   UserInputProfile
 	InputProfiles      map[string]UserInputProfile
 	InputProfileByRoom map[string]string
@@ -83,7 +83,9 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 		terminalRooms[roomName] = struct{}{}
 	}
 
-	world.Room = slices.Sorted(maps.Keys(asciiMap.Rooms))[0]
+	if len(asciiMap.Rooms) == 0 {
+		return world, fmt.Errorf("world has no rooms")
+	}
 	roomNames := slices.Sorted(maps.Keys(asciiMap.Rooms))
 	for _, roomName := range roomNames {
 		room := asciiMap.Rooms[roomName]
@@ -147,8 +149,10 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 			return world, fmt.Errorf("terminal at %+v does not have a terminal interaction", position)
 		}
 	}
-	playerID := GetPlayerIDs(world)[0] 
+	// The active room follows the single player after all entities are built.
+	playerID := GetPlayerID(world)
 	if position, ok := world.Pos[playerID]; ok {
+		world.Room = position.Room
 		world.SetInputProfileForRoom(position.Room)
 	}
 	return world, nil
