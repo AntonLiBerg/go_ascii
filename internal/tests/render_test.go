@@ -50,16 +50,13 @@ func TestTerminalFrameSelectsActiveRoom(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		view   string
 		shown  string
 		hidden string
 	}{
 		{name: "player room", shown: "B", hidden: "C"},
-		{name: "terminal view", view: "comms", shown: "C", hidden: "B"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gameWorld.ViewRoom = tt.view
 			output := render.TerminalFrame(gameWorld)
 			if !strings.Contains(output, tt.shown) {
 				t.Fatalf("expected active room entity %q in output %q", tt.shown, output)

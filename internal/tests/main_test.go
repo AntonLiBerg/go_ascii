@@ -68,13 +68,13 @@ func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 	}
 	commandTableID := -1
 	for entityID, interactable := range gameWorld.Interactable {
-		if interactable.InteractionType == component.InteractionTypeCommandTable && gameWorld.Pos[entityID].Room == "comms" {
+		if interactable.InteractionType == component.InteractionTypeCommandTable && gameWorld.Pos[entityID].Room == "bridge" {
 			commandTableID = entityID
 			break
 		}
 	}
-	if commandTableID == -1 || gameWorld.Pos[commandTableID].Room != "comms" {
-		t.Fatalf("expected command table in comms, got %+v", gameWorld.Pos[commandTableID])
+	if commandTableID == -1 || gameWorld.Pos[commandTableID].Room != "bridge" {
+		t.Fatalf("expected command table in bridge, got %+v", gameWorld.Pos[commandTableID])
 	}
 	if got := inputProfiles["terminal_scan"]["exit"]; got != "e" {
 		t.Fatalf("expected terminal exit binding e, got %q", got)
@@ -113,13 +113,13 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 	}
 	commandTableID := -1
 	for entityID, interactable := range gameWorld.Interactable {
-		if interactable.InteractionType == component.InteractionTypeCommandTable && gameWorld.Pos[entityID].Room == "comms" {
+		if interactable.InteractionType == component.InteractionTypeCommandTable && gameWorld.Pos[entityID].Room == "bridge" {
 			commandTableID = entityID
 			break
 		}
 	}
 	if playerID == -1 || commandTableID == -1 {
-		t.Fatal("expected player and command table")
+		t.Fatal("expected player and bridge command table")
 	}
 	commandTablePosition := gameWorld.Pos[commandTableID]
 	physicalPosition := component.Position{
@@ -129,14 +129,14 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 	}
 	gameWorld.Pos[playerID] = physicalPosition
 	if !gameWorld.SetInputProfileForRoom(physicalPosition.Room) {
-		t.Fatal("expected comms input profile")
+		t.Fatal("expected bridge input profile")
 	}
 	gameWorld.KeyDown = gameWorld.UserInputProfile.KeyInteract
 
 	open := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	gameWorld = applyUpdate(t, open, gameWorld)
-	if gameWorld.ViewRoom != "terminal_scan" || gameWorld.UserInputProfile.KeyExit != "e" {
-		t.Fatalf("expected terminal_scan view and exit profile, got view=%q profile=%+v", gameWorld.ViewRoom, gameWorld.UserInputProfile)
+	if gameWorld.UserInputProfile.KeyExit != "e" {
+		t.Fatalf("expected terminal_scan exit profile, got %+v", gameWorld.UserInputProfile)
 	}
 	if gameWorld.Pos[playerID] != physicalPosition {
 		t.Fatal("expected player to remain in comms while terminal is open")
@@ -145,7 +145,7 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 	gameWorld.KeyDown = gameWorld.UserInputProfile.KeyExit
 	closeTerminal := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	gameWorld = applyUpdate(t, closeTerminal, gameWorld)
-	if gameWorld.ViewRoom != "" || gameWorld.UserInputProfile.KeyInteract != "e" {
-		t.Fatalf("expected comms view and topdown profile after exit, got view=%q profile=%+v", gameWorld.ViewRoom, gameWorld.UserInputProfile)
+	if gameWorld.UserInputProfile.KeyInteract != "e" {
+		t.Fatalf("expected topdown profile after exit, got %+v", gameWorld.UserInputProfile)
 	}
 }

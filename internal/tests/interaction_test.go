@@ -40,7 +40,7 @@ func TestServiceOpensSingleNeighborDoorAndClearsInteractKey(t *testing.T) {
 	}
 }
 
-func TestServiceOpensAndExitsTerminalRoom(t *testing.T) {
+func TestServiceOpensTerminalAndRestoresInputProfile(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	topdown := world.UserInputProfile{KeyInteract: "e"}
 	terminal := world.UserInputProfile{KeyExit: "e"}
@@ -62,9 +62,6 @@ func TestServiceOpensAndExitsTerminalRoom(t *testing.T) {
 	open := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	gameWorld = applyUpdate(t, open, gameWorld)
 
-	if gameWorld.ViewRoom != "terminal" {
-		t.Fatalf("expected terminal view, got %q", gameWorld.ViewRoom)
-	}
 	if gameWorld.UserInputProfile != terminal {
 		t.Fatalf("expected terminal input profile, got %+v", gameWorld.UserInputProfile)
 	}
@@ -77,9 +74,6 @@ func TestServiceOpensAndExitsTerminalRoom(t *testing.T) {
 	closeTerminal := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	gameWorld = applyUpdate(t, closeTerminal, gameWorld)
 
-	if gameWorld.ViewRoom != "" {
-		t.Fatalf("expected terminal view to close, got %q", gameWorld.ViewRoom)
-	}
 	if gameWorld.UserInputProfile != topdown {
 		t.Fatalf("expected topdown input profile to be restored, got %+v", gameWorld.UserInputProfile)
 	}

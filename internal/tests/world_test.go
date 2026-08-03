@@ -190,7 +190,6 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	gameWorld.ShouldQuit = true
 	gameWorld.HasChanged = true
 	gameWorld.IterationNr = 4
-	gameWorld.ViewRoom = "scan"
 	gameWorld.InputProfiles["topdown"] = world.UserInputProfile{KeyMoveUp: "w"}
 	gameWorld.InputProfileByRoom["bridge"] = "topdown"
 	portalFrom := component.Position{Room: "bridge", X: 1, Y: 2}
@@ -210,10 +209,6 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	if !clone.HasChanged || clone.IterationNr != 4 {
 		t.Fatalf("expected update state to be copied, got %+v", clone)
 	}
-	if clone.ViewRoom != "scan" {
-		t.Fatalf("expected view room to be copied, got %q", clone.ViewRoom)
-	}
-
 	clone.Entities[0] = 9
 	clone.Pos[0] = component.Position{X: 1, Y: 1}
 	clone.Layer[0] = component.Layer{Nr: 2}
