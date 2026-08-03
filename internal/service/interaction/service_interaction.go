@@ -13,16 +13,24 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 	if w.ViewRoom != "" && exitKey != "" && w.KeyDown == exitKey {
 		return game.UpdateFunc{
 			Order: 1,
-			UpdateFunc: func(w *world.World) {
-				w.ViewRoom = ""
-				for playerID := range w.Player {
-					w.SetInputProfileForRoom(w.Pos[playerID].Room)
+			UpdateFunc: func(w world.World) (world.World, error) {
+				next := w
+				next.ViewRoom = ""
+				for _, playerID := range world.GetPlayerIDs(w) {
+					position, ok := w.Pos[playerID]
+					if ok {
+						profile, ok := w.InputProfileForRoom(position.Room)
+						if ok {
+							next.UserInputProfile = profile
+						}
+					}
 					break
 				}
-				w.HasChanged = true
-				if w.KeyDown == exitKey {
-					w.KeyDown = ""
+				next.HasChanged = true
+				if next.KeyDown == exitKey {
+					next.KeyDown = ""
 				}
+				return next, nil
 			},
 		}
 	}
@@ -36,7 +44,7 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 	}
 
 	playerID := -1
-	for eID := range w.Player {
+	for _, eID := range world.GetPlayerIDs(w) {
 		playerID = eID
 		break
 	}
@@ -44,48 +52,54 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 	targets := world.GetInteractableNeighbors(w, playerID)
 	return game.UpdateFunc{
 		Order: 1,
-		UpdateFunc: func(w *world.World) {
+		UpdateFunc: func(w world.World) (world.World, error) {
+			next := w
 			if len(targets) == 1 {
 				targetID := targets[0]
-				interaction := w.Interactable[targetID]
-				switch interaction.InteractionType {
-				case component.InteractionTypeDoor:
-					interactWithDoor(w, targetID)
-				case component.InteractionTypeHelm:
-					interactWithHelm(w, targetID)
-				case component.InteractionTypeCommandTable:
-					interactWithCommandTable(w, targetID)
+				if interaction, ok := w.Interactable[targetID]; ok {
+					switch interaction.InteractionType {
+					case component.InteractionTypeDoor:
+						next = interactWithDoor(next, targetID)
+					case component.InteractionTypeCommandTable:
+						next = interactWithCommandTable(next, targetID)
+					}
 				}
 			}
-			if w.KeyDown == interactKey {
-				w.KeyDown = ""
+			if next.KeyDown == interactKey {
+				next.KeyDown = ""
 			}
+			return next, nil
 		},
 	}
 }
 
-func interactWithDoor(w *world.World, doorID int) {
-	if _, isClosed := w.Impassable[doorID]; isClosed {
-		delete(w.Impassable, doorID)
+func interactWithDoor(w world.World, doorID int) world.World {
+	next := w.Clone()
+	if _, isClosed := next.Impassable[doorID]; isClosed {
+		delete(next.Impassable, doorID)
 	} else {
-		w.Impassable[doorID] = component.Impassable{}
+		next.Impassable[doorID] = component.Impassable{}
 	}
-	w.HasChanged = true
+	next.HasChanged = true
+	return next
 }
 
-func interactWithHelm(*world.World, int) {
-	//show UI
-}
-
-func interactWithCommandTable(w *world.World, commandTableID int) {
+func interactWithCommandTable(w world.World, commandTableID int) world.World {
 	position, ok := w.Pos[commandTableID]
 	if !ok {
-		return
+		return w
 	}
 	roomName, ok := w.Terminals[position]
-	if !ok || !w.SetInputProfileForRoom(roomName) {
-		return
+	if !ok {
+		return w
 	}
-	w.ViewRoom = roomName
-	w.HasChanged = true
+	profile, ok := w.InputProfileForRoom(roomName)
+	if !ok {
+		return w
+	}
+	next := w
+	next.UserInputProfile = profile
+	next.ViewRoom = roomName
+	next.HasChanged = true
+	return next
 }

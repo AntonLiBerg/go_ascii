@@ -31,54 +31,61 @@ func (s ServiceMovePlayer) GetUpdateFunc(w world.World) game.UpdateFunc {
 
 	return game.UpdateFunc{
 		Order: 1,
-		UpdateFunc: func(w *world.World) {
-			w.HasChanged = true
-			for eID := range w.Player {
-				if err := tryGoToPosition(w, eID, moveDelta); err != nil {
-					panic(err)
+		UpdateFunc: func(w world.World) (world.World, error) {
+			next := w.Clone()
+			next.HasChanged = true
+			for _, eID := range world.GetPlayerIDs(w) {
+				var err error
+				next, err = tryGoToPosition(next, eID, moveDelta)
+				if err != nil {
+					return w, err
 				}
 			}
-			if w.KeyDown == keyToClear {
-				w.KeyDown = ""
+			if next.KeyDown == keyToClear {
+				next.KeyDown = ""
 			}
+			return next, nil
 		},
 	}
 }
 
-func tryGoToPosition(w *world.World, moverID int, delta component.Position) error {
+func tryGoToPosition(w world.World, moverID int, delta component.Position) (world.World, error) {
 	moverPos, ok := w.Pos[moverID]
 	if !ok {
-		return fmt.Errorf("mover entity not found")
+		return w, fmt.Errorf("mover entity not found")
 	}
 
 	targetPos := component.Position{Room: moverPos.Room, X: moverPos.X + delta.X, Y: moverPos.Y + delta.Y}
-	targetIDs := world.GetEntitiesAtPosition(*w, targetPos)
+	targetIDs := world.GetEntitiesAtPosition(w, targetPos)
 	if len(targetIDs) == 0 || !canMakeMove(w, targetIDs) {
-		return nil
+		return w, nil
 	}
 	if portalTarget, isPortal := w.Portals[targetPos]; isPortal {
 		targetPos = portalTarget
-		targetIDs = world.GetEntitiesAtPosition(*w, targetPos)
+		targetIDs = world.GetEntitiesAtPosition(w, targetPos)
 		if len(targetIDs) == 0 || !canMakeMove(w, targetIDs) {
-			return nil
+			return w, nil
 		}
 	}
 
-	w.Pos[moverID] = targetPos
-	w.EByPos[targetPos] = moverID
+	next := w.Clone()
+	next.Pos[moverID] = targetPos
+	next.EByPos[targetPos] = moverID
 	if moverPos.Room != targetPos.Room {
-		w.SetInputProfileForRoom(targetPos.Room)
+		if profile, ok := next.InputProfileForRoom(targetPos.Room); ok {
+			next.UserInputProfile = profile
+		}
 	}
-	entitiesAtOldPosition := world.GetEntitiesAtPosition(*w, moverPos)
+	entitiesAtOldPosition := world.GetEntitiesAtPosition(next, moverPos)
 	if len(entitiesAtOldPosition) == 0 {
-		delete(w.EByPos, moverPos)
+		delete(next.EByPos, moverPos)
 	} else {
-		w.EByPos[moverPos] = entitiesAtOldPosition[len(entitiesAtOldPosition)-1]
+		next.EByPos[moverPos] = entitiesAtOldPosition[len(entitiesAtOldPosition)-1]
 	}
-	return nil
+	return next, nil
 }
 
-func canMakeMove(w *world.World, targetIDs []int) bool {
+func canMakeMove(w world.World, targetIDs []int) bool {
 	for _, targetID := range targetIDs {
 		if _, blocked := w.Impassable[targetID]; blocked {
 			return false

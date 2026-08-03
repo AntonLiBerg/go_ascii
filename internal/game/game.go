@@ -13,15 +13,20 @@ const (
 	s_applyingChanges
 )
 
-func RunGame(gameWorld world.World, services []IService, keyInput <-chan string) error {
+type updateResult struct {
+	serviceIndex int
+	update       UpdateFunc
+}
+
+func RunGame(gameWorld world.World, services []IService, keyInput <-chan string, present func(world.World) error) error {
 	if len(services) == 0 {
 		return fmt.Errorf("Services is empty")
 	}
 	state := s_readyToGetUpdateFunctions
 	ticker := time.NewTicker(time.Second / 30)
 	defer ticker.Stop()
-	results := make([]UpdateFunc, 0, len(services))
-	updateFuncs := make(chan UpdateFunc, len(services))
+	results := make([]updateResult, 0, len(services))
+	updateFuncs := make(chan updateResult, len(services))
 
 	for {
 		if gameWorld.ShouldQuit {
@@ -37,10 +42,10 @@ func RunGame(gameWorld world.World, services []IService, keyInput <-chan string)
 				snapshot := gameWorld.Clone()
 				results = results[:0]
 
-				for _, service := range services {
-					go func(service IService) {
-						updateFuncs <- service.GetUpdateFunc(snapshot)
-					}(service)
+				for index, service := range services {
+					go func(index int, service IService) {
+						updateFuncs <- updateResult{serviceIndex: index, update: service.GetUpdateFunc(snapshot)}
+					}(index, service)
 				}
 
 				state = s_gettingUpdateFunctions
@@ -61,16 +66,26 @@ func RunGame(gameWorld world.World, services []IService, keyInput <-chan string)
 
 		case s_applyingChanges:
 			sort.SliceStable(results, func(i, j int) bool {
-				return results[i].Order < results[j].Order
+				if results[i].update.Order != results[j].update.Order {
+					return results[i].update.Order < results[j].update.Order
+				}
+				return results[i].serviceIndex < results[j].serviceIndex
 			})
 
 			for _, result := range results {
-				if result.Err != nil {
-					panic(result.Err)
+				if result.update.UpdateFunc != nil {
+					nextWorld, err := result.update.UpdateFunc(gameWorld)
+					if err != nil {
+						return err
+					}
+					gameWorld = nextWorld
 				}
-				if result.UpdateFunc != nil {
-					result.UpdateFunc(&gameWorld)
+			}
+			if (gameWorld.IterationNr == 1 || gameWorld.HasChanged) && present != nil {
+				if err := present(gameWorld); err != nil {
+					return err
 				}
+				gameWorld.HasChanged = false
 			}
 			state = s_readyToGetUpdateFunctions
 			gameWorld.IterationNr++

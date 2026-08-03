@@ -2,6 +2,16 @@ package world
 
 import component "go_ascii/internal"
 
+func GetPlayerIDs(world World) []int {
+	var playerIDs []int
+	for _, eID := range world.Entities {
+		if _, ok := world.Player[eID]; ok {
+			playerIDs = append(playerIDs, eID)
+		}
+	}
+	return playerIDs
+}
+
 func GetNeighbors(world World, target int) []int {
 	targetPos, ok := world.Pos[target]
 	if !ok {

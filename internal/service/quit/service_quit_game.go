@@ -15,8 +15,10 @@ func (s ServiceQuitGame) GetUpdateFunc(w world.World) game.UpdateFunc {
 
 	return game.UpdateFunc{
 		Order: 1,
-		UpdateFunc: func(w *world.World) {
-			w.ShouldQuit = true
+		UpdateFunc: func(w world.World) (world.World, error) {
+			next := w
+			next.ShouldQuit = true
+			return next, nil
 		},
 	}
 }

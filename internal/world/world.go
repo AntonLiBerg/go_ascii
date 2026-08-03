@@ -129,24 +129,34 @@ func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 			return world, fmt.Errorf("terminal at %+v does not have a commandtable interaction", position)
 		}
 	}
-	for playerID := range world.Player {
-		world.SetInputProfileForRoom(world.Pos[playerID].Room)
+	for _, playerID := range GetPlayerIDs(world) {
+		if position, ok := world.Pos[playerID]; ok {
+			world.SetInputProfileForRoom(position.Room)
+		}
 		break
 	}
 	return world, nil
 }
 
 func (w *World) SetInputProfileForRoom(roomName string) bool {
-	profileName, ok := w.InputProfileByRoom[roomName]
-	if !ok {
-		return false
-	}
-	profile, ok := w.InputProfiles[profileName]
+	profile, ok := w.InputProfileForRoom(roomName)
 	if !ok {
 		return false
 	}
 	w.UserInputProfile = profile
 	return true
+}
+
+func (w World) InputProfileForRoom(roomName string) (UserInputProfile, bool) {
+	profileName, ok := w.InputProfileByRoom[roomName]
+	if !ok {
+		return UserInputProfile{}, false
+	}
+	profile, ok := w.InputProfiles[profileName]
+	if !ok {
+		return UserInputProfile{}, false
+	}
+	return profile, true
 }
 
 func (w World) Clone() World {
