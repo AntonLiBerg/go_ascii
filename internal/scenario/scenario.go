@@ -68,7 +68,7 @@ func GetAsciiMap(mapText string) map[[2]int]rune {
 	return asciiMap
 }
 
-func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath string) (Map, map[rune]string, map[string]map[string][]string, map[string]map[string]string, []string, map[string]map[[2]int]rune, error) {
+func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath string) (Map, map[rune]string, map[string]map[string][]string, map[string]map[string]string, []string, []string, error) {
 	mapContent, err := os.ReadFile(mapFilePath)
 	if err != nil {
 		return Map{}, nil, nil, nil, nil, nil, err
@@ -96,7 +96,7 @@ func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath
 	return asciiMap, entities, components, inputProfiles, layout, uis, nil
 }
 
-func getUiLayoutAndUIs(uiFileText string) ([]string, map[string]map[[2]int]rune, error) {
+func getUiLayoutAndUIs(uiFileText string) ([]string, []string, error) {
 	type section struct {
 		name  string
 		lines []string
@@ -133,7 +133,7 @@ func getUiLayoutAndUIs(uiFileText string) ([]string, map[string]map[[2]int]rune,
 	}
 
 	var layout []string
-	uis := make(map[string]map[[2]int]rune)
+	var uis []string
 	for _, section := range sections {
 		if strings.EqualFold(section.name, SectionNameUILayout) {
 			if layout != nil {
@@ -157,29 +157,12 @@ func getUiLayoutAndUIs(uiFileText string) ([]string, map[string]map[[2]int]rune,
 			continue
 		}
 
-		if _, exists := uis[section.name]; exists {
-			return nil, nil, fmt.Errorf("duplicate UI section %q", section.name)
-		}
-		ui := make(map[[2]int]rune)
-		uiLines := section.lines
-		for i, line := range uiLines {
-			if strings.TrimSpace(line) == "features" {
-				uiLines = uiLines[:i]
-				break
+		for _, existing := range uis {
+			if existing == section.name {
+				return nil, nil, fmt.Errorf("duplicate UI section %q", section.name)
 			}
 		}
-		for len(uiLines) > 0 && uiLines[0] == "" {
-			uiLines = uiLines[1:]
-		}
-		for len(uiLines) > 0 && uiLines[len(uiLines)-1] == "" {
-			uiLines = uiLines[:len(uiLines)-1]
-		}
-		for y, line := range uiLines {
-			for x, char := range []rune(line) {
-				ui[[2]int{x, y}] = char
-			}
-		}
-		uis[section.name] = ui
+		uis = append(uis, section.name)
 	}
 	if layout == nil {
 		return nil, nil, fmt.Errorf("UI file has no layout section")
