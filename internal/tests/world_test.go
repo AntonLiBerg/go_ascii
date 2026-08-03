@@ -92,6 +92,37 @@ func TestNewWorldBuildsGroundAndRoomEntities(t *testing.T) {
 	if gameWorld.UserInputProfile.KeyMoveUp != "w" {
 		t.Fatalf("expected bridge input profile, got %+v", gameWorld.UserInputProfile)
 	}
+	if gameWorld.Room != "bridge" {
+		t.Fatalf("expected active room bridge, got %q", gameWorld.Room)
+	}
+}
+
+func TestNewWorldRejectsEmptyRooms(t *testing.T) {
+	if _, err := world.NewWorld(scenario.Map{}, nil, nil, nil); err == nil {
+		t.Fatal("expected empty room error")
+	}
+}
+
+func TestNewWorldSelectsPlayerRoom(t *testing.T) {
+	gameWorld, err := world.NewWorld(
+		scenario.Map{
+			Rooms:         map[string]map[[2]int]rune{"aaa": {{0, 0}: '.'}, "zzz": {{0, 0}: 'o'}},
+			Ground:        map[string]string{"aaa": "floor", "zzz": "floor"},
+			InputProfiles: map[string]string{"aaa": "topdown", "zzz": "topdown"},
+		},
+		map[rune]string{'.': "floor", 'o': "player"},
+		map[string]map[string][]string{
+			"floor":  {"pos": {}, "ascii": {"."}},
+			"player": {"pos": {}, "ascii": {"o"}, "player": {}},
+		},
+		map[string]map[string]string{"topdown": {}},
+	)
+	if err != nil {
+		t.Fatalf("NewWorld returned error: %v", err)
+	}
+	if gameWorld.Room != "zzz" {
+		t.Fatalf("expected player room zzz, got %q", gameWorld.Room)
+	}
 }
 
 func TestNewWorldRejectsUndefinedMapKey(t *testing.T) {
@@ -115,18 +146,19 @@ func TestNewWorldBuildsTerminalRoomFromLiteralASCII(t *testing.T) {
 	gameWorld, err := world.NewWorld(
 		scenario.Map{
 			Rooms: map[string]map[[2]int]rune{
-				"comms": {{0, 0}: 'T'},
+				"comms": {{0, 0}: 'T', {1, 0}: '@'},
 				"scan":  {{0, 0}: '+', {1, 0}: 'A'},
 			},
 			Ground:        map[string]string{"comms": "floor", "scan": "void"},
 			InputProfiles: map[string]string{"comms": "topdown", "scan": "scan"},
 			Terminals:     map[component.Position]string{terminalPosition: "scan"},
 		},
-		map[rune]string{'T': "terminal"},
+		map[rune]string{'T': "terminal", '@': "player"},
 		map[string]map[string][]string{
 			"floor":    {"pos": {}, "ascii": {"."}},
 			"void":     {"pos": {}, "ascii": {" "}},
-			"terminal": {"pos": {}, "ascii": {"T"}, "interactable": {component.InteractionTypeCommandTable}},
+			"terminal": {"pos": {}, "ascii": {"T"}, "interactable": {component.InteractionTypeTerminal}},
+			"player":   {"pos": {}, "ascii": {"o"}, "player": {}},
 		},
 		map[string]map[string]string{
 			"topdown": {"interact": "e"},
@@ -160,18 +192,19 @@ func TestNewWorldRejectsTerminalProfileWithoutExit(t *testing.T) {
 	_, err := world.NewWorld(
 		scenario.Map{
 			Rooms: map[string]map[[2]int]rune{
-				"comms": {{0, 0}: 'T'},
+				"comms": {{0, 0}: 'T', {1, 0}: '@'},
 				"scan":  {{0, 0}: '+'},
 			},
 			Ground:        map[string]string{"comms": "floor", "scan": "void"},
 			InputProfiles: map[string]string{"comms": "topdown", "scan": "scan"},
 			Terminals:     map[component.Position]string{terminalPosition: "scan"},
 		},
-		map[rune]string{'T': "terminal"},
+		map[rune]string{'T': "terminal", '@': "player"},
 		map[string]map[string][]string{
 			"floor":    {"pos": {}, "ascii": {"."}},
 			"void":     {"pos": {}, "ascii": {" "}},
-			"terminal": {"pos": {}, "ascii": {"T"}, "interactable": {component.InteractionTypeCommandTable}},
+			"terminal": {"pos": {}, "ascii": {"T"}, "interactable": {component.InteractionTypeTerminal}},
+			"player":   {"pos": {}, "ascii": {"o"}, "player": {}},
 		},
 		map[string]map[string]string{
 			"topdown": {"interact": "e"},
@@ -190,6 +223,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	gameWorld.ShouldQuit = true
 	gameWorld.HasChanged = true
 	gameWorld.IterationNr = 4
+	gameWorld.Room = "scan"
 	gameWorld.InputProfiles["topdown"] = world.UserInputProfile{KeyMoveUp: "w"}
 	gameWorld.InputProfileByRoom["bridge"] = "topdown"
 	portalFrom := component.Position{Room: "bridge", X: 1, Y: 2}
@@ -206,7 +240,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	if clone.UserInputProfile != gameWorld.UserInputProfile || clone.KeyDown != "q" || !clone.ShouldQuit {
 		t.Fatalf("expected scalar state to be copied, got %+v", clone)
 	}
-	if !clone.HasChanged || clone.IterationNr != 4 {
+	if !clone.HasChanged || clone.IterationNr != 4 || clone.Room != "scan" {
 		t.Fatalf("expected update state to be copied, got %+v", clone)
 	}
 	clone.Entities[0] = 9

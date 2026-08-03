@@ -52,8 +52,8 @@ func TestServiceOpensTerminalAndRestoresInputProfile(t *testing.T) {
 	playerID := addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{
 		"pos": {}, "ascii": {"o"}, "player": {},
 	})
-	commandTableID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
-		"pos": {}, "ascii": {"T"}, "impassable": {}, "interactable": {component.InteractionTypeCommandTable},
+	terminalID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
+		"pos": {}, "ascii": {"T"}, "impassable": {}, "interactable": {component.InteractionTypeTerminal},
 	})
 	gameWorld.Terminals[component.Position{X: 2, Y: 1}] = "terminal"
 	playerPosition := gameWorld.Pos[playerID]
@@ -65,7 +65,10 @@ func TestServiceOpensTerminalAndRestoresInputProfile(t *testing.T) {
 	if gameWorld.UserInputProfile != terminal {
 		t.Fatalf("expected terminal input profile, got %+v", gameWorld.UserInputProfile)
 	}
-	if gameWorld.Pos[playerID] != playerPosition || gameWorld.Pos[commandTableID] != (component.Position{X: 2, Y: 1}) {
+	if gameWorld.Room != "terminal" {
+		t.Fatalf("expected terminal room, got %q", gameWorld.Room)
+	}
+	if gameWorld.Pos[playerID] != playerPosition || gameWorld.Pos[terminalID] != (component.Position{X: 2, Y: 1}) {
 		t.Fatal("expected opening terminal not to move physical entities")
 	}
 
@@ -76,6 +79,9 @@ func TestServiceOpensTerminalAndRestoresInputProfile(t *testing.T) {
 
 	if gameWorld.UserInputProfile != topdown {
 		t.Fatalf("expected topdown input profile to be restored, got %+v", gameWorld.UserInputProfile)
+	}
+	if gameWorld.Room != playerPosition.Room {
+		t.Fatalf("expected room %q after exit, got %q", playerPosition.Room, gameWorld.Room)
 	}
 	if gameWorld.KeyDown != "" || !gameWorld.HasChanged {
 		t.Fatal("expected exit key to be consumed and world marked changed")
@@ -134,7 +140,6 @@ func TestServiceAcceptsNoOpInteractables(t *testing.T) {
 		interactionType string
 	}{
 		{name: "helm", interactionType: component.InteractionTypeHelm},
-		{name: "command table", interactionType: component.InteractionTypeCommandTable},
 	}
 
 	for _, tt := range tests {

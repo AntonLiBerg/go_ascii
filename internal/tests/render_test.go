@@ -32,6 +32,7 @@ func TestPlayerCoversEntityAtSamePosition(t *testing.T) {
 
 func TestTerminalFrameSelectsActiveRoom(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
+	gameWorld.Room = "bridge"
 	if err := gameWorld.AddEntityInRoom("bridge", [2]int{0, 0}, map[string][]string{
 		"pos": {}, "ascii": {"o"}, "player": {},
 	}); err != nil {

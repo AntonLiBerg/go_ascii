@@ -22,8 +22,8 @@ func TestDemoScenarioLoadsAllMapEntities(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWorld returned error: %v", err)
 	}
-	if len(gameWorld.Interactable) != 4 {
-		t.Fatalf("expected four interactable entities, got %d", len(gameWorld.Interactable))
+	if len(gameWorld.Interactable) != 3 {
+		t.Fatalf("expected three interactable entities, got %d", len(gameWorld.Interactable))
 	}
 	if len(asciiMap.Rooms) != 2 || asciiMap.Ground["ship"] != "floor" || asciiMap.Ground["engine room"] != "floor" {
 		t.Fatalf("expected two rooms with floor ground, got rooms=%d ground=%v", len(asciiMap.Rooms), asciiMap.Ground)
@@ -33,10 +33,9 @@ func TestDemoScenarioLoadsAllMapEntities(t *testing.T) {
 	if asciiMap.Portals[shipPortal] != enginePortal || asciiMap.Portals[enginePortal] != shipPortal {
 		t.Fatalf("expected paired demo portals, got %v", asciiMap.Portals)
 	}
-	for playerID := range gameWorld.Player {
-		if gameWorld.Pos[playerID].Room != "ship" {
-			t.Fatalf("expected player to start in ship, got %+v", gameWorld.Pos[playerID])
-		}
+	playerID := world.GetPlayerID(gameWorld)
+	if gameWorld.Pos[playerID].Room != "ship" {
+		t.Fatalf("expected player to start in ship, got %+v", gameWorld.Pos[playerID])
 	}
 }
 
@@ -68,13 +67,13 @@ func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 	}
 	commandTableID := -1
 	for entityID, interactable := range gameWorld.Interactable {
-		if interactable.InteractionType == component.InteractionTypeCommandTable && gameWorld.Pos[entityID].Room == "bridge" {
+		if interactable.InteractionType == component.InteractionTypeTerminal && gameWorld.Pos[entityID].Room == "bridge" {
 			commandTableID = entityID
 			break
 		}
 	}
 	if commandTableID == -1 || gameWorld.Pos[commandTableID].Room != "bridge" {
-		t.Fatalf("expected command table in bridge, got %+v", gameWorld.Pos[commandTableID])
+		t.Fatalf("expected terminal in bridge, got %+v", gameWorld.Pos[commandTableID])
 	}
 	if got := inputProfiles["terminal_scan"]["exit"]; got != "e" {
 		t.Fatalf("expected terminal exit binding e, got %q", got)
@@ -106,20 +105,16 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 		t.Fatalf("NewWorld returned error: %v", err)
 	}
 
-	playerID := -1
-	for entityID := range gameWorld.Player {
-		playerID = entityID
-		break
-	}
+	playerID := world.GetPlayerID(gameWorld)
 	commandTableID := -1
 	for entityID, interactable := range gameWorld.Interactable {
-		if interactable.InteractionType == component.InteractionTypeCommandTable && gameWorld.Pos[entityID].Room == "bridge" {
+		if interactable.InteractionType == component.InteractionTypeTerminal && gameWorld.Pos[entityID].Room == "bridge" {
 			commandTableID = entityID
 			break
 		}
 	}
-	if playerID == -1 || commandTableID == -1 {
-		t.Fatal("expected player and bridge command table")
+	if commandTableID == -1 {
+		t.Fatal("expected player and bridge terminal")
 	}
 	commandTablePosition := gameWorld.Pos[commandTableID]
 	physicalPosition := component.Position{

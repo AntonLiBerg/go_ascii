@@ -75,13 +75,13 @@ func TestGetInteractableNeighborsUsesInteractableComponent(t *testing.T) {
 	}
 }
 
-func TestGetPlayerIDsUsesEntityOrder(t *testing.T) {
+func TestGetPlayerIDUsesEntityOrder(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	firstPlayer := addTestEntity(t, &gameWorld, [2]int{0, 0}, map[string][]string{"pos": {}, "player": {}})
 	addTestEntity(t, &gameWorld, [2]int{1, 0}, map[string][]string{"pos": {}})
-	secondPlayer := addTestEntity(t, &gameWorld, [2]int{2, 0}, map[string][]string{"pos": {}, "player": {}})
+	addTestEntity(t, &gameWorld, [2]int{2, 0}, map[string][]string{"pos": {}, "player": {}})
 
-	if got := world.GetPlayerIDs(gameWorld); !slices.Equal(got, []int{firstPlayer, secondPlayer}) {
-		t.Fatalf("expected players in entity order, got %v", got)
+	if got := world.GetPlayerID(gameWorld); got != firstPlayer {
+		t.Fatalf("expected first player %d, got %d", firstPlayer, got)
 	}
 }
