@@ -17,6 +17,8 @@ type World struct {
 	EByPos             map[component.Position]int
 	Portals            map[component.Position]component.Position
 	Terminals          map[component.Position]string
+	UILayout           []string
+	UIs                map[string]map[[2]int]rune
 	ViewRoom           string
 	HasChanged         bool
 	IterationNr        int
@@ -36,6 +38,7 @@ func NewWorldEmpty() World {
 		EByPos:             make(map[component.Position]int),
 		Portals:            make(map[component.Position]component.Position),
 		Terminals:          make(map[component.Position]string),
+		UIs:                make(map[string]map[[2]int]rune),
 		Pos:                make(map[int]component.Position),
 		Layer:              make(map[int]component.Layer),
 		Ascii:              make(map[int]component.Ascii),
@@ -46,7 +49,19 @@ func NewWorldEmpty() World {
 }
 
 func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[string]map[string][]string, inputProfiles map[string]map[string]string) (World, error) {
+	return newWorld(asciiMap, entities, components, inputProfiles, nil, nil)
+}
+
+func NewWorldWithUI(asciiMap scenario.Map, entities map[rune]string, components map[string]map[string][]string, inputProfiles map[string]map[string]string, uiLayout []string, uis map[string]map[[2]int]rune) (World, error) {
+	return newWorld(asciiMap, entities, components, inputProfiles, uiLayout, uis)
+}
+
+func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[string]map[string][]string, inputProfiles map[string]map[string]string, uiLayout []string, uis map[string]map[[2]int]rune) (World, error) {
 	world := NewWorldEmpty()
+	world.UILayout = slices.Clone(uiLayout)
+	for name, ui := range uis {
+		world.UIs[name] = maps.Clone(ui)
+	}
 	for name, values := range inputProfiles {
 		world.InputProfiles[name] = NewUserInputProfile(values)
 	}
@@ -167,6 +182,11 @@ func (w World) Clone() World {
 	clone.EByPos = maps.Clone(w.EByPos)
 	clone.Portals = maps.Clone(w.Portals)
 	clone.Terminals = maps.Clone(w.Terminals)
+	clone.UILayout = slices.Clone(w.UILayout)
+	clone.UIs = make(map[string]map[[2]int]rune, len(w.UIs))
+	for name, ui := range w.UIs {
+		clone.UIs[name] = maps.Clone(ui)
+	}
 	clone.Pos = maps.Clone(w.Pos)
 	clone.Layer = maps.Clone(w.Layer)
 	clone.Ascii = maps.Clone(w.Ascii)
