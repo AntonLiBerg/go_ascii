@@ -122,6 +122,11 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 			if _, isPortal := asciiMap.Portals[position]; isPortal {
 				continue
 			}
+			if allowed, scoped := asciiMap.EntityGroups[roomName]; scoped {
+				if _, ok := allowed[char]; !ok {
+					return world, fmt.Errorf("map key %q in room %q is not in its entity groups", char, roomName)
+				}
+			}
 			entityName, ok := entities[char]
 			if !ok {
 				return world, fmt.Errorf("map key %q in room %q has no entity", char, roomName)

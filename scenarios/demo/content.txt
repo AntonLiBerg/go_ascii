@@ -1,4 +1,4 @@
-===ENTITY
+===base
 .:floor
 - pos
 - ascii:.

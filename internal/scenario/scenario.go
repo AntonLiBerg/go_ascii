@@ -21,6 +21,8 @@ type Map struct {
 	InputProfiles map[string]string
 	Portals       map[component.Position]component.Position
 	Terminals     map[component.Position]string
+	RoomGroups    map[string][]string
+	EntityGroups  map[string]map[rune]struct{}
 	UILayout      []string
 	UIContent     map[string][]string
 }
@@ -86,9 +88,36 @@ func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath
 	if err != nil {
 		return Map{}, nil, nil, nil, nil, nil, err
 	}
-	entities, components, inputProfiles, err := getEntitiesAndInputProfiles(string(content))
+	entities, components, inputProfiles, groups, err := getEntitiesAndInputProfiles(string(content))
 	if err != nil {
 		return Map{}, nil, nil, nil, nil, nil, err
+	}
+	terminalRooms := make(map[string]struct{})
+	for _, roomName := range asciiMap.Terminals {
+		terminalRooms[roomName] = struct{}{}
+	}
+	// Compose each room's allowed entity set from all named groups.
+	asciiMap.EntityGroups = make(map[string]map[rune]struct{})
+	for roomName, groupNames := range asciiMap.RoomGroups {
+		if len(groupNames) == 0 {
+			continue
+		}
+		allowed := make(map[rune]struct{})
+		for _, groupName := range groupNames {
+			group, ok := groups[groupName]
+			if !ok {
+				if groupName == "terminal" {
+					if _, isTerminal := terminalRooms[roomName]; isTerminal {
+						continue
+					}
+				}
+				return Map{}, nil, nil, nil, nil, nil, fmt.Errorf("group %q for room %q does not exist", groupName, roomName)
+			}
+			for entity := range group {
+				allowed[entity] = struct{}{}
+			}
+		}
+		asciiMap.EntityGroups[roomName] = allowed
 	}
 	if len(uiFilePaths) == 0 {
 		return asciiMap, entities, components, inputProfiles, nil, nil, nil
@@ -203,6 +232,7 @@ func GetRoomMap(mapText string) (Map, error) {
 		InputProfiles: make(map[string]string),
 		Portals:       make(map[component.Position]component.Position),
 		Terminals:     make(map[component.Position]string),
+		RoomGroups:    make(map[string][]string),
 		UIContent:     make(map[string][]string),
 	}
 	mapText = strings.ReplaceAll(mapText, "\r\n", "\n")
@@ -243,12 +273,28 @@ func GetRoomMap(mapText string) (Map, error) {
 					return Map{}, err
 				}
 			}
-			currentRoom = strings.TrimSpace(strings.TrimPrefix(trimmed, "==="))
+			roomHeader := strings.TrimSpace(strings.TrimPrefix(trimmed, "==="))
+			roomName, groupText, hasGroups := strings.Cut(roomHeader, ":")
+			currentRoom = strings.TrimSpace(roomName)
 			if currentRoom == "" {
 				return Map{}, fmt.Errorf("room header on line %d has no name", lineNumber+1)
 			}
 			if _, exists := asciiMap.Rooms[currentRoom]; exists {
 				return Map{}, fmt.Errorf("duplicate room %q", currentRoom)
+			}
+			if hasGroups {
+				for _, groupName := range strings.Split(groupText, ",") {
+					groupName = strings.TrimSpace(groupName)
+					if groupName == "" {
+						return Map{}, fmt.Errorf("room %q has an empty entity group on line %d", currentRoom, lineNumber+1)
+					}
+					for _, existing := range asciiMap.RoomGroups[currentRoom] {
+						if existing == groupName {
+							return Map{}, fmt.Errorf("room %q repeats entity group %q", currentRoom, groupName)
+						}
+					}
+					asciiMap.RoomGroups[currentRoom] = append(asciiMap.RoomGroups[currentRoom], groupName)
+				}
 			}
 			roomLines = nil
 			inFeatures = false
@@ -400,24 +446,20 @@ func GetRoomMap(mapText string) (Map, error) {
 	return asciiMap, nil
 }
 
-func getEntitiesAndInputProfiles(contentText string) (map[rune]string, map[string]map[string][]string, map[string]map[string]string, error) {
+func getEntitiesAndInputProfiles(contentText string) (map[rune]string, map[string]map[string][]string, map[string]map[string]string, map[string]map[rune]struct{}, error) {
 	entities := make(map[rune]string)
 	components := make(map[string]map[string][]string)
 	inputProfiles := make(map[string]map[string]string)
+	groups := make(map[string]map[rune]struct{})
 	text := strings.ReplaceAll(contentText, "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
 	lines := strings.Split(text, "\n")
 
-	entityStart := -1
 	inputProfileStart := -1
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
 		switch trimmed {
-		case SectionNameEntity:
-			if entityStart == -1 {
-				entityStart = i + 1
-			}
 		case SectionNameInputProfile:
 			if inputProfileStart == -1 {
 				inputProfileStart = i + 1
@@ -425,78 +467,88 @@ func getEntitiesAndInputProfiles(contentText string) (map[rune]string, map[strin
 		}
 	}
 
+	currentGroup := ""
 	currentEntity := ""
 	definedEntities := make(map[string]struct{})
-	if entityStart != -1 {
-		entityEnd := len(lines)
-		for i := entityStart; i < len(lines); i++ {
-			trimmed := strings.TrimSpace(lines[i])
-			trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
-			if trimmed == SectionNameMap || trimmed == SectionNameEntity || trimmed == SectionNameInputProfile {
-				entityEnd = i
-				break
+	entityEnd := len(lines)
+	if inputProfileStart != -1 {
+		entityEnd = inputProfileStart - 1
+	}
+	for lineNumber, line := range lines[:entityEnd] {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "===") {
+			groupName := strings.TrimSpace(strings.TrimLeft(line, SectionNameDivider))
+			if groupName == "" {
+				return nil, nil, nil, nil, fmt.Errorf("group header on line %d has no name", lineNumber+1)
 			}
+			if _, exists := groups[groupName]; exists {
+				return nil, nil, nil, nil, fmt.Errorf("duplicate entity group %q", groupName)
+			}
+			groups[groupName] = make(map[rune]struct{})
+			currentGroup = groupName
+			currentEntity = ""
+			continue
+		}
+		if currentGroup == "" {
+			return nil, nil, nil, nil, fmt.Errorf("entity %q has no group", line)
 		}
 
-		for _, line := range lines[entityStart:entityEnd] {
-			line = strings.TrimSpace(line)
-			if line == "" {
+		if strings.HasPrefix(line, "- ") {
+			componentText := strings.TrimSpace(strings.TrimPrefix(line, "-"))
+			if componentText == "" {
 				continue
 			}
 
-			if strings.HasPrefix(line, "- ") {
-				componentText := strings.TrimSpace(strings.TrimPrefix(line, "-"))
-				if componentText == "" {
+			componentName := componentText
+			values := []string{}
+			separator := strings.IndexAny(componentText, ":=")
+			if separator != -1 {
+				name := strings.TrimSpace(componentText[:separator])
+				if name == "" {
 					continue
 				}
 
-				componentName := componentText
-				values := []string{}
-				separator := strings.IndexAny(componentText, ":=")
-				if separator != -1 {
-					name := strings.TrimSpace(componentText[:separator])
-					if name == "" {
-						continue
-					}
-
-					componentName = name
-					valueText := strings.TrimSpace(componentText[separator+1:])
-					if componentName == component.NameASCII && valueText == "SPACE" {
-						values = append(values, " ")
-					} else if valueText != "" {
-						for _, value := range strings.Split(valueText, ",") {
-							value = strings.TrimSpace(value)
-							if value != "" {
-								values = append(values, value)
-							}
+				componentName = name
+				valueText := strings.TrimSpace(componentText[separator+1:])
+				if componentName == component.NameASCII && valueText == "SPACE" {
+					values = append(values, " ")
+				} else if valueText != "" {
+					for _, value := range strings.Split(valueText, ",") {
+						value = strings.TrimSpace(value)
+						if value != "" {
+							values = append(values, value)
 						}
 					}
 				}
-
-				if currentEntity != "" {
-					components[currentEntity][componentName] = values
-				}
-				continue
 			}
 
-			keyText, name, ok := strings.Cut(line, ":")
-			key := []rune(strings.TrimSpace(keyText))
-			name = strings.TrimSpace(name)
-			if !ok || len(key) != 1 || name == "" {
-				return nil, nil, nil, fmt.Errorf("invalid entity header %q: expected key:name", line)
+			if currentEntity != "" {
+				components[currentEntity][componentName] = values
 			}
-			if existingName, exists := entities[key[0]]; exists {
-				return nil, nil, nil, fmt.Errorf("duplicate entity key %q for %q and %q", key[0], existingName, name)
-			}
-			if _, exists := definedEntities[name]; exists {
-				return nil, nil, nil, fmt.Errorf("duplicate entity name %q", name)
-			}
-
-			entities[key[0]] = name
-			definedEntities[name] = struct{}{}
-			components[name] = make(map[string][]string)
-			currentEntity = name
+			continue
 		}
+
+		keyText, name, ok := strings.Cut(line, ":")
+		key := []rune(strings.TrimSpace(keyText))
+		name = strings.TrimSpace(name)
+		if !ok || len(key) != 1 || name == "" {
+			return nil, nil, nil, nil, fmt.Errorf("invalid entity header %q: expected key:name", line)
+		}
+		if existingName, exists := entities[key[0]]; exists {
+			return nil, nil, nil, nil, fmt.Errorf("duplicate entity key %q for %q and %q", key[0], existingName, name)
+		}
+		if _, exists := definedEntities[name]; exists {
+			return nil, nil, nil, nil, fmt.Errorf("duplicate entity name %q", name)
+		}
+
+		entities[key[0]] = name
+		definedEntities[name] = struct{}{}
+		components[name] = make(map[string][]string)
+		groups[currentGroup][key[0]] = struct{}{}
+		currentEntity = name
 	}
 
 	if inputProfileStart != -1 {
@@ -518,30 +570,30 @@ func getEntitiesAndInputProfiles(contentText string) (map[rune]string, map[strin
 			}
 			if !strings.HasPrefix(line, "- ") {
 				if _, exists := inputProfiles[line]; exists {
-					return nil, nil, nil, fmt.Errorf("duplicate input profile %q", line)
+					return nil, nil, nil, nil, fmt.Errorf("duplicate input profile %q", line)
 				}
 				inputProfiles[line] = make(map[string]string)
 				currentProfile = line
 				continue
 			}
 			if currentProfile == "" {
-				return nil, nil, nil, fmt.Errorf("input binding %q has no profile", line)
+				return nil, nil, nil, nil, fmt.Errorf("input binding %q has no profile", line)
 			}
 
 			binding := strings.TrimSpace(strings.TrimPrefix(line, "-"))
 			separator := strings.IndexAny(binding, ":=")
 			if separator == -1 {
-				return nil, nil, nil, fmt.Errorf("invalid input binding %q", line)
+				return nil, nil, nil, nil, fmt.Errorf("invalid input binding %q", line)
 			}
 
 			action := strings.TrimSpace(binding[:separator])
 			button := strings.TrimSpace(binding[separator+1:])
 			if action == "" || button == "" {
-				return nil, nil, nil, fmt.Errorf("invalid input binding %q", line)
+				return nil, nil, nil, nil, fmt.Errorf("invalid input binding %q", line)
 			}
 			inputProfiles[currentProfile][action] = button
 		}
 	}
 
-	return entities, components, inputProfiles, nil
+	return entities, components, inputProfiles, groups, nil
 }

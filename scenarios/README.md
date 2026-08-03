@@ -4,10 +4,10 @@ Each scenario is a directory containing `map.txt`, `content.txt`, and `ui.txt`.
 
 ## Map
 
-Declare one or more named rooms. Every room needs a ground entity and an input profile.
+Declare one or more named rooms. A room may list multiple entity groups.
 
 ```text
-===bridge
+===bridge: base,terminals_bridge
 -----0-----
 |    @    |
 -----------
@@ -21,6 +21,7 @@ Available room features:
 
 - `ground:<entity>` places that entity below every map cell.
 - `inputprofile:<name>` selects a profile from `content.txt` while viewing the room.
+- `group1,group2` after a room name combines those entity groups.
 - `portal:<marker>,<room>,<marker>` connects two markers for movement in both directions.
 - `terminal:<entity marker>,<room>` opens another room when that neighboring entity has `interactable:terminal`.
 
@@ -44,10 +45,10 @@ infobox
 
 ## Content
 
-Entity headers map one character to an entity name, followed by components:
+Entity groups map characters to entities. A room uses the union of its groups:
 
 ```text
-===ENTITY
+===base
 .:floor
 - pos
 - ascii:.
@@ -57,6 +58,10 @@ Entity headers map one character to an entity name, followed by components:
 - ascii:o
 - player
 ```
+
+Unused entity definitions and groups are allowed.
+
+Terminal rooms may use the built-in `terminal` group. Their map text is rendered literally.
 
 Use `ascii:SPACE` when an entity should render as a blank space.
 
