@@ -1,6 +1,7 @@
 package interaction
 
 import (
+	"fmt"
 	component "go_ascii/internal"
 	"go_ascii/internal/game"
 	"go_ascii/internal/world"
@@ -9,23 +10,24 @@ import (
 type ServiceInteraction struct{}
 
 func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
+	//
+	//if using terminal, did you exit?
+	//
 	exitKey := w.UserInputProfile.KeyExit
-	if w.ViewRoom != "" && exitKey != "" && w.KeyDown == exitKey {
+	if exitKey != "" && w.KeyDown == exitKey {
 		return game.UpdateFunc{
 			Order: 1,
 			UpdateFunc: func(w world.World) (world.World, error) {
 				next := w
-				next.ViewRoom = ""
-				for _, playerID := range world.GetPlayerIDs(w) {
-					position, ok := w.Pos[playerID]
+				playerID := world.GetPlayerIDs(w)[0]
+				position, ok := w.Pos[playerID]
+				if ok {
+					profile, ok := w.InputProfileForRoom(position.Room)
 					if ok {
-						profile, ok := w.InputProfileForRoom(position.Room)
-						if ok {
-							next.UserInputProfile = profile
-						}
+						next.UserInputProfile = profile
 					}
-					break
 				}
+				next.Room = position.Room
 				next.HasChanged = true
 				if next.KeyDown == exitKey {
 					next.KeyDown = ""
@@ -34,41 +36,38 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 			},
 		}
 	}
-	if w.ViewRoom != "" {
-		return game.UpdateFunc{Order: 1}
-	}
-
+	//
+	//not using terminal, was there an interaction?
+	//
 	interactKey := w.UserInputProfile.KeyInteract
 	if interactKey == "" || w.KeyDown != interactKey {
 		return game.UpdateFunc{Order: 1}
 	}
-
-	playerID := -1
-	for _, eID := range world.GetPlayerIDs(w) {
-		playerID = eID
-		break
-	}
-
+	//
+	//interact with one of the neighbors
+	//
+	playerID := world.GetPlayerIDs(w)[0]
 	targets := world.GetInteractableNeighbors(w, playerID)
 	return game.UpdateFunc{
 		Order: 1,
 		UpdateFunc: func(w world.World) (world.World, error) {
 			next := w
+			var err error
 			if len(targets) == 1 {
 				targetID := targets[0]
 				if interaction, ok := w.Interactable[targetID]; ok {
 					switch interaction.InteractionType {
 					case component.InteractionTypeDoor:
 						next = interactWithDoor(next, targetID)
-					case component.InteractionTypeCommandTable:
-						next = interactWithCommandTable(next, targetID)
+					case component.InteractionTypeTerminal:
+						next,err = interactWithTerminal(next, targetID)
 					}
 				}
 			}
 			if next.KeyDown == interactKey {
 				next.KeyDown = ""
 			}
-			return next, nil
+			return next, err
 		},
 	}
 }
@@ -84,22 +83,22 @@ func interactWithDoor(w world.World, doorID int) world.World {
 	return next
 }
 
-func interactWithCommandTable(w world.World, commandTableID int) world.World {
-	position, ok := w.Pos[commandTableID]
+func interactWithTerminal(w world.World, terminalID int) (world.World,error) {
+	position, ok := w.Pos[terminalID]
 	if !ok {
-		return w
+		return w,fmt.Errorf("Position for terminal not found!")
 	}
 	roomName, ok := w.Terminals[position]
 	if !ok {
-		return w
+		return w,fmt.Errorf("Terminal not found!")
 	}
 	profile, ok := w.InputProfileForRoom(roomName)
 	if !ok {
-		return w
+		return w,fmt.Errorf("inputprofile not found!")
 	}
 	next := w
 	next.UserInputProfile = profile
-	next.ViewRoom = roomName
 	next.HasChanged = true
-	return next
+	next.Room = roomName
+	return next,nil
 }

@@ -10,10 +10,16 @@ import (
 type ServiceMovePlayer struct{}
 
 func (s ServiceMovePlayer) GetUpdateFunc(w world.World) game.UpdateFunc {
-	if w.ViewRoom != "" || w.KeyDown == "" {
+	//
+	// we pushed no button
+	//
+	if w.KeyDown == "" {
 		return game.UpdateFunc{Order: 1}
 	}
 
+	//
+	//button pushed but did we move?
+	//
 	moveDelta := component.Position{}
 	keyToClear := w.KeyDown
 	switch w.KeyDown {
@@ -29,6 +35,9 @@ func (s ServiceMovePlayer) GetUpdateFunc(w world.World) game.UpdateFunc {
 		return game.UpdateFunc{Order: 1}
 	}
 
+	//
+	// move player
+	//
 	return game.UpdateFunc{
 		Order: 1,
 		UpdateFunc: func(w world.World) (world.World, error) {
@@ -60,6 +69,9 @@ func tryGoToPosition(w world.World, moverID int, delta component.Position) (worl
 	if len(targetIDs) == 0 || !canMakeMove(w, targetIDs) {
 		return w, nil
 	}
+	//
+	// moving into portal?
+	//
 	if portalTarget, isPortal := w.Portals[targetPos]; isPortal {
 		targetPos = portalTarget
 		targetIDs = world.GetEntitiesAtPosition(w, targetPos)
@@ -71,9 +83,13 @@ func tryGoToPosition(w world.World, moverID int, delta component.Position) (worl
 	next := w.Clone()
 	next.Pos[moverID] = targetPos
 	next.EByPos[targetPos] = moverID
+	//
+	// are we going through a portal?
+	//
 	if moverPos.Room != targetPos.Room {
 		if profile, ok := next.InputProfileForRoom(targetPos.Room); ok {
 			next.UserInputProfile = profile
+			next.Room = targetPos.Room
 		}
 	}
 	entitiesAtOldPosition := world.GetEntitiesAtPosition(next, moverPos)

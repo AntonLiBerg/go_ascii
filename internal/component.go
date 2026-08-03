@@ -7,8 +7,8 @@ const (
 	NamePlayer                  = "player"
 	NameInteractable            = "interactable"
 	InteractionTypeDoor         = "door"
+	InteractionTypeTerminal     = "terminal"
 	InteractionTypeHelm         = "helm"
-	InteractionTypeCommandTable = "commandtable"
 )
 
 type Position struct {

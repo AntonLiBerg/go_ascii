@@ -26,12 +26,12 @@ H:helm
 - pos
 - ascii:H
 - impassable
-- interactable:commandtable
+- interactable:terminal
 T:scantable
 - pos
 - ascii:T
 - impassable
-- interactable:commandtable
+- interactable:terminal
 ö:void
 - pos
 - ascii:SPACE

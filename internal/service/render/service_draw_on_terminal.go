@@ -13,14 +13,13 @@ func TerminalFrame(gameWorld world.World) string {
 	frame.WriteString("\033[2J\033[H")
 
 	nextY := 0
-	activeRoom := getActiveRoom(gameWorld)
-	roomXOffset := roomHorizontalOffset(gameWorld, activeRoom, uiWidth(gameWorld))
+	roomXOffset := roomHorizontalOffset(gameWorld, gameWorld.Room, uiWidth(gameWorld))
 	if len(gameWorld.UILayout) == 0 {
-		nextY = drawRoom(&frame, gameWorld, activeRoom, nextY, 0)
+		nextY = drawRoom(&frame, gameWorld, gameWorld.Room, nextY, 0)
 	} else {
 		for _, name := range gameWorld.UILayout {
 			if name == "room" {
-				nextY = drawRoom(&frame, gameWorld, activeRoom, nextY, roomXOffset)
+				nextY = drawRoom(&frame, gameWorld, gameWorld.Room, nextY, roomXOffset)
 				continue
 			}
 			nextY = drawUI(&frame, gameWorld.UIContent[name], nextY)
@@ -50,17 +49,6 @@ func drawRoom(frame *strings.Builder, gameWorld world.World, activeRoom string, 
 	return nextY
 }
 
-func getActiveRoom(gameWorld world.World) string {
-	if gameWorld.ViewRoom != "" {
-		return gameWorld.ViewRoom
-	}
-	for _, playerID := range world.GetPlayerIDs(gameWorld) {
-		if pos, ok := gameWorld.Pos[playerID]; ok {
-			return pos.Room
-		}
-	}
-	return ""
-}
 
 func uiWidth(gameWorld world.World) int {
 	width := 0

@@ -9,6 +9,7 @@ import (
 )
 
 type World struct {
+	Room string
 	UserInputProfile   UserInputProfile
 	InputProfiles      map[string]UserInputProfile
 	InputProfileByRoom map[string]string
@@ -20,7 +21,6 @@ type World struct {
 	UILayout           []string
 	UIs                []string
 	UIContent          map[string][]string
-	ViewRoom           string
 	HasChanged         bool
 	IterationNr        int
 	Entities           []int
@@ -83,6 +83,7 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 		terminalRooms[roomName] = struct{}{}
 	}
 
+	world.Room = slices.Sorted(maps.Keys(asciiMap.Rooms))[0]
 	roomNames := slices.Sorted(maps.Keys(asciiMap.Rooms))
 	for _, roomName := range roomNames {
 		room := asciiMap.Rooms[roomName]
@@ -134,23 +135,21 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 	world.Portals = maps.Clone(asciiMap.Portals)
 	world.Terminals = maps.Clone(asciiMap.Terminals)
 	for position := range world.Terminals {
-		isCommandTableInteraction := false
+		isTerminalInteraction := false
 		for _, entityID := range GetEntitiesAtPosition(world, position) {
 			interactable, ok := world.Interactable[entityID]
-			if ok && interactable.InteractionType == component.InteractionTypeCommandTable {
-				isCommandTableInteraction = true
+			if ok && interactable.InteractionType == component.InteractionTypeTerminal {
+				isTerminalInteraction = true
 				break
 			}
 		}
-		if !isCommandTableInteraction {
-			return world, fmt.Errorf("terminal at %+v does not have a commandtable interaction", position)
+		if !isTerminalInteraction {
+			return world, fmt.Errorf("terminal at %+v does not have a terminal interaction", position)
 		}
 	}
-	for _, playerID := range GetPlayerIDs(world) {
-		if position, ok := world.Pos[playerID]; ok {
-			world.SetInputProfileForRoom(position.Room)
-		}
-		break
+	playerID := GetPlayerIDs(world)[0] 
+	if position, ok := world.Pos[playerID]; ok {
+		world.SetInputProfileForRoom(position.Room)
 	}
 	return world, nil
 }
