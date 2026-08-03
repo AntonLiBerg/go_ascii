@@ -125,7 +125,7 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 	gameWorld.KeyDown = gameWorld.UserInputProfile.KeyInteract
 
 	open := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
-	open.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, open, gameWorld)
 	if gameWorld.ViewRoom != "terminal_scan" || gameWorld.UserInputProfile.KeyExit != "e" {
 		t.Fatalf("expected terminal_scan view and exit profile, got view=%q profile=%+v", gameWorld.ViewRoom, gameWorld.UserInputProfile)
 	}
@@ -135,7 +135,7 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 
 	gameWorld.KeyDown = gameWorld.UserInputProfile.KeyExit
 	closeTerminal := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
-	closeTerminal.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, closeTerminal, gameWorld)
 	if gameWorld.ViewRoom != "" || gameWorld.UserInputProfile.KeyInteract != "e" {
 		t.Fatalf("expected comms view and topdown profile after exit, got view=%q profile=%+v", gameWorld.ViewRoom, gameWorld.UserInputProfile)
 	}

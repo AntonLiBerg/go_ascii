@@ -3,8 +3,6 @@ package tests
 import (
 	"go_ascii/internal/service/render"
 	"go_ascii/internal/world"
-	"io"
-	"os"
 	"strings"
 	"testing"
 )
@@ -23,7 +21,7 @@ func TestPlayerCoversEntityAtSamePosition(t *testing.T) {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
 
-	output := captureTerminalOutput(t, gameWorld)
+	output := render.TerminalFrame(gameWorld)
 	if !strings.Contains(output, "o") {
 		t.Fatalf("expected player in output %q", output)
 	}
@@ -32,7 +30,7 @@ func TestPlayerCoversEntityAtSamePosition(t *testing.T) {
 	}
 }
 
-func TestUpdateTerminalSelectsActiveRoom(t *testing.T) {
+func TestTerminalFrameSelectsActiveRoom(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	if err := gameWorld.AddEntityInRoom("bridge", [2]int{0, 0}, map[string][]string{
 		"pos": {}, "ascii": {"o"}, "player": {},
@@ -62,7 +60,7 @@ func TestUpdateTerminalSelectsActiveRoom(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gameWorld.ViewRoom = tt.view
-			output := captureTerminalOutput(t, gameWorld)
+			output := render.TerminalFrame(gameWorld)
 			if !strings.Contains(output, tt.shown) {
 				t.Fatalf("expected active room entity %q in output %q", tt.shown, output)
 			}
@@ -71,29 +69,6 @@ func TestUpdateTerminalSelectsActiveRoom(t *testing.T) {
 			}
 		})
 	}
-}
-
-func captureTerminalOutput(t *testing.T, gameWorld world.World) string {
-	t.Helper()
-	reader, writer, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("create output pipe: %v", err)
-	}
-	originalStdout := os.Stdout
-	os.Stdout = writer
-	render.UpdateTerminal(gameWorld)
-	os.Stdout = originalStdout
-	if err := writer.Close(); err != nil {
-		t.Fatalf("close output pipe: %v", err)
-	}
-	output, err := io.ReadAll(reader)
-	if err != nil {
-		t.Fatalf("read terminal output: %v", err)
-	}
-	if err := reader.Close(); err != nil {
-		t.Fatalf("close output reader: %v", err)
-	}
-	return string(output)
 }
 
 func TestHigherLayerCoversLowerLayer(t *testing.T) {
@@ -110,7 +85,7 @@ func TestHigherLayerCoversLowerLayer(t *testing.T) {
 		t.Fatalf("AddEntityAtLayer returned error: %v", err)
 	}
 
-	output := captureTerminalOutput(t, gameWorld)
+	output := render.TerminalFrame(gameWorld)
 	if !strings.Contains(output, "D") {
 		t.Fatalf("expected higher-layer door in output %q", output)
 	}

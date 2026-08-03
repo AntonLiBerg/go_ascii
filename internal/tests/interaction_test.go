@@ -22,7 +22,12 @@ func TestServiceOpensSingleNeighborDoorAndClearsInteractKey(t *testing.T) {
 	if result.UpdateFunc == nil {
 		t.Fatal("expected interact update func")
 	}
-	result.UpdateFunc(&gameWorld)
+	input := gameWorld
+	next := applyUpdate(t, result, gameWorld)
+	if _, isClosed := input.Impassable[doorID]; !isClosed {
+		t.Fatal("expected interaction update not to mutate its input")
+	}
+	gameWorld = next
 
 	if _, isClosed := gameWorld.Impassable[doorID]; isClosed {
 		t.Fatal("expected door to be open after interaction")
@@ -55,7 +60,7 @@ func TestServiceOpensAndExitsTerminalRoom(t *testing.T) {
 	gameWorld.KeyDown = "e"
 
 	open := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
-	open.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, open, gameWorld)
 
 	if gameWorld.ViewRoom != "terminal" {
 		t.Fatalf("expected terminal view, got %q", gameWorld.ViewRoom)
@@ -70,7 +75,7 @@ func TestServiceOpensAndExitsTerminalRoom(t *testing.T) {
 	gameWorld.HasChanged = false
 	gameWorld.KeyDown = "e"
 	closeTerminal := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
-	closeTerminal.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, closeTerminal, gameWorld)
 
 	if gameWorld.ViewRoom != "" {
 		t.Fatalf("expected terminal view to close, got %q", gameWorld.ViewRoom)
@@ -93,7 +98,7 @@ func TestServiceClosesOpenDoor(t *testing.T) {
 	gameWorld.KeyDown = "e"
 
 	result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
-	result.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, result, gameWorld)
 
 	if _, isClosed := gameWorld.Impassable[doorID]; !isClosed {
 		t.Fatal("expected door to be closed after interaction")
@@ -113,7 +118,7 @@ func TestServiceIgnoresMultipleNeighborDoors(t *testing.T) {
 	gameWorld.KeyDown = "e"
 
 	result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
-	result.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, result, gameWorld)
 
 	if _, isClosed := gameWorld.Impassable[eastDoor]; !isClosed {
 		t.Fatal("expected east door to remain closed")
@@ -152,7 +157,7 @@ func TestServiceAcceptsNoOpInteractables(t *testing.T) {
 			if result.UpdateFunc == nil {
 				t.Fatal("expected interact update func")
 			}
-			result.UpdateFunc(&gameWorld)
+			gameWorld = applyUpdate(t, result, gameWorld)
 
 			if gameWorld.KeyDown != "" {
 				t.Fatalf("expected interact key to be cleared, got %q", gameWorld.KeyDown)
@@ -177,7 +182,7 @@ func TestServiceIgnoresUnknownInteractionType(t *testing.T) {
 	gameWorld.KeyDown = "e"
 
 	result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
-	result.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, result, gameWorld)
 
 	if _, isClosed := gameWorld.Impassable[doorID]; !isClosed {
 		t.Fatal("expected unknown interaction not to toggle impassability")

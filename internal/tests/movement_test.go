@@ -28,9 +28,14 @@ func TestServiceMovesPlayerWithWASD(t *testing.T) {
 			if result.UpdateFunc == nil {
 				t.Fatal("expected movement update func")
 			}
-			result.UpdateFunc(&gameWorld)
+			input := gameWorld
+			next := applyUpdate(t, result, gameWorld)
 
-			playerID := getSinglePlayerID(t, gameWorld)
+			playerID := getSinglePlayerID(t, next)
+			if got := input.Pos[playerID]; got != (component.Position{X: 1, Y: 1}) {
+				t.Fatalf("expected movement update not to mutate its input, got %+v", got)
+			}
+			gameWorld = next
 			if got := gameWorld.Pos[playerID]; got != tt.wantPlayerPos {
 				t.Fatalf("expected player at %+v, got %+v", tt.wantPlayerPos, got)
 			}
@@ -50,7 +55,7 @@ func TestMovementDoesNotClearNewerKey(t *testing.T) {
 	result := movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
 
 	gameWorld.KeyDown = "e"
-	result.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, result, gameWorld)
 
 	if gameWorld.KeyDown != "e" {
 		t.Fatalf("expected newer key to remain, got %q", gameWorld.KeyDown)
@@ -72,7 +77,7 @@ func TestMovementKeepsUnderlyingDoorInPlace(t *testing.T) {
 
 	gameWorld.KeyDown = "d"
 	firstMove := movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
-	firstMove.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, firstMove, gameWorld)
 
 	doorPos := component.Position{X: 2, Y: 1}
 	if gameWorld.Pos[playerID] != doorPos || gameWorld.Pos[doorID] != doorPos {
@@ -84,7 +89,7 @@ func TestMovementKeepsUnderlyingDoorInPlace(t *testing.T) {
 
 	gameWorld.KeyDown = "d"
 	secondMove := movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
-	secondMove.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, secondMove, gameWorld)
 
 	if gameWorld.Pos[doorID] != doorPos {
 		t.Fatalf("expected door to remain at %+v, got %+v", doorPos, gameWorld.Pos[doorID])
@@ -130,7 +135,7 @@ func TestMovementTraversesPortalBetweenRooms(t *testing.T) {
 
 	gameWorld.KeyDown = "w"
 	move := movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
-	move.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, move, gameWorld)
 
 	if got := gameWorld.Pos[0]; got != commsPortal {
 		t.Fatalf("expected player at comms portal %+v, got %+v", commsPortal, got)
@@ -147,10 +152,10 @@ func TestMovementTraversesPortalBetweenRooms(t *testing.T) {
 
 	gameWorld.KeyDown = "s"
 	move = movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
-	move.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, move, gameWorld)
 	gameWorld.KeyDown = "w"
 	move = movement.ServiceMovePlayer{}.GetUpdateFunc(gameWorld)
-	move.UpdateFunc(&gameWorld)
+	gameWorld = applyUpdate(t, move, gameWorld)
 	if got := gameWorld.Pos[0]; got != bridgePortal {
 		t.Fatalf("expected reverse portal traversal to %+v, got %+v", bridgePortal, got)
 	}

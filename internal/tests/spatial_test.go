@@ -74,3 +74,14 @@ func TestGetInteractableNeighborsUsesInteractableComponent(t *testing.T) {
 		t.Fatalf("expected only entity with Interactable component, got %v", got)
 	}
 }
+
+func TestGetPlayerIDsUsesEntityOrder(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	firstPlayer := addTestEntity(t, &gameWorld, [2]int{0, 0}, map[string][]string{"pos": {}, "player": {}})
+	addTestEntity(t, &gameWorld, [2]int{1, 0}, map[string][]string{"pos": {}})
+	secondPlayer := addTestEntity(t, &gameWorld, [2]int{2, 0}, map[string][]string{"pos": {}, "player": {}})
+
+	if got := world.GetPlayerIDs(gameWorld); !slices.Equal(got, []int{firstPlayer, secondPlayer}) {
+		t.Fatalf("expected players in entity order, got %v", got)
+	}
+}
