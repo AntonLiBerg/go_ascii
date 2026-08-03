@@ -25,14 +25,15 @@ func main() {
 }
 
 func runScenario(name string) {
-	aMap, entities, components, inputProfiles, err := scenario.GetScenarioFromFiles(
+	aMap, entities, components, inputProfiles,uiLayout,uis, err := scenario.GetScenarioFromFiles(
 		"./scenarios/"+name+"/map.txt",
 		"./scenarios/"+name+"/content.txt",
+		"./scenarios/"+name+"/ui.txt",
 	)
 	if err != nil {
 		panic(err)
 	}
-	gameWorld, err := world.NewWorld(aMap, entities, components, inputProfiles)
+	gameWorld, err := world.NewWorld(aMap, entities, components, inputProfiles,uiLayout,uis)
 	if err != nil {
 		panic(err)
 	}

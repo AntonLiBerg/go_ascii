@@ -1,0 +1,15 @@
+===layout
+room
+infobox
+===infobox
++--------------------------------+
+|                                |
+|                                |
+|                                |
+|                                |
++--------------------------------+
+features
+- ground:floor
+- portal:0,comms,0
+- inputprofile:topdown
+- terminal:H,terminal_helm
