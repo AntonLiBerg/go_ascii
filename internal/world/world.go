@@ -19,6 +19,7 @@ type World struct {
 	Terminals          map[component.Position]string
 	UILayout           []string
 	UIs                []string
+	UIContent          map[string][]string
 	ViewRoom           string
 	HasChanged         bool
 	IterationNr        int
@@ -38,6 +39,7 @@ func NewWorldEmpty() World {
 		EByPos:             make(map[component.Position]int),
 		Portals:            make(map[component.Position]component.Position),
 		Terminals:          make(map[component.Position]string),
+		UIContent:          make(map[string][]string),
 		Pos:                make(map[int]component.Position),
 		Layer:              make(map[int]component.Layer),
 		Ascii:              make(map[int]component.Ascii),
@@ -59,6 +61,9 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 	world := NewWorldEmpty()
 	world.UILayout = slices.Clone(uiLayout)
 	world.UIs = slices.Clone(uis)
+	for name, lines := range asciiMap.UIContent {
+		world.UIContent[name] = slices.Clone(lines)
+	}
 	for name, values := range inputProfiles {
 		world.InputProfiles[name] = NewUserInputProfile(values)
 	}
@@ -181,6 +186,10 @@ func (w World) Clone() World {
 	clone.Terminals = maps.Clone(w.Terminals)
 	clone.UILayout = slices.Clone(w.UILayout)
 	clone.UIs = slices.Clone(w.UIs)
+	clone.UIContent = make(map[string][]string, len(w.UIContent))
+	for name, lines := range w.UIContent {
+		clone.UIContent[name] = slices.Clone(lines)
+	}
 	clone.Pos = maps.Clone(w.Pos)
 	clone.Layer = maps.Clone(w.Layer)
 	clone.Ascii = maps.Clone(w.Ascii)
