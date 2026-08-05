@@ -67,7 +67,7 @@ func TestGetInteractableNeighborsUsesInteractableComponent(t *testing.T) {
 	target := addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}})
 	addTestEntity(t, &gameWorld, [2]int{0, 1}, map[string][]string{"pos": {}})
 	interactable := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
-		"pos": {}, "interactable": {component.InteractionTypeHelm},
+		"pos": {}, "interactable": {component.InteractionTypeTerminal},
 	})
 
 	if got := world.GetInteractableNeighbors(gameWorld, target); !slices.Equal(got, []int{interactable}) {

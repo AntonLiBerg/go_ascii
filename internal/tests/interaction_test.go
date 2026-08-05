@@ -134,43 +134,6 @@ func TestServiceIgnoresMultipleNeighborDoors(t *testing.T) {
 	}
 }
 
-func TestServiceAcceptsNoOpInteractables(t *testing.T) {
-	tests := []struct {
-		name            string
-		interactionType string
-	}{
-		{name: "helm", interactionType: component.InteractionTypeHelm},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gameWorld := world.NewWorldEmpty()
-			gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}
-			addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
-			targetID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
-				"pos": {}, "impassable": {}, "interactable": {tt.interactionType},
-			})
-			gameWorld.KeyDown = "e"
-
-			result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
-			if result.UpdateFunc == nil {
-				t.Fatal("expected interact update func")
-			}
-			gameWorld = applyUpdate(t, result, gameWorld)
-
-			if gameWorld.KeyDown != "" {
-				t.Fatalf("expected interact key to be cleared, got %q", gameWorld.KeyDown)
-			}
-			if gameWorld.HasChanged {
-				t.Fatal("expected no-op interaction not to change world")
-			}
-			if _, blocked := gameWorld.Impassable[targetID]; !blocked {
-				t.Fatal("expected target to remain impassable")
-			}
-		})
-	}
-}
-
 func TestServiceIgnoresUnknownInteractionType(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}

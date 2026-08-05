@@ -53,7 +53,7 @@ func TestAddEntityRejectsUnknownComponent(t *testing.T) {
 }
 
 func TestAddEntityRequiresOneInteractionType(t *testing.T) {
-	for _, values := range [][]string{nil, {"door", "helm"}} {
+	for _, values := range [][]string{nil, {"door", "terminal"}} {
 		gameWorld := world.NewWorldEmpty()
 		if err := gameWorld.AddEntity([2]int{}, map[string][]string{"interactable": values}); err == nil {
 			t.Fatalf("expected interaction values %v to be rejected", values)
@@ -254,7 +254,7 @@ func TestCloneCopiesMutableState(t *testing.T) {
 	clone.Ascii[0] = component.Ascii{Ascii: 'x'}
 	delete(clone.Impassable, 0)
 	delete(clone.Player, 0)
-	clone.Interactable[0] = component.Interactable{InteractionType: component.InteractionTypeHelm}
+	clone.Interactable[0] = component.Interactable{InteractionType: component.InteractionTypeTerminal}
 
 	if gameWorld.Entities[0] != 0 {
 		t.Fatal("expected entities slice to be independent")

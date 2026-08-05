@@ -3,6 +3,7 @@ package tests
 import (
 	component "go_ascii/internal"
 	"go_ascii/internal/scenario"
+	"go_ascii/internal/world"
 	"os"
 	"path/filepath"
 	"slices"
@@ -58,7 +59,7 @@ func TestGetScenarioFromFiles(t *testing.T) {
 	mapPath := filepath.Join(tempDir, "map.txt")
 	contentPath := filepath.Join(tempDir, "content.txt")
 	mapFile := "===ship\n#p\n.0\nfeatures\n- ground:floor\n- portal:0,engine room,1 // paired rooms\n- inputprofile:topdown\n===engine room\n\n1#\n .\nfeatures\n- ground:floor\n- inputprofile:topdown\n"
-	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\np:player\n- pos\n- ascii:o\n- player\n#:wall\n- pos\n- ascii=#\n- impassable\n====INPUTPROFILE\ntopdown\n- quitgame=q\n- moveleft:a\n"
+	contentFile := "====ENTITY\n.:floor\n- pos\n- ascii:.\np:player\n- pos\n- ascii:o\n- player\n#:wall\n- pos\n- ascii=#\n- impassable\n====INPUTPROFILE\ntopdown\n- profiletype=none\n- quitgame=q\n- moveleft:a\n"
 
 	if err := os.WriteFile(mapPath, []byte(mapFile), 0o644); err != nil {
 		t.Fatalf("write temp map file: %v", err)
@@ -135,6 +136,9 @@ func TestGetScenarioFromFiles(t *testing.T) {
 	}
 	if got := userInputProfileMap["topdown"]["moveleft"]; got != "a" {
 		t.Fatalf("expected moveleft button to be a, got %q", got)
+	}
+	if got := userInputProfileMap["topdown"]["profiletype"]; got != world.ProfileTypeNone {
+		t.Fatalf("expected profile type %q, got %q", world.ProfileTypeNone, got)
 	}
 }
 
