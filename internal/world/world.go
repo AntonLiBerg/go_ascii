@@ -6,6 +6,7 @@ import (
 	"go_ascii/internal/scenario"
 	"maps"
 	"slices"
+	"strconv"
 )
 
 type Node[T any] struct {
@@ -39,6 +40,7 @@ type World struct {
 	Player                 map[int]component.Player
 	Interactable           map[int]component.Interactable
 	ControlNumber          map[int]component.ControlNumber
+	Selectable             map[int]component.Selectable
 }
 
 func NewWorldEmpty() World {
@@ -56,6 +58,7 @@ func NewWorldEmpty() World {
 		Player:                 make(map[int]component.Player),
 		Interactable:           make(map[int]component.Interactable),
 		ControlNumber:          make(map[int]component.ControlNumber),
+		Selectable:             make(map[int]component.Selectable),
 		ControlSelectableOrder: make(map[string]Node[int]),
 	}
 }
@@ -78,6 +81,8 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 	for name, values := range inputProfiles {
 		world.InputProfiles[name] = NewUserInputProfile(values)
 	}
+	roomEntityIDs := make(map[string]map[rune]int)
+	entityIDsByName := make(map[string]int)
 	world.InputProfileByRoom = maps.Clone(asciiMap.InputProfiles)
 	for roomName, profileName := range world.InputProfileByRoom {
 		if _, ok := world.InputProfiles[profileName]; !ok {
@@ -122,11 +127,24 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 				continue
 			}
 			if _, isTerminalRoom := terminalRooms[roomName]; isTerminalRoom {
-				if err := world.addEntityAtPosition(position, 1, map[string][]string{
+				entityName, hasEntity := entities[char]
+				entityID := len(world.Entities)
+				if hasEntity {
+					if err := world.addEntityAtPosition(position, 1, components[entityName]); err != nil {
+						return world, err
+					}
+					entityIDsByName[entityName] = entityID
+				} else if err := world.addEntityAtPosition(position, 1, map[string][]string{
 					component.NamePosition: {},
 					component.NameASCII:    {string(char)},
 				}); err != nil {
 					return world, err
+				}
+				if hasEntity {
+					if roomEntityIDs[roomName] == nil {
+						roomEntityIDs[roomName] = make(map[rune]int)
+					}
+					roomEntityIDs[roomName][char] = entityID
 				}
 				continue
 			}
@@ -145,9 +163,40 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 			if entityName == groundName {
 				continue
 			}
+			entityID := len(world.Entities)
 			if err := world.addEntityAtPosition(position, 1, components[entityName]); err != nil {
 				return world, err
 			}
+			entityIDsByName[entityName] = entityID
+			if roomEntityIDs[roomName] == nil {
+				roomEntityIDs[roomName] = make(map[rune]int)
+			}
+			roomEntityIDs[roomName][char] = entityID
+		}
+	}
+	for entityID, selectable := range world.Selectable {
+		targetID, ok := entityIDsByName[selectable.TargetEntityName]
+		if !ok {
+			return world, fmt.Errorf("selectable entity %d targets unknown entity %q", entityID, selectable.TargetEntityName)
+		}
+		selectable.TargetEntityId = targetID
+		selectable.TargetEntityName = ""
+		world.Selectable[entityID] = selectable
+	}
+	for roomName, markers := range asciiMap.SelectableOrder {
+		ids := make([]int, 0, len(markers))
+		for _, marker := range markers {
+			entityID, ok := roomEntityIDs[roomName][marker]
+			if !ok {
+				return world, fmt.Errorf("selectable order for room %q references missing entity %q", roomName, marker)
+			}
+			if _, ok := world.Selectable[entityID]; !ok {
+				return world, fmt.Errorf("entity %q in room %q is not selectable", marker, roomName)
+			}
+			ids = append(ids, entityID)
+		}
+		if len(ids) > 0 {
+			world.ControlSelectableOrder[roomName] = circularNode(ids)
 		}
 	}
 	world.Portals = maps.Clone(asciiMap.Portals)
@@ -177,7 +226,11 @@ func (w World) GetSelectedControlId() (int, bool) {
 	if w.SelectedControl == nil {
 		return -1, false
 	}
-	return w.SelectedControl.Value, true
+	selectable, ok := w.Selectable[w.SelectedControl.Value]
+	if !ok {
+		return -1, false
+	}
+	return selectable.TargetEntityId, true
 }
 
 func (w *World) FocusNextControl() bool {
@@ -201,6 +254,12 @@ func (w *World) SetInputProfileForRoom(roomName string) bool {
 		return false
 	}
 	w.UserInputProfile = profile
+	w.SelectedControl = nil
+	if first, ok := w.ControlSelectableOrder[roomName]; ok {
+		w.FocusedControl = first
+	} else {
+		w.FocusedControl = Node[int]{}
+	}
 	return true
 }
 
@@ -237,6 +296,7 @@ func (w World) Clone() World {
 	clone.Player = maps.Clone(w.Player)
 	clone.Interactable = maps.Clone(w.Interactable)
 	clone.ControlNumber = maps.Clone(w.ControlNumber)
+	clone.Selectable = maps.Clone(w.Selectable)
 	clone.ControlSelectableOrder = maps.Clone(w.ControlSelectableOrder)
 	return clone
 }
@@ -295,9 +355,45 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 			}
 			w.Interactable[eID] = component.Interactable{InteractionType: values[0]}
 
+		case component.NameControlTypeNumber:
+			if len(values) != 2 {
+				return fmt.Errorf("invalid values for component %q", name)
+			}
+			valueStart, err := strconv.Atoi(values[0])
+			if err != nil {
+				return fmt.Errorf("invalid values for component %q", name)
+			}
+			valueMax, err := strconv.Atoi(values[1])
+			if err != nil || valueStart > valueMax {
+				return fmt.Errorf("invalid values for component %q", name)
+			}
+			w.ControlNumber[eID] = component.ControlNumber{
+				ValueStart:   valueStart,
+				ValueCurrent: valueStart,
+				ValueMax:     valueMax,
+			}
+
+		case component.NameSelectable:
+			if len(values) != 2 || values[1] == "" {
+				return fmt.Errorf("invalid values for component %q", name)
+			}
+			w.Selectable[eID] = component.Selectable{TargetEntityName: values[1]}
+
 		default:
 			return fmt.Errorf("component does not exist %q", name)
 		}
 	}
 	return nil
+}
+
+func circularNode(values []int) Node[int] {
+	nodes := make([]*Node[int], len(values))
+	for i, value := range values {
+		nodes[i] = &Node[int]{Value: value}
+	}
+	for i, node := range nodes {
+		node.Next = nodes[(i+1)%len(nodes)]
+		node.Prev = nodes[(i+len(nodes)-1)%len(nodes)]
+	}
+	return *nodes[0]
 }

@@ -86,9 +86,9 @@ func tryGoToPosition(w world.World, moverID int, delta component.Position) (worl
 	// are we going through a portal?
 	//
 	if moverPos.Room != targetPos.Room {
-		if profile, ok := next.InputProfileForRoom(targetPos.Room); ok {
-			next.UserInputProfile = profile
+		if _, ok := next.InputProfileForRoom(targetPos.Room); ok {
 			next.Room = targetPos.Room
+			next.SetInputProfileForRoom(targetPos.Room)
 		}
 	}
 	entitiesAtOldPosition := world.GetEntitiesAtPosition(next, moverPos)

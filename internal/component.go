@@ -1,15 +1,15 @@
 package component
 
 const (
-	NamePosition                = "pos"
-	NameASCII                   = "ascii"
-	NameImpassable              = "impassable"
-	NamePlayer                  = "player"
-	NameInteractable            = "interactable"
-	InteractionTypeDoor         = "door"
-	InteractionTypeTerminal     = "terminal"
-	NameControlTypeNumber				 = "controlnumber"
-	NameSelectable                  = "selectable"
+	NamePosition            = "pos"
+	NameASCII               = "ascii"
+	NameImpassable          = "impassable"
+	NamePlayer              = "player"
+	NameInteractable        = "interactable"
+	InteractionTypeDoor     = "door"
+	InteractionTypeTerminal = "terminal"
+	NameControlTypeNumber   = "controlnumber"
+	NameSelectable          = "selectable"
 )
 
 type Position struct {
@@ -33,10 +33,12 @@ type Player struct{}
 type Interactable struct {
 	InteractionType string
 }
-type ControlNumber struct{
-	ValueStart int
+type ControlNumber struct {
+	ValueStart   int
 	ValueCurrent int
+	ValueMax     int
 }
-type Selectable struct{
-	TargetEntityId int
+type Selectable struct {
+	TargetEntityId   int
+	TargetEntityName string
 }

@@ -48,11 +48,11 @@ b:selectposition2
 f:facing
 - pos
 - ascii:0
-- controlnumber:0
+- controlnumber:0,9
 y:speed
 - pos
 - ascii:0
-- controlnumber:0
+- controlnumber:0,9
 ===INPUTPROFILE
 topdown
 - profiletype=none

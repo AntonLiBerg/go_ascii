@@ -1,6 +1,7 @@
 package control
 
 import (
+	"fmt"
 	"go_ascii/internal/game"
 	"go_ascii/internal/world"
 )
@@ -72,11 +73,16 @@ func updateControlNumber(entityID, delta int) game.UpdateFunc {
 			next := w.Clone()
 			controlNumber, ok := next.ControlNumber[entityID]
 			if !ok {
-				return next, nil
+				return next, fmt.Errorf("control number for entity %d not found", entityID)
 			}
-			controlNumber.ValueCurrent += delta
+			oldValue := controlNumber.ValueCurrent
+			if delta > 0 && controlNumber.ValueCurrent < controlNumber.ValueMax {
+				controlNumber.ValueCurrent++
+			} else if delta < 0 && controlNumber.ValueCurrent > controlNumber.ValueStart {
+				controlNumber.ValueCurrent--
+			}
 			next.ControlNumber[entityID] = controlNumber
-			next.HasChanged = true
+			next.HasChanged = controlNumber.ValueCurrent != oldValue
 			next.KeyDown = ""
 			return next, nil
 		},

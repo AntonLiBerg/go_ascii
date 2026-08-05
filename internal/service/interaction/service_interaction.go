@@ -22,10 +22,7 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 				playerID := world.GetPlayerID(w)
 				position, ok := w.Pos[playerID]
 				if ok {
-					profile, ok := w.InputProfileForRoom(position.Room)
-					if ok {
-						next.UserInputProfile = profile
-					}
+					next.SetInputProfileForRoom(position.Room)
 				}
 				next.Room = position.Room
 				next.HasChanged = true
@@ -92,13 +89,12 @@ func interactWithTerminal(w world.World, terminalID int) (world.World, error) {
 	if !ok {
 		return w, fmt.Errorf("Terminal not found!")
 	}
-	profile, ok := w.InputProfileForRoom(roomName)
-	if !ok {
+	if _, ok := w.InputProfileForRoom(roomName); !ok {
 		return w, fmt.Errorf("inputprofile not found!")
 	}
 	next := w
-	next.UserInputProfile = profile
 	next.HasChanged = true
 	next.Room = roomName
+	next.SetInputProfileForRoom(roomName)
 	return next, nil
 }
