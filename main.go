@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go_ascii/internal/game"
 	"go_ascii/internal/scenario"
+	"go_ascii/internal/service/control"
 	"go_ascii/internal/service/interaction"
 	"go_ascii/internal/service/movement"
 	"go_ascii/internal/service/quit"
@@ -41,6 +42,7 @@ func runScenario(name string) {
 		quit.ServiceQuitGame{},
 		movement.ServiceMovePlayer{},
 		interaction.ServiceInteraction{},
+		control.ServiceControl{},
 	}
 	keys := make(chan string)
 	go func() {

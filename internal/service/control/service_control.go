@@ -8,72 +8,77 @@ import (
 type ServiceControl struct{}
 
 func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
-
-	if w.UserInputProfile.ProfileType != world.ProfileTypeControl || w.KeyDown == ""{
+	if w.UserInputProfile.ProfileType != world.ProfileTypeControl || w.KeyDown == "" {
 		return game.UpdateFunc{}
 	}
-	//
-	// Is any control selected?
-	//
-	ctrlSelectedId, ok := w.GetSelectedControlId();
+
+	ctrlSelectedID, ok := w.GetSelectedControlId()
 	if !ok {
-		switch w.KeyDown{
+		switch w.KeyDown {
 		case w.UserInputProfile.KeyMoveSelectNext:
 			return game.UpdateFunc{
 				Order: 1,
 				UpdateFunc: func(w world.World) (world.World, error) {
-					nw := w.Clone();
-					nw.FocusNextControl();
-					return nw,nil;
+					next := w.Clone()
+					if next.FocusNextControl() {
+						next.HasChanged = true
+						next.KeyDown = ""
+					}
+					return next, nil
 				},
 			}
 		case w.UserInputProfile.KeyMoveSelectPrev:
 			return game.UpdateFunc{
 				Order: 1,
 				UpdateFunc: func(w world.World) (world.World, error) {
-					nw := w.Clone();
-					nw.FocusPrevControl();
-					return nw,nil;
+					next := w.Clone()
+					if next.FocusPrevControl() {
+						next.HasChanged = true
+						next.KeyDown = ""
+					}
+					return next, nil
 				},
 			}
 		case w.UserInputProfile.KeySelect:
 			return game.UpdateFunc{
 				Order: 1,
 				UpdateFunc: func(w world.World) (world.World, error) {
-					nw := w.Clone();
-					nw.SelectedControl = &w.FocusedControl;
-					return nw,nil;
+					next := w.Clone()
+					next.SelectedControl = &next.FocusedControl
+					next.HasChanged = true
+					next.KeyDown = ""
+					return next, nil
 				},
 			}
 		default:
 			return game.UpdateFunc{}
-		}	
+		}
 	}
-  //
-  // were there any changes done?
-  //
-  switch w.KeyDown{
-  case w.UserInputProfile.KeyMoveSelectNext:
-	  return game.UpdateFunc{
-		  Order: 1,
-		  UpdateFunc: func(w world.World) (world.World, error){
-			  nw := w.Clone()
-			  nrComp := nw.ControllNumber[ctrlSelectedId] 
-			  nrComp.ValueCurrent++
-			  return nw,nil;
-		  },
-	  }
-  case w.UserInputProfile.KeyMoveSelectPrev:
-	  return game.UpdateFunc{
-		  Order: 1,
-		  UpdateFunc: func(w world.World) (world.World, error){
-			  nw := w.Clone()
-			  nrComp := nw.ControllNumber[ctrlSelectedId] 
-			  nrComp.ValueCurrent++
-			  return nw,nil;
-		  },
-	  }
-  default:
-	  return game.UpdateFunc{}
-  }
+
+	switch w.KeyDown {
+	case w.UserInputProfile.KeyMoveSelectNext:
+		return updateControlNumber(ctrlSelectedID, 1)
+	case w.UserInputProfile.KeyMoveSelectPrev:
+		return updateControlNumber(ctrlSelectedID, -1)
+	default:
+		return game.UpdateFunc{}
+	}
+}
+
+func updateControlNumber(entityID, delta int) game.UpdateFunc {
+	return game.UpdateFunc{
+		Order: 1,
+		UpdateFunc: func(w world.World) (world.World, error) {
+			next := w.Clone()
+			controlNumber, ok := next.ControlNumber[entityID]
+			if !ok {
+				return next, nil
+			}
+			controlNumber.ValueCurrent += delta
+			next.ControlNumber[entityID] = controlNumber
+			next.HasChanged = true
+			next.KeyDown = ""
+			return next, nil
+		},
+	}
 }

@@ -1,36 +1,37 @@
 package world
 
-const(
-	ProfileTypeNone = "profiletypenone"
+const (
+	ProfileTypeNone     = "profiletypenone"
 	ProfileTypeTerminal = "profiletypeterminal"
-	ProfileTypeControl ="profiletypecontrol"
+	ProfileTypeControl  = "profiletypecontrol"
 )
+
 type UserInputProfile struct {
-	ProfileType  string
-	KeyQuitGame  string
-	KeyExit      string
-	KeyMoveUp    string
-	KeyMoveLeft  string
-	KeyMoveDown  string
-	KeyMoveRight string
-	KeyInteract  string
+	ProfileType       string
+	KeyQuitGame       string
+	KeyExit           string
+	KeyMoveUp         string
+	KeyMoveLeft       string
+	KeyMoveDown       string
+	KeyMoveRight      string
+	KeyInteract       string
 	KeyMoveSelectNext string
 	KeyMoveSelectPrev string
-	KeySelect string
+	KeySelect         string
 }
 
 func NewUserInputProfile(values map[string]string) UserInputProfile {
 	return UserInputProfile{
-		ProfileType: values["profiletype"],
-		KeyQuitGame:  values["quitgame"],
-		KeyExit:      values["exit"],
-		KeyMoveUp:    values["moveup"],
-		KeyMoveLeft:  values["moveleft"],
-		KeyMoveDown:  values["movedown"],
-		KeyMoveRight: values["moveright"],
-		KeyInteract:  values["interact"],
-		KeyMoveSelectNext: values["moveselectright"],
-		KeyMoveSelectPrev: values["moveselectleft"],
-		KeySelect: values["select"],
+		ProfileType:       values["profiletype"],
+		KeyQuitGame:       values["quitgame"],
+		KeyExit:           values["exit"],
+		KeyMoveUp:         values["moveup"],
+		KeyMoveLeft:       values["moveleft"],
+		KeyMoveDown:       values["movedown"],
+		KeyMoveRight:      values["moveright"],
+		KeyInteract:       values["interact"],
+		KeyMoveSelectNext: values["moveselectnext"],
+		KeyMoveSelectPrev: values["moveselectprev"],
+		KeySelect:         values["select"],
 	}
 }

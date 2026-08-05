@@ -7,53 +7,56 @@ import (
 	"maps"
 	"slices"
 )
-type Node[T any] struct{
+
+type Node[T any] struct {
 	Value T
-	Next *Node[T]
-	Prev *Node[T]
+	Next  *Node[T]
+	Prev  *Node[T]
 }
 type World struct {
-	Room               string
-	UserInputProfile   UserInputProfile
-	InputProfiles      map[string]UserInputProfile
-	InputProfileByRoom map[string]string
-	KeyDown            string
-	ShouldQuit         bool
-	SelectedControl *Node[int] 
-	FocusedControl Node[int] 
+	Room                   string
+	UserInputProfile       UserInputProfile
+	InputProfiles          map[string]UserInputProfile
+	InputProfileByRoom     map[string]string
+	KeyDown                string
+	ShouldQuit             bool
+	SelectedControl        *Node[int]
+	FocusedControl         Node[int]
 	ControlSelectableOrder map[string]Node[int] // roomname,linkedlist
-	EByPos             map[component.Position]int
-	Portals            map[component.Position]component.Position
-	Terminals          map[component.Position]string
-	UILayout           []string
-	UIs                []string
-	UIContent          map[string][]string
-	HasChanged         bool
-	IterationNr        int
-	Entities           []int
-	Pos                map[int]component.Position
-	Layer              map[int]component.Layer
-	Ascii              map[int]component.Ascii
-	Impassable         map[int]component.Impassable
-	Player             map[int]component.Player
-	Interactable       map[int]component.Interactable
-	ControllNumber       map[int]component.ControlNumber
+	EByPos                 map[component.Position]int
+	Portals                map[component.Position]component.Position
+	Terminals              map[component.Position]string
+	UILayout               []string
+	UIs                    []string
+	UIContent              map[string][]string
+	HasChanged             bool
+	IterationNr            int
+	Entities               []int
+	Pos                    map[int]component.Position
+	Layer                  map[int]component.Layer
+	Ascii                  map[int]component.Ascii
+	Impassable             map[int]component.Impassable
+	Player                 map[int]component.Player
+	Interactable           map[int]component.Interactable
+	ControlNumber          map[int]component.ControlNumber
 }
 
 func NewWorldEmpty() World {
 	return World{
-		InputProfiles:      make(map[string]UserInputProfile),
-		InputProfileByRoom: make(map[string]string),
-		EByPos:             make(map[component.Position]int),
-		Portals:            make(map[component.Position]component.Position),
-		Terminals:          make(map[component.Position]string),
-		UIContent:          make(map[string][]string),
-		Pos:                make(map[int]component.Position),
-		Layer:              make(map[int]component.Layer),
-		Ascii:              make(map[int]component.Ascii),
-		Impassable:         make(map[int]component.Impassable),
-		Player:             make(map[int]component.Player),
-		Interactable:       make(map[int]component.Interactable),
+		InputProfiles:          make(map[string]UserInputProfile),
+		InputProfileByRoom:     make(map[string]string),
+		EByPos:                 make(map[component.Position]int),
+		Portals:                make(map[component.Position]component.Position),
+		Terminals:              make(map[component.Position]string),
+		UIContent:              make(map[string][]string),
+		Pos:                    make(map[int]component.Position),
+		Layer:                  make(map[int]component.Layer),
+		Ascii:                  make(map[int]component.Ascii),
+		Impassable:             make(map[int]component.Impassable),
+		Player:                 make(map[int]component.Player),
+		Interactable:           make(map[int]component.Interactable),
+		ControlNumber:          make(map[int]component.ControlNumber),
+		ControlSelectableOrder: make(map[string]Node[int]),
 	}
 }
 
@@ -170,17 +173,27 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 	}
 	return world, nil
 }
-func (w World) GetSelectedControlId() (int,bool) {
-	if w.SelectedControl == nil{
-		return -1,false
+func (w World) GetSelectedControlId() (int, bool) {
+	if w.SelectedControl == nil {
+		return -1, false
 	}
-	return w.SelectedControl.Value, true;
+	return w.SelectedControl.Value, true
 }
-func (w* World) FocusNextControl(){
-	w.FocusedControl = *w.FocusedControl.Next;
+
+func (w *World) FocusNextControl() bool {
+	if w.FocusedControl.Next == nil {
+		return false
+	}
+	w.FocusedControl = *w.FocusedControl.Next
+	return true
 }
-func (w* World) FocusPrevControl(){
-	w.FocusedControl = *w.FocusedControl.Prev;
+
+func (w *World) FocusPrevControl() bool {
+	if w.FocusedControl.Prev == nil {
+		return false
+	}
+	w.FocusedControl = *w.FocusedControl.Prev
+	return true
 }
 func (w *World) SetInputProfileForRoom(roomName string) bool {
 	profile, ok := w.InputProfileForRoom(roomName)
@@ -223,6 +236,8 @@ func (w World) Clone() World {
 	clone.Impassable = maps.Clone(w.Impassable)
 	clone.Player = maps.Clone(w.Player)
 	clone.Interactable = maps.Clone(w.Interactable)
+	clone.ControlNumber = maps.Clone(w.ControlNumber)
+	clone.ControlSelectableOrder = maps.Clone(w.ControlSelectableOrder)
 	return clone
 }
 
