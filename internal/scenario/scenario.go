@@ -13,18 +13,21 @@ const (
 	SectionNameMap          string = "MAP"
 	SectionNameUILayout     string = "LAYOUT"
 	SectionNameDivider      string = "="
+	inputProfileTypeName           = "profiletype"
+	inputProfileTypePrefix         = "profiletype"
 )
 
 type Map struct {
-	Rooms         map[string]map[[2]int]rune
-	Ground        map[string]string
-	InputProfiles map[string]string
-	Portals       map[component.Position]component.Position
-	Terminals     map[component.Position]string
-	RoomGroups    map[string][]string
-	EntityGroups  map[string]map[rune]struct{}
-	UILayout      []string
-	UIContent     map[string][]string
+	Rooms           map[string]map[[2]int]rune
+	Ground          map[string]string
+	InputProfiles   map[string]string
+	Portals         map[component.Position]component.Position
+	Terminals       map[component.Position]string
+	SelectableOrder map[string][]rune
+	RoomGroups      map[string][]string
+	EntityGroups    map[string]map[rune]struct{}
+	UILayout        []string
+	UIContent       map[string][]string
 }
 
 func GetAsciiMap(mapText string) map[[2]int]rune {
@@ -225,15 +228,25 @@ func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]stri
 	return layout, uis, uiContent, nil
 }
 
+func normalizeInputProfileType(value string) string {
+	switch value {
+	case "none", "terminal", "control":
+		return inputProfileTypePrefix + value
+	default:
+		return value
+	}
+}
+
 func GetRoomMap(mapText string) (Map, error) {
 	asciiMap := Map{
-		Rooms:         make(map[string]map[[2]int]rune),
-		Ground:        make(map[string]string),
-		InputProfiles: make(map[string]string),
-		Portals:       make(map[component.Position]component.Position),
-		Terminals:     make(map[component.Position]string),
-		RoomGroups:    make(map[string][]string),
-		UIContent:     make(map[string][]string),
+		Rooms:           make(map[string]map[[2]int]rune),
+		Ground:          make(map[string]string),
+		InputProfiles:   make(map[string]string),
+		Portals:         make(map[component.Position]component.Position),
+		Terminals:       make(map[component.Position]string),
+		SelectableOrder: make(map[string][]rune),
+		RoomGroups:      make(map[string][]string),
+		UIContent:       make(map[string][]string),
 	}
 	mapText = strings.ReplaceAll(mapText, "\r\n", "\n")
 	mapText = strings.ReplaceAll(mapText, "\r", "\n")
@@ -243,6 +256,7 @@ func GetRoomMap(mapText string) (Map, error) {
 	inFeatures := false
 	portalFeatures := [][4]string{}
 	terminalFeatures := [][3]string{}
+	selectableOrderFeatures := make(map[string][]rune)
 
 	storeRoom := func() error {
 		for len(roomLines) > 0 && roomLines[0] == "" {
@@ -364,6 +378,26 @@ func GetRoomMap(mapText string) (Map, error) {
 				return Map{}, fmt.Errorf("invalid terminal on line %d", lineNumber+1)
 			}
 			terminalFeatures = append(terminalFeatures, [3]string{currentRoom, values[0], values[1]})
+		case "selectableorder":
+			if _, exists := selectableOrderFeatures[currentRoom]; exists {
+				return Map{}, fmt.Errorf("duplicate selectableorder feature in room %q", currentRoom)
+			}
+			values := strings.Split(value, ",")
+			markers := make([]rune, 0, len(values))
+			for _, markerText := range values {
+				markerText = strings.TrimSpace(markerText)
+				marker := []rune(markerText)
+				if len(marker) != 1 {
+					return Map{}, fmt.Errorf("invalid selectableorder on line %d", lineNumber+1)
+				}
+				for _, existing := range markers {
+					if existing == marker[0] {
+						return Map{}, fmt.Errorf("selectableorder repeats marker %q on line %d", marker[0], lineNumber+1)
+					}
+				}
+				markers = append(markers, marker[0])
+			}
+			selectableOrderFeatures[currentRoom] = markers
 		default:
 			return Map{}, fmt.Errorf("unknown feature %q on line %d", name, lineNumber+1)
 		}
@@ -441,6 +475,10 @@ func GetRoomMap(mapText string) (Map, error) {
 			return Map{}, fmt.Errorf("terminal at %+v is already connected", source)
 		}
 		asciiMap.Terminals[source] = feature[2]
+	}
+
+	for roomName, markers := range selectableOrderFeatures {
+		asciiMap.SelectableOrder[roomName] = append([]rune(nil), markers...)
 	}
 
 	return asciiMap, nil
@@ -590,6 +628,9 @@ func getEntitiesAndInputProfiles(contentText string) (map[rune]string, map[strin
 			button := strings.TrimSpace(binding[separator+1:])
 			if action == "" || button == "" {
 				return nil, nil, nil, nil, fmt.Errorf("invalid input binding %q", line)
+			}
+			if action == inputProfileTypeName {
+				button = normalizeInputProfileType(button)
 			}
 			inputProfiles[currentProfile][action] = button
 		}

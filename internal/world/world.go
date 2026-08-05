@@ -7,7 +7,11 @@ import (
 	"maps"
 	"slices"
 )
-
+type Node[T any] struct{
+	Value T
+	Next *Node[T]
+	Prev *Node[T]
+}
 type World struct {
 	Room               string
 	UserInputProfile   UserInputProfile
@@ -15,6 +19,9 @@ type World struct {
 	InputProfileByRoom map[string]string
 	KeyDown            string
 	ShouldQuit         bool
+	SelectedControl *Node[int] 
+	FocusedControl Node[int] 
+	ControlSelectableOrder map[string]Node[int] // roomname,linkedlist
 	EByPos             map[component.Position]int
 	Portals            map[component.Position]component.Position
 	Terminals          map[component.Position]string
@@ -30,6 +37,7 @@ type World struct {
 	Impassable         map[int]component.Impassable
 	Player             map[int]component.Player
 	Interactable       map[int]component.Interactable
+	ControllNumber       map[int]component.ControlNumber
 }
 
 func NewWorldEmpty() World {
@@ -162,7 +170,18 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 	}
 	return world, nil
 }
-
+func (w World) GetSelectedControlId() (int,bool) {
+	if w.SelectedControl == nil{
+		return -1,false
+	}
+	return w.SelectedControl.Value, true;
+}
+func (w* World) FocusNextControl(){
+	w.FocusedControl = *w.FocusedControl.Next;
+}
+func (w* World) FocusPrevControl(){
+	w.FocusedControl = *w.FocusedControl.Prev;
+}
 func (w *World) SetInputProfileForRoom(roomName string) bool {
 	profile, ok := w.InputProfileForRoom(roomName)
 	if !ok {

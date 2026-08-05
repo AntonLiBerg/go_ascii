@@ -8,7 +8,8 @@ const (
 	NameInteractable            = "interactable"
 	InteractionTypeDoor         = "door"
 	InteractionTypeTerminal     = "terminal"
-	InteractionTypeHelm         = "helm"
+	NameControlTypeNumber				 = "controlnumber"
+	NameSelectable                  = "selectable"
 )
 
 type Position struct {
@@ -31,4 +32,11 @@ type Player struct{}
 
 type Interactable struct {
 	InteractionType string
+}
+type ControlNumber struct{
+	ValueStart int
+	ValueCurrent int
+}
+type Selectable struct{
+	TargetEntityId int
 }

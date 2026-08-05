@@ -36,8 +36,26 @@ T:scantable
 - ascii:T
 - impassable
 - interactable:terminal
+===terminal_controls
+a:selectposition1
+- pos
+- ascii:o
+- selectable:^,facing
+b:selectposition2
+- pos
+- ascii:o
+- selectable:^,speed
+f:facing
+- pos
+- ascii:0
+- controlnumber:0
+y:speed
+- pos
+- ascii:0
+- controlnumber:0
 ===INPUTPROFILE
 topdown
+- profiletype=none
 - quitgame=q
 - interact=e
 - moveup=w
@@ -45,8 +63,11 @@ topdown
 - movedown=s
 - moveright=d
 terminal_scan
-- quitgame=q
-- exit=e
+- profiletype=control
+- moveselectnext=d
+- moveselectprev=a
+- select=e
+- exit=q
 terminal_helm
-- quitgame=q
-- exit=e
+- profiletype=control
+- exit=q

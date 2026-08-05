@@ -24,6 +24,7 @@ Available room features:
 - `group1,group2` after a room name combines those entity groups.
 - `portal:<marker>,<room>,<marker>` connects two markers for movement in both directions.
 - `terminal:<entity marker>,<room>` opens another room when that neighboring entity has `interactable:terminal`.
+- `selectableorder:<marker>,...` defines the selection order for controls in a room.
 
 A terminal target room is rendered as literal ASCII, so text and symbols do not need entity definitions. Its `exit` input closes the terminal without moving the player.
 
@@ -75,7 +76,7 @@ D:door
 - interactable:door
 ```
 
-The supported interaction types are `door`, `helm`, and `terminal`.
+The supported interaction types are `door` and `terminal`.
 
 Define named input profiles after the entities:
 

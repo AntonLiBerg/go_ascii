@@ -233,6 +233,18 @@ func TestGetRoomMapParsesEntityGroups(t *testing.T) {
 	}
 }
 
+func TestGetRoomMapParsesSelectableOrder(t *testing.T) {
+	asciiMap, err := scenario.GetRoomMap("===room\nba\nfeatures\n- ground:floor\n- inputprofile:topdown\n- selectableorder:a,b")
+	if err != nil {
+		t.Fatalf("GetRoomMap returned error: %v", err)
+	}
+
+	want := []rune{'a', 'b'}
+	if got := asciiMap.SelectableOrder["room"]; !slices.Equal(got, want) {
+		t.Fatalf("expected selectable order %v, got %v", want, got)
+	}
+}
+
 func TestGetScenarioFromFilesReturnsError(t *testing.T) {
 	tempDir := t.TempDir()
 	asciiMap, entities, components, userInputProfileMap, _, _, err := scenario.GetScenarioFromFiles(
