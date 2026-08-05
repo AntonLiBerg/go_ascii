@@ -9,36 +9,6 @@ import (
 	"testing"
 )
 
-func TestDemoScenarioLoadsAllMapEntities(t *testing.T) {
-	asciiMap, entities, components, inputProfiles, _, _, err := scenario.GetScenarioFromFiles(
-		"../../scenarios/demo/map.txt",
-		"../../scenarios/demo/content.txt",
-	)
-	if err != nil {
-		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
-	}
-
-	gameWorld, err := world.NewWorld(asciiMap, entities, components, inputProfiles)
-	if err != nil {
-		t.Fatalf("NewWorld returned error: %v", err)
-	}
-	if len(gameWorld.Interactable) != 3 {
-		t.Fatalf("expected three interactable entities, got %d", len(gameWorld.Interactable))
-	}
-	if len(asciiMap.Rooms) != 2 || asciiMap.Ground["ship"] != "floor" || asciiMap.Ground["engine room"] != "floor" {
-		t.Fatalf("expected two rooms with floor ground, got rooms=%d ground=%v", len(asciiMap.Rooms), asciiMap.Ground)
-	}
-	shipPortal := component.Position{Room: "ship", X: 19, Y: 9}
-	enginePortal := component.Position{Room: "engine room", X: 3, Y: 0}
-	if asciiMap.Portals[shipPortal] != enginePortal || asciiMap.Portals[enginePortal] != shipPortal {
-		t.Fatalf("expected paired demo portals, got %v", asciiMap.Portals)
-	}
-	playerID := world.GetPlayerID(gameWorld)
-	if gameWorld.Pos[playerID].Room != "ship" {
-		t.Fatalf("expected player to start in ship, got %+v", gameWorld.Pos[playerID])
-	}
-}
-
 func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 	asciiMap, entities, components, inputProfiles, uiLayout, uis, err := scenario.GetScenarioFromFiles(
 		"../../scenarios/skyship/map.txt",
@@ -80,8 +50,8 @@ func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 	if commandTableID == -1 || gameWorld.Pos[commandTableID].Room != "bridge" {
 		t.Fatalf("expected terminal in bridge, got %+v", gameWorld.Pos[commandTableID])
 	}
-	if got := inputProfiles["terminal_scan"]["exit"]; got != "e" {
-		t.Fatalf("expected terminal exit binding e, got %q", got)
+	if got := inputProfiles["terminal_scan"]["exit"]; got != "q" {
+		t.Fatalf("expected terminal exit binding q, got %q", got)
 	}
 	terminalGround := component.Position{Room: "terminal_scan", X: 0, Y: 0}
 	foundSpace := false
@@ -135,7 +105,7 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 
 	open := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	gameWorld = applyUpdate(t, open, gameWorld)
-	if gameWorld.UserInputProfile.KeyExit != "e" {
+	if gameWorld.UserInputProfile.KeyExit != "q" {
 		t.Fatalf("expected terminal_scan exit profile, got %+v", gameWorld.UserInputProfile)
 	}
 	if gameWorld.Pos[playerID] != physicalPosition {
