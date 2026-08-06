@@ -564,6 +564,9 @@ func getEntitiesAndInputProfiles(contentText string) (map[rune]string, map[strin
 			}
 
 			if currentEntity != "" {
+				if _, exists := components[currentEntity][componentName]; exists {
+					return nil, nil, nil, nil, fmt.Errorf("duplicate component %q for entity %q", componentName, currentEntity)
+				}
 				components[currentEntity][componentName] = values
 			}
 			continue
@@ -628,6 +631,9 @@ func getEntitiesAndInputProfiles(contentText string) (map[rune]string, map[strin
 			button := strings.TrimSpace(binding[separator+1:])
 			if action == "" || button == "" {
 				return nil, nil, nil, nil, fmt.Errorf("invalid input binding %q", line)
+			}
+			if _, exists := inputProfiles[currentProfile][action]; exists {
+				return nil, nil, nil, nil, fmt.Errorf("duplicate input binding %q for profile %q", action, currentProfile)
 			}
 			if action == inputProfileTypeName {
 				button = normalizeInputProfileType(button)

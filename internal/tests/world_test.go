@@ -52,6 +52,21 @@ func TestAddEntityRejectsUnknownComponent(t *testing.T) {
 	}
 }
 
+func TestAddEntityDoesNotPartiallyMutateOnError(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	err := gameWorld.AddEntity([2]int{2, 3}, map[string][]string{
+		"pos":     {},
+		"ascii":   {"."},
+		"unknown": {},
+	})
+	if err == nil {
+		t.Fatal("expected unknown component error")
+	}
+	if len(gameWorld.Entities) != 0 || len(gameWorld.Pos) != 0 || len(gameWorld.EByPos) != 0 {
+		t.Fatalf("expected failed entity insertion to leave no state, got entities=%v pos=%v index=%v", gameWorld.Entities, gameWorld.Pos, gameWorld.EByPos)
+	}
+}
+
 func TestAddEntityRequiresOneInteractionType(t *testing.T) {
 	for _, values := range [][]string{nil, {"door", "terminal"}} {
 		gameWorld := world.NewWorldEmpty()
@@ -100,6 +115,42 @@ func TestNewWorldBuildsGroundAndRoomEntities(t *testing.T) {
 func TestNewWorldRejectsEmptyRooms(t *testing.T) {
 	if _, err := world.NewWorld(scenario.Map{}, nil, nil, nil); err == nil {
 		t.Fatal("expected empty room error")
+	}
+}
+
+func TestNewWorldRequiresExactlyOnePlayer(t *testing.T) {
+	baseMap := scenario.Map{
+		Rooms:         map[string]map[[2]int]rune{"room": {{0, 0}: '.'}},
+		Ground:        map[string]string{"room": "floor"},
+		InputProfiles: map[string]string{"room": "topdown"},
+	}
+	components := map[string]map[string][]string{
+		"floor":  {"pos": {}, "ascii": {"."}},
+		"player": {"pos": {}, "ascii": {"o"}, "player": {}},
+	}
+	if _, err := world.NewWorld(baseMap, nil, components, map[string]map[string]string{"topdown": {}}); err == nil {
+		t.Fatal("expected missing player error")
+	}
+	twoPlayerMap := baseMap
+	twoPlayerMap.Rooms = map[string]map[[2]int]rune{"room": {{0, 0}: 'a', {1, 0}: 'b'}}
+	if _, err := world.NewWorld(twoPlayerMap, map[rune]string{'a': "player", 'b': "player"}, components, map[string]map[string]string{"topdown": {}}); err == nil {
+		t.Fatal("expected multiple player error")
+	}
+}
+
+func TestNewWorldRejectsReferencedEntityWithoutDefinition(t *testing.T) {
+	_, err := world.NewWorld(
+		scenario.Map{
+			Rooms:         map[string]map[[2]int]rune{"room": {{0, 0}: 'x'}},
+			Ground:        map[string]string{"room": "floor"},
+			InputProfiles: map[string]string{"room": "topdown"},
+		},
+		map[rune]string{'x': "missing"},
+		map[string]map[string][]string{"floor": {"pos": {}, "ascii": {"."}}},
+		map[string]map[string]string{"topdown": {}},
+	)
+	if err == nil {
+		t.Fatal("expected missing entity definition error")
 	}
 }
 

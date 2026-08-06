@@ -130,7 +130,11 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 				entityName, hasEntity := entities[char]
 				entityID := len(world.Entities)
 				if hasEntity {
-					if err := world.addEntityAtPosition(position, 1, components[entityName]); err != nil {
+					entityComponents, exists := components[entityName]
+					if !exists {
+						return world, fmt.Errorf("entity %q for map key %q does not have a definition", entityName, char)
+					}
+					if err := world.addEntityAtPosition(position, 1, entityComponents); err != nil {
 						return world, err
 					}
 					entityIDsByName[entityName] = entityID
@@ -160,11 +164,15 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 			if !ok {
 				return world, fmt.Errorf("map key %q in room %q has no entity", char, roomName)
 			}
+			entityComponents, ok := components[entityName]
+			if !ok {
+				return world, fmt.Errorf("entity %q for map key %q does not have a definition", entityName, char)
+			}
 			if entityName == groundName {
 				continue
 			}
 			entityID := len(world.Entities)
-			if err := world.addEntityAtPosition(position, 1, components[entityName]); err != nil {
+			if err := world.addEntityAtPosition(position, 1, entityComponents); err != nil {
 				return world, err
 			}
 			entityIDsByName[entityName] = entityID
@@ -215,6 +223,9 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 		}
 	}
 	// The active room follows the single player after all entities are built.
+	if len(world.Player) != 1 {
+		return world, fmt.Errorf("world must have exactly one player, got %d", len(world.Player))
+	}
 	playerID := GetPlayerID(world)
 	if position, ok := world.Pos[playerID]; ok {
 		world.Room = position.Room
@@ -315,8 +326,15 @@ func (w *World) AddEntityInRoom(room string, pos [2]int, components map[string][
 
 func (w *World) addEntityAtPosition(position component.Position, layer int, components map[string][]string) error {
 	eID := len(w.Entities)
-	w.Entities = append(w.Entities, eID)
-	w.Layer[eID] = component.Layer{Nr: layer}
+	var ascii component.Ascii
+	var hasASCII bool
+	var hasImpassable, hasPlayer bool
+	var interactable component.Interactable
+	var hasInteractable bool
+	var controlNumber component.ControlNumber
+	var hasControlNumber bool
+	var selectable component.Selectable
+	var hasSelectable bool
 
 	for name, values := range components {
 		switch name {
@@ -324,8 +342,6 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Pos[eID] = position
-			w.EByPos[position] = eID
 
 		case component.NameASCII:
 			if len(values) != 1 {
@@ -335,25 +351,27 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 			if len(chars) != 1 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Ascii[eID] = component.Ascii{Ascii: chars[0]}
+			ascii = component.Ascii{Ascii: chars[0]}
+			hasASCII = true
 
 		case component.NameImpassable:
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Impassable[eID] = component.Impassable{}
+			hasImpassable = true
 
 		case component.NamePlayer:
 			if len(values) != 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Player[eID] = component.Player{}
+			hasPlayer = true
 
 		case component.NameInteractable:
 			if len(values) != 1 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Interactable[eID] = component.Interactable{InteractionType: values[0]}
+			interactable = component.Interactable{InteractionType: values[0]}
+			hasInteractable = true
 
 		case component.NameControlTypeNumber:
 			if len(values) != 2 {
@@ -367,21 +385,46 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 			if err != nil || valueStart > valueMax {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.ControlNumber[eID] = component.ControlNumber{
+			controlNumber = component.ControlNumber{
 				ValueStart:   valueStart,
 				ValueCurrent: valueStart,
 				ValueMax:     valueMax,
 			}
+			hasControlNumber = true
 
 		case component.NameSelectable:
 			if len(values) != 2 || values[1] == "" {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			w.Selectable[eID] = component.Selectable{TargetEntityName: values[1]}
+			selectable = component.Selectable{TargetEntityName: values[1]}
+			hasSelectable = true
 
 		default:
 			return fmt.Errorf("component does not exist %q", name)
 		}
+	}
+
+	w.Entities = append(w.Entities, eID)
+	w.Layer[eID] = component.Layer{Nr: layer}
+	w.Pos[eID] = position
+	w.EByPos[position] = eID
+	if hasASCII {
+		w.Ascii[eID] = ascii
+	}
+	if hasImpassable {
+		w.Impassable[eID] = component.Impassable{}
+	}
+	if hasPlayer {
+		w.Player[eID] = component.Player{}
+	}
+	if hasInteractable {
+		w.Interactable[eID] = interactable
+	}
+	if hasControlNumber {
+		w.ControlNumber[eID] = controlNumber
+	}
+	if hasSelectable {
+		w.Selectable[eID] = selectable
 	}
 	return nil
 }

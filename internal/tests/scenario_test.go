@@ -212,6 +212,20 @@ func TestScenarioContentParsesSpaceASCII(t *testing.T) {
 	assertComponentValues(t, components, "void", "ascii", " ")
 }
 
+func TestScenarioContentRejectsDuplicateComponent(t *testing.T) {
+	_, _, _, err := getScenarioContent(t, "===ENTITY\nv:void\n- pos\n- pos\n- ascii:SPACE")
+	if err == nil {
+		t.Fatal("expected duplicate component error")
+	}
+}
+
+func TestScenarioContentRejectsDuplicateInputBinding(t *testing.T) {
+	_, _, _, err := getScenarioContent(t, "===ENTITY\nv:void\n- pos\n- ascii:SPACE\n===INPUTPROFILE\ntopdown\n- quitgame=q\n- quitgame=x")
+	if err == nil {
+		t.Fatal("expected duplicate input binding error")
+	}
+}
+
 func TestGetRoomMapParsesTerminal(t *testing.T) {
 	asciiMap, err := scenario.GetRoomMap("===comms\nT\nfeatures\n- ground:floor\n- inputprofile:topdown\n- terminal:T,scan\n===scan\n+\nfeatures\n- ground:void\n- inputprofile:scan")
 	if err != nil {
