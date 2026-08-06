@@ -45,7 +45,7 @@ b:selectposition2
 - pos
 - ascii:o
 - selectable:^,speed
-f:facing
+x:facing
 - pos
 - ascii:0
 - controlnumber:0,9
