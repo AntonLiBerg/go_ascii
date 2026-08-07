@@ -9,62 +9,59 @@ import (
 	"strconv"
 )
 
-type Node[T any] struct {
-	Value T
-	Next  *Node[T]
-	Prev  *Node[T]
-}
-
-func (n Node[T]) IsEmpty() bool {
-	return n.Next == nil && n.Prev == nil
+type ControlNode struct {
+	SelectableEntityID int
+	TargetEntityID     int
+	Next               *ControlNode
+	Prev               *ControlNode
 }
 
 type World struct {
-	Room                   string
-	UserInputProfile       UserInputProfile
-	InputProfiles          map[string]UserInputProfile
-	InputProfileByRoom     map[string]string
-	KeyDown                string
-	ShouldQuit             bool
-	SelectedControl        Node[int]
-	FocusedControl         Node[int]
-	ControlSelectableOrder map[string]Node[int] // roomname,linkedlist of entityIds
-	EByPos                 map[component.Position]int
-	Portals                map[component.Position]component.Position
-	Terminals              map[component.Position]string
-	UILayout               []string
-	UIs                    []string
-	UIContent              map[string][]string
-	HasChanged             bool
-	IterationNr            int
-	Entities               []int
-	Pos                    map[int]component.Position
-	Layer                  map[int]component.Layer
-	Ascii                  map[int]component.Ascii
-	Impassable             map[int]component.Impassable
-	Player                 map[int]component.Player
-	Interactable           map[int]component.Interactable
-	ControlNumber          map[int]component.ControlNumber
-	Selectable             map[int]component.Selectable
+	Room               string
+	UserInputProfile   UserInputProfile
+	InputProfiles      map[string]UserInputProfile
+	InputProfileByRoom map[string]string
+	KeyDown            string
+	ShouldQuit         bool
+	ActiveControl      *ControlNode
+	EditingControl     bool
+	ControlLists       map[string]*ControlNode
+	EByPos             map[component.Position]int
+	Portals            map[component.Position]component.Position
+	Terminals          map[component.Position]string
+	UILayout           []string
+	UIs                []string
+	UIContent          map[string][]string
+	HasChanged         bool
+	IterationNr        int
+	Entities           []int
+	Pos                map[int]component.Position
+	Layer              map[int]component.Layer
+	Ascii              map[int]component.Ascii
+	Impassable         map[int]component.Impassable
+	Player             map[int]component.Player
+	Interactable       map[int]component.Interactable
+	ControlNumber      map[int]component.ControlNumber
+	Selectable         map[int]component.Selectable
 }
 
 func NewWorldEmpty() World {
 	return World{
-		InputProfiles:          make(map[string]UserInputProfile),
-		InputProfileByRoom:     make(map[string]string),
-		EByPos:                 make(map[component.Position]int),
-		Portals:                make(map[component.Position]component.Position),
-		Terminals:              make(map[component.Position]string),
-		UIContent:              make(map[string][]string),
-		Pos:                    make(map[int]component.Position),
-		Layer:                  make(map[int]component.Layer),
-		Ascii:                  make(map[int]component.Ascii),
-		Impassable:             make(map[int]component.Impassable),
-		Player:                 make(map[int]component.Player),
-		Interactable:           make(map[int]component.Interactable),
-		ControlNumber:          make(map[int]component.ControlNumber),
-		Selectable:             make(map[int]component.Selectable),
-		ControlSelectableOrder: make(map[string]Node[int]),
+		InputProfiles:      make(map[string]UserInputProfile),
+		InputProfileByRoom: make(map[string]string),
+		EByPos:             make(map[component.Position]int),
+		Portals:            make(map[component.Position]component.Position),
+		Terminals:          make(map[component.Position]string),
+		UIContent:          make(map[string][]string),
+		Pos:                make(map[int]component.Position),
+		Layer:              make(map[int]component.Layer),
+		Ascii:              make(map[int]component.Ascii),
+		Impassable:         make(map[int]component.Impassable),
+		Player:             make(map[int]component.Player),
+		Interactable:       make(map[int]component.Interactable),
+		ControlNumber:      make(map[int]component.ControlNumber),
+		Selectable:         make(map[int]component.Selectable),
+		ControlLists:       make(map[string]*ControlNode),
 	}
 }
 
@@ -209,7 +206,7 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 			ids = append(ids, entityID)
 		}
 		if len(ids) > 0 {
-			world.ControlSelectableOrder[roomName] = circularNode(ids)
+			world.ControlLists[roomName] = circularControlNodes(ids, world.Selectable)
 		}
 	}
 	world.Portals = maps.Clone(asciiMap.Portals)
@@ -238,30 +235,19 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 	}
 	return world, nil
 }
-func (w World) GetSelectedControlId() (int, bool) {
-	if w.SelectedControl.IsEmpty() {
-		return -1, false
-	}
-	selectable, ok := w.Selectable[w.SelectedControl.Value]
-	if !ok {
-		return -1, false
-	}
-	return selectable.TargetEntityId, true
-}
-
 func (w *World) FocusNextControl() bool {
-	if w.FocusedControl.Next == nil {
+	if w.ActiveControl == nil || w.ActiveControl.Next == nil {
 		return false
 	}
-	w.FocusedControl = *w.FocusedControl.Next
+	w.ActiveControl = w.ActiveControl.Next
 	return true
 }
 
 func (w *World) FocusPrevControl() bool {
-	if w.FocusedControl.Prev == nil {
+	if w.ActiveControl == nil || w.ActiveControl.Prev == nil {
 		return false
 	}
-	w.FocusedControl = *w.FocusedControl.Prev
+	w.ActiveControl = w.ActiveControl.Prev
 	return true
 }
 func (w *World) SetInputProfileForRoom(roomName string) bool {
@@ -270,12 +256,8 @@ func (w *World) SetInputProfileForRoom(roomName string) bool {
 		return false
 	}
 	w.UserInputProfile = profile
-	w.SelectedControl = Node[int]{}
-	if first, ok := w.ControlSelectableOrder[roomName]; ok {
-		w.FocusedControl = first
-	} else {
-		w.FocusedControl = Node[int]{}
-	}
+	w.EditingControl = false
+	w.ActiveControl = w.ControlLists[roomName]
 	return true
 }
 
@@ -313,7 +295,7 @@ func (w World) Clone() World {
 	clone.Interactable = maps.Clone(w.Interactable)
 	clone.ControlNumber = maps.Clone(w.ControlNumber)
 	clone.Selectable = maps.Clone(w.Selectable)
-	clone.ControlSelectableOrder = maps.Clone(w.ControlSelectableOrder)
+	clone.ControlLists = maps.Clone(w.ControlLists)
 	return clone
 }
 
@@ -434,14 +416,17 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 	return nil
 }
 
-func circularNode(values []int) Node[int] {
-	nodes := make([]*Node[int], len(values))
-	for i, value := range values {
-		nodes[i] = &Node[int]{Value: value}
+func circularControlNodes(entityIDs []int, selectables map[int]component.Selectable) *ControlNode {
+	nodes := make([]*ControlNode, len(entityIDs))
+	for i, entityID := range entityIDs {
+		nodes[i] = &ControlNode{
+			SelectableEntityID: entityID,
+			TargetEntityID:     selectables[entityID].TargetEntityId,
+		}
 	}
 	for i, node := range nodes {
 		node.Next = nodes[(i+1)%len(nodes)]
 		node.Prev = nodes[(i+len(nodes)-1)%len(nodes)]
 	}
-	return *nodes[0]
+	return nodes[0]
 }

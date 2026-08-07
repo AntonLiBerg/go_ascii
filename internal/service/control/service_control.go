@@ -12,9 +12,11 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 	if w.UserInputProfile.ProfileType != world.ProfileTypeControl || w.KeyDown == "" {
 		return game.UpdateFunc{}
 	}
+	if w.ActiveControl == nil {
+		return game.UpdateFunc{}
+	}
 
-	ctrlSelectedID, ok := w.GetSelectedControlId()
-	if !ok {
+	if !w.EditingControl {
 		switch w.KeyDown {
 		case w.UserInputProfile.KeyMoveSelectNext:
 			return game.UpdateFunc{
@@ -45,7 +47,7 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 				Order: 1,
 				UpdateFunc: func(w world.World) (world.World, error) {
 					next := w.Clone()
-					next.SelectedControl = next.FocusedControl
+					next.EditingControl = true
 					next.HasChanged = true
 					next.KeyDown = ""
 					return next, nil
@@ -55,20 +57,18 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 			return game.UpdateFunc{}
 		}
 	}
-	//
-	//Update the value of the selected control
-	//
+
 	switch w.KeyDown {
 	case w.UserInputProfile.KeyMoveSelectNext:
-		return updateControlNumberValue(ctrlSelectedID, 1)
+		return updateControlNumberValue(w.ActiveControl.TargetEntityID, 1)
 	case w.UserInputProfile.KeyMoveSelectPrev:
-		return updateControlNumberValue(ctrlSelectedID, -1)
+		return updateControlNumberValue(w.ActiveControl.TargetEntityID, -1)
 	case w.UserInputProfile.KeySelect:
 		return game.UpdateFunc{
 			Order: 1,
 			UpdateFunc: func(w world.World) (world.World, error) {
 				next := w.Clone()
-				next.SelectedControl = world.Node[int]{}
+				next.EditingControl = false
 				next.HasChanged = true
 				next.KeyDown = ""
 				return next, nil
