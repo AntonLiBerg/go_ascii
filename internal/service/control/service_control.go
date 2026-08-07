@@ -45,7 +45,7 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 				Order: 1,
 				UpdateFunc: func(w world.World) (world.World, error) {
 					next := w.Clone()
-					next.SelectedControl = &next.FocusedControl
+					next.SelectedControl = next.FocusedControl
 					next.HasChanged = true
 					next.KeyDown = ""
 					return next, nil
@@ -68,7 +68,7 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 			Order: 1,
 			UpdateFunc: func(w world.World) (world.World, error) {
 				next := w.Clone()
-				next.SelectedControl = nil
+				next.SelectedControl = world.Node[int]{}
 				next.HasChanged = true
 				next.KeyDown = ""
 				return next, nil

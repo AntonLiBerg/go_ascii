@@ -14,7 +14,8 @@ type Node[T any] struct {
 	Next  *Node[T]
 	Prev  *Node[T]
 }
-func (n Node[T]) IsEmpty() bool{
+
+func (n Node[T]) IsEmpty() bool {
 	return n.Next == nil && n.Prev == nil
 }
 
@@ -238,7 +239,7 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 	return world, nil
 }
 func (w World) GetSelectedControlId() (int, bool) {
-	if w.SelectedControl == nil {
+	if w.SelectedControl.IsEmpty() {
 		return -1, false
 	}
 	selectable, ok := w.Selectable[w.SelectedControl.Value]
@@ -269,7 +270,7 @@ func (w *World) SetInputProfileForRoom(roomName string) bool {
 		return false
 	}
 	w.UserInputProfile = profile
-	w.SelectedControl = nil
+	w.SelectedControl = Node[int]{}
 	if first, ok := w.ControlSelectableOrder[roomName]; ok {
 		w.FocusedControl = first
 	} else {
