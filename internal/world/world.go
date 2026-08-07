@@ -14,6 +14,10 @@ type Node[T any] struct {
 	Next  *Node[T]
 	Prev  *Node[T]
 }
+func (n Node[T]) IsEmpty() bool{
+	return n.Next == nil && n.Prev == nil
+}
+
 type World struct {
 	Room                   string
 	UserInputProfile       UserInputProfile
@@ -21,9 +25,9 @@ type World struct {
 	InputProfileByRoom     map[string]string
 	KeyDown                string
 	ShouldQuit             bool
-	SelectedControl        *Node[int]
+	SelectedControl        Node[int]
 	FocusedControl         Node[int]
-	ControlSelectableOrder map[string]Node[int] // roomname,linkedlist
+	ControlSelectableOrder map[string]Node[int] // roomname,linkedlist of entityIds
 	EByPos                 map[component.Position]int
 	Portals                map[component.Position]component.Position
 	Terminals              map[component.Position]string

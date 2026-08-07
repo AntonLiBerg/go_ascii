@@ -55,36 +55,49 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 			return game.UpdateFunc{}
 		}
 	}
-
-		switch w.KeyDown {
-		case w.UserInputProfile.KeyMoveSelectNext:
-			return updateControlNumber(ctrlSelectedID, 1)
-		case w.UserInputProfile.KeyMoveSelectPrev:
-			return updateControlNumber(ctrlSelectedID, -1)
-		default:
-			return game.UpdateFunc{}
-		}
-	}
-
-	func updateControlNumber(entityID, delta int) game.UpdateFunc {
+	//
+	//Update the value of the selected control
+	//
+	switch w.KeyDown {
+	case w.UserInputProfile.KeyMoveSelectNext:
+		return updateControlNumberValue(ctrlSelectedID, 1)
+	case w.UserInputProfile.KeyMoveSelectPrev:
+		return updateControlNumberValue(ctrlSelectedID, -1)
+	case w.UserInputProfile.KeySelect:
 		return game.UpdateFunc{
 			Order: 1,
 			UpdateFunc: func(w world.World) (world.World, error) {
 				next := w.Clone()
-				controlNumber, ok := next.ControlNumber[entityID]
-				if !ok {
-					return next, fmt.Errorf("control number for entity %d not found", entityID)
-				}
-				oldValue := controlNumber.ValueCurrent
-				if delta > 0 && controlNumber.ValueCurrent < controlNumber.ValueMax {
-					controlNumber.ValueCurrent++
-				} else if delta < 0 && controlNumber.ValueCurrent > controlNumber.ValueStart {
-					controlNumber.ValueCurrent--
-				}
-				next.ControlNumber[entityID] = controlNumber
-				next.HasChanged = controlNumber.ValueCurrent != oldValue
+				next.SelectedControl = nil
+				next.HasChanged = true
 				next.KeyDown = ""
 				return next, nil
 			},
 		}
+	default:
+		return game.UpdateFunc{}
 	}
+}
+
+func updateControlNumberValue(entityID, delta int) game.UpdateFunc {
+	return game.UpdateFunc{
+		Order: 1,
+		UpdateFunc: func(w world.World) (world.World, error) {
+			next := w.Clone()
+			controlNumber, ok := next.ControlNumber[entityID]
+			if !ok {
+				return next, fmt.Errorf("control number for entity %d not found", entityID)
+			}
+			oldValue := controlNumber.ValueCurrent
+			if delta > 0 && controlNumber.ValueCurrent < controlNumber.ValueMax {
+				controlNumber.ValueCurrent++
+			} else if delta < 0 && controlNumber.ValueCurrent > controlNumber.ValueStart {
+				controlNumber.ValueCurrent--
+			}
+			next.ControlNumber[entityID] = controlNumber
+			next.HasChanged = controlNumber.ValueCurrent != oldValue
+			next.KeyDown = ""
+			return next, nil
+		},
+	}
+}
