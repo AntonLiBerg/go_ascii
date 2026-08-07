@@ -50,7 +50,7 @@ features
 ¤¤     +-+       +-+      ¤¤
 ¤¤     |x|       |y|      ¤¤
 ¤¤     +-+       +-+      ¤¤
-¤¤      a         b       ¤¤
+¤¤      1         2       ¤¤
 ¤¤                        ¤¤
 ¤¤                        ¤¤
 ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
@@ -58,4 +58,4 @@ features
 features
 - ground:void
 - inputprofile:terminal_helm
-- selectableorder:a,b
+- selectableorder:1,2

@@ -37,11 +37,11 @@ T:scantable
 - impassable
 - interactable:terminal
 ===terminal_controls
-a:selectposition1
+1:selectposition1
 - pos
 - ascii:o
 - selectable:^,facing
-b:selectposition2
+2:selectposition2
 - pos
 - ascii:o
 - selectable:^,speed
