@@ -42,14 +42,17 @@ func drawRoom(frame *strings.Builder, gameWorld world.World, activeRoom string, 
 
 		screenY := pos.Y + yOffset + 1
 		writeCursor(frame, screenY, pos.X+xOffset+1)
-		frame.WriteRune(ascii.Ascii)
+		char := ascii.Ascii
+		if gameWorld.EditingControl && gameWorld.ActiveControl != nil && gameWorld.ActiveControl.SelectableEntityID == eID {
+			char = gameWorld.ActiveControl.SelectedASCII
+		}
+		frame.WriteRune(char)
 		if screenY > nextY {
 			nextY = screenY
 		}
 	}
 	return nextY
 }
-
 
 func uiWidth(gameWorld world.World) int {
 	width := 0

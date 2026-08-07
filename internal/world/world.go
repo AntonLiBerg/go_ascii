@@ -12,6 +12,7 @@ import (
 type ControlNode struct {
 	SelectableEntityID int
 	TargetEntityID     int
+	SelectedASCII      rune
 	Next               *ControlNode
 	Prev               *ControlNode
 }
@@ -383,7 +384,11 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 			if len(values) != 2 || values[1] == "" {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
-			selectable = component.Selectable{TargetEntityName: values[1]}
+			chars := []rune(values[0])
+			if len(chars) != 1 {
+				return fmt.Errorf("invalid values for component %q", name)
+			}
+			selectable = component.Selectable{SelectedASCII: chars[0], TargetEntityName: values[1]}
 			hasSelectable = true
 
 		default:
@@ -422,6 +427,7 @@ func circularControlNodes(entityIDs []int, selectables map[int]component.Selecta
 		nodes[i] = &ControlNode{
 			SelectableEntityID: entityID,
 			TargetEntityID:     selectables[entityID].TargetEntityId,
+			SelectedASCII:      selectables[entityID].SelectedASCII,
 		}
 	}
 	for i, node := range nodes {
