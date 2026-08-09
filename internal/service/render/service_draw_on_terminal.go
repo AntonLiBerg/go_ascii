@@ -72,8 +72,14 @@ func drawRoom(frame *strings.Builder, gameWorld world.World, activeRoom string, 
 		screenY := pos.Y + yOffset + 1
 		writeCursor(frame, screenY, pos.X+xOffset+1)
 		char := ascii.Ascii
-		if gameWorld.EditingControl && gameWorld.ActiveControl != nil && gameWorld.ActiveControl.SelectableEntityID == eID {
-			char = gameWorld.ActiveControl.SelectedASCII
+		if selectable, ok := gameWorld.Selectable[eID]; ok {
+			char = selectable.UnfocusedASCII
+			if gameWorld.ActiveControl != nil && gameWorld.ActiveControl.SelectableEntityID == eID {
+				char = selectable.FocusedASCII
+				if gameWorld.EditingControl {
+					char = selectable.SelectedASCII
+				}
+			}
 		}
 		frame.WriteRune(char)
 		if screenY > nextY {

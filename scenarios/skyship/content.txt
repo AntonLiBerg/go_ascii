@@ -40,11 +40,11 @@ T:scantable
 1:selectposition1
 - pos
 - ascii:o
-- selectable:^,facing
+- selectable:o,ö,^,facing
 2:selectposition2
 - pos
 - ascii:o
-- selectable:^,speed
+- selectable:o,ö,^,speed
 x:facing
 - pos
 - ascii:0

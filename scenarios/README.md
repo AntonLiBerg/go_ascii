@@ -78,6 +78,17 @@ D:door
 
 The supported interaction types are `door` and `terminal`.
 
+A selectable entity declares its unfocused, focused, and selected ASCII followed by its target entity:
+
+```text
+1:selectposition
+- pos
+- ascii:o
+- selectable:o,ö,^,facing
+```
+
+The first entry in a room's `selectableorder` is focused whenever that room is entered. The selected ASCII is shown while editing that focused control.
+
 Define named input profiles after the entities:
 
 ```text

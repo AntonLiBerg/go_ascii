@@ -69,7 +69,7 @@ func tryGoToPosition(w world.World, moverID int, delta component.Position) (worl
 		return w, nil
 	}
 	//
-	// moving into portal?
+	// moving into portal? Can we make a move?
 	//
 	if portalTarget, isPortal := w.Portals[targetPos]; isPortal {
 		targetPos = portalTarget
@@ -78,12 +78,14 @@ func tryGoToPosition(w world.World, moverID int, delta component.Position) (worl
 			return w, nil
 		}
 	}
-
+	//
+	// make the move
+	//
 	next := w.Clone()
 	next.Pos[moverID] = targetPos
 	next.EByPos[targetPos] = moverID
 	//
-	// are we going through a portal?
+	// are we moving into a new room?
 	//
 	if moverPos.Room != targetPos.Room {
 		if _, ok := next.InputProfileForRoom(targetPos.Room); ok {

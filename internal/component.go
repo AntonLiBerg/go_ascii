@@ -39,6 +39,8 @@ type ControlNumber struct {
 	ValueMax     int
 }
 type Selectable struct {
+	UnfocusedASCII   rune
+	FocusedASCII     rune
 	SelectedASCII    rune
 	TargetEntityId   int
 	TargetEntityName string

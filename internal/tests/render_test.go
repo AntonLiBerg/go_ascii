@@ -87,38 +87,40 @@ func TestPlayerCoversEntityAtSamePosition(t *testing.T) {
 	}
 }
 
-func TestTerminalFrameDrawsSelectedControlASCII(t *testing.T) {
+func TestTerminalFrameDrawsControlStateASCII(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
 	if err := gameWorld.AddEntity([2]int{0, 0}, map[string][]string{
-		"pos": {}, "ascii": {"o"}, "selectable": {"^", "target"},
+		"pos": {}, "ascii": {"x"}, "selectable": {"u", "f", "s", "target"},
 	}); err != nil {
 		t.Fatalf("AddEntity returned error: %v", err)
 	}
 	control := &world.ControlNode{
 		SelectableEntityID: 0,
-		SelectedASCII:      gameWorld.Selectable[0].SelectedASCII,
 	}
 	control.Next, control.Prev = control, control
-	gameWorld.ActiveControl = control
 
 	tests := []struct {
-		name    string
-		editing bool
-		shown   string
-		hidden  string
+		name          string
+		activeControl *world.ControlNode
+		editing       bool
+		shown         string
 	}{
-		{name: "focused", shown: "o", hidden: "^"},
-		{name: "selected", editing: true, shown: "^", hidden: "o"},
+		{name: "unfocused", shown: "u"},
+		{name: "focused", activeControl: control, shown: "f"},
+		{name: "selected", activeControl: control, editing: true, shown: "s"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			gameWorld.ActiveControl = test.activeControl
 			gameWorld.EditingControl = test.editing
 			output := render.TerminalFrame(gameWorld)
 			if !strings.Contains(output, test.shown) {
 				t.Fatalf("expected %q in output %q", test.shown, output)
 			}
-			if strings.Contains(output, test.hidden) {
-				t.Fatalf("expected %q not to appear in output %q", test.hidden, output)
+			for _, hidden := range []string{"x", "u", "f", "s"} {
+				if hidden != test.shown && strings.Contains(output, hidden) {
+					t.Fatalf("expected %q not to appear in output %q", hidden, output)
+				}
 			}
 		})
 	}
