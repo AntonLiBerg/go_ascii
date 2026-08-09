@@ -1,12 +1,41 @@
 package render
 
 import (
+	"fmt"
 	component "go_ascii/internal"
+	"go_ascii/internal/game"
 	"go_ascii/internal/world"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 )
+
+type ServiceDrawOnTerminal struct {
+	Writer io.Writer
+}
+
+func (s ServiceDrawOnTerminal) GetUpdateFunc(_ world.World) game.UpdateFunc {
+	return game.UpdateFunc{
+		Order: 100,
+		UpdateFunc: func(w world.World) (world.World, error) {
+			if w.IterationNr != 1 && !w.HasChanged {
+				return w, nil
+			}
+
+			writer := s.Writer
+			if writer == nil {
+				writer = os.Stdout
+			}
+			if _, err := fmt.Fprint(writer, TerminalFrame(w)); err != nil {
+				return w, err
+			}
+			w.HasChanged = false
+			return w, nil
+		},
+	}
+}
 
 func TerminalFrame(gameWorld world.World) string {
 	var frame strings.Builder

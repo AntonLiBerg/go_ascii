@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"go_ascii/internal/game"
 	"go_ascii/internal/scenario"
 	"go_ascii/internal/service/control"
@@ -43,6 +42,7 @@ func runScenario(name string) {
 		movement.ServiceMovePlayer{},
 		interaction.ServiceInteraction{},
 		control.ServiceControl{},
+		render.ServiceDrawOnTerminal{},
 	}
 	keys := make(chan string)
 	go func() {
@@ -52,10 +52,7 @@ func runScenario(name string) {
 			keys <- string(key[:])
 		}
 	}()
-	if err := game.RunGame(gameWorld, services, keys, func(w world.World) error {
-		_, err := fmt.Print(render.TerminalFrame(w))
-		return err
-	}); err != nil {
+	if err := game.RunGame(gameWorld, services, keys); err != nil {
 		panic(err)
 	}
 }

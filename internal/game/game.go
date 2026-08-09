@@ -18,7 +18,7 @@ type updateResult struct {
 	update       UpdateFunc
 }
 
-func RunGame(gameWorld world.World, services []IService, keyInput <-chan string, present func(world.World) error) error {
+func RunGame(gameWorld world.World, services []IService, keyInput <-chan string) error {
 	if len(services) == 0 {
 		return fmt.Errorf("Services is empty")
 	}
@@ -80,12 +80,6 @@ func RunGame(gameWorld world.World, services []IService, keyInput <-chan string,
 					}
 					gameWorld = nextWorld
 				}
-			}
-			if (gameWorld.IterationNr == 1 || gameWorld.HasChanged) && present != nil {
-				if err := present(gameWorld); err != nil {
-					return err
-				}
-				gameWorld.HasChanged = false
 			}
 			state = s_readyToGetUpdateFunctions
 			gameWorld.IterationNr++

@@ -1,11 +1,68 @@
 package tests
 
 import (
+	"bytes"
+	"errors"
 	"go_ascii/internal/service/render"
 	"go_ascii/internal/world"
 	"strings"
 	"testing"
 )
+
+func TestDrawOnTerminalService(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.IterationNr = 1
+	gameWorld.HasChanged = true
+	var output bytes.Buffer
+
+	update := render.ServiceDrawOnTerminal{Writer: &output}.GetUpdateFunc(gameWorld)
+	next := applyUpdate(t, update, gameWorld)
+
+	if update.Order != 100 {
+		t.Fatalf("expected render order 100, got %d", update.Order)
+	}
+	if output.String() != render.TerminalFrame(gameWorld) {
+		t.Fatalf("unexpected terminal output %q", output.String())
+	}
+	if next.HasChanged {
+		t.Fatal("expected render service to clear HasChanged")
+	}
+}
+
+func TestDrawOnTerminalServiceSkipsUnchangedWorld(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.IterationNr = 2
+	var output bytes.Buffer
+
+	next := applyUpdate(t, render.ServiceDrawOnTerminal{Writer: &output}.GetUpdateFunc(gameWorld), gameWorld)
+
+	if output.Len() != 0 {
+		t.Fatalf("expected no terminal output, got %q", output.String())
+	}
+	if next.HasChanged {
+		t.Fatal("expected unchanged world")
+	}
+}
+
+func TestDrawOnTerminalServiceReturnsWriterError(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.IterationNr = 1
+	wantErr := errors.New("write failed")
+	update := render.ServiceDrawOnTerminal{Writer: errorWriter{err: wantErr}}.GetUpdateFunc(gameWorld)
+
+	_, err := update.UpdateFunc(gameWorld)
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("expected writer error, got %v", err)
+	}
+}
+
+type errorWriter struct {
+	err error
+}
+
+func (w errorWriter) Write([]byte) (int, error) {
+	return 0, w.err
+}
 
 func TestPlayerCoversEntityAtSamePosition(t *testing.T) {
 	gameWorld := world.NewWorldEmpty()
