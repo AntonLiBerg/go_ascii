@@ -139,6 +139,8 @@ func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath
 }
 
 func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]string, error) {
+	// Keep section parsing separate from interpretation so headers and raw lines
+	// are collected consistently before layout-specific validation begins.
 	type section struct {
 		name  string
 		lines []string
@@ -174,6 +176,8 @@ func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]stri
 		sections = append(sections, current)
 	}
 
+	// The layout section names the render order; every other section contains
+	// the literal lines for one UI block.
 	var layout []string
 	var uis []string
 	uiContent := make(map[string][]string)
@@ -258,6 +262,8 @@ func GetRoomMap(mapText string) (Map, error) {
 	terminalFeatures := [][3]string{}
 	selectableOrderFeatures := make(map[string][]rune)
 
+	// Finish the current room by trimming separator lines and converting its
+	// ASCII rows into coordinate-indexed runes.
 	storeRoom := func() error {
 		for len(roomLines) > 0 && roomLines[0] == "" {
 			roomLines = roomLines[1:]
@@ -279,6 +285,8 @@ func GetRoomMap(mapText string) (Map, error) {
 		return nil
 	}
 
+	// Parse room headers and map rows first, collecting features that require
+	// cross-room marker resolution for a later pass.
 	for lineNumber, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "===") {
@@ -409,6 +417,8 @@ func GetRoomMap(mapText string) (Map, error) {
 	if err := storeRoom(); err != nil {
 		return Map{}, err
 	}
+	// Every room needs enough information to build its ground layer and select
+	// an input profile before the world can be created.
 	for roomName := range asciiMap.Rooms {
 		if asciiMap.Ground[roomName] == "" {
 			return Map{}, fmt.Errorf("room %q has no ground feature", roomName)
@@ -418,6 +428,8 @@ func GetRoomMap(mapText string) (Map, error) {
 		}
 	}
 
+	// Deferred features refer to markers rather than coordinates. Resolve each
+	// marker once parsing has made every room available.
 	findMarker := func(roomName string, marker rune) (component.Position, error) {
 		room, ok := asciiMap.Rooms[roomName]
 		if !ok {
@@ -441,6 +453,8 @@ func GetRoomMap(mapText string) (Map, error) {
 		return position, nil
 	}
 
+	// Portals are bidirectional, so both endpoints must be unique and are stored
+	// as a pair of reverse mappings.
 	for _, feature := range portalFeatures {
 		sourceMarker := []rune(feature[1])[0]
 		targetMarker := []rune(feature[3])[0]
@@ -462,6 +476,8 @@ func GetRoomMap(mapText string) (Map, error) {
 		asciiMap.Portals[target] = source
 	}
 
+	// Terminals map one source marker to a target room without requiring a
+	// corresponding marker in that target room.
 	for _, feature := range terminalFeatures {
 		sourceMarker := []rune(feature[1])[0]
 		source, err := findMarker(feature[0], sourceMarker)
@@ -493,6 +509,8 @@ func getEntitiesAndInputProfiles(contentText string) (map[rune]string, map[strin
 	text = strings.ReplaceAll(text, "\r", "\n")
 	lines := strings.Split(text, "\n")
 
+	// Locate the input-profile section first so entity groups can be parsed from
+	// the content before it without mixing the two line formats.
 	inputProfileStart := -1
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
@@ -505,10 +523,14 @@ func getEntitiesAndInputProfiles(contentText string) (map[rune]string, map[strin
 		}
 	}
 
+	// Entity group headers establish scope; entity headers register map keys,
+	// and following component lines attach values to the current entity.
 	currentGroup := ""
 	currentEntity := ""
 	definedEntities := make(map[string]struct{})
 	entityEnd := len(lines)
+	// Input profiles consist of a profile name followed by action-to-key
+	// bindings until another top-level section starts.
 	if inputProfileStart != -1 {
 		entityEnd = inputProfileStart - 1
 	}
