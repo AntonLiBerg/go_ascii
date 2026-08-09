@@ -64,10 +64,10 @@ topdown
 - moveright=d
 terminal_scan
 - profiletype=control
-- moveselectnext=d
-- moveselectprev=a
-- select=e
 - exit=q
 terminal_helm
 - profiletype=control
+- moveselectnext=d
+- moveselectprev=a
+- select=e
 - exit=q

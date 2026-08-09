@@ -4,8 +4,10 @@ import (
 	component "go_ascii/internal"
 	"go_ascii/internal/scenario"
 	"go_ascii/internal/service/interaction"
+	"go_ascii/internal/service/render"
 	"go_ascii/internal/world"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -79,13 +81,25 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWorld returned error: %v", err)
 	}
+	selectablesByRoom := make(map[string]int)
+	for entityID := range gameWorld.Selectable {
+		selectablesByRoom[gameWorld.Pos[entityID].Room]++
+	}
+	if selectablesByRoom["terminal_helm"] != 2 || selectablesByRoom["terminal_scan"] != 0 {
+		t.Fatalf("expected only two Helm selectables, got %v", selectablesByRoom)
+	}
 
 	playerID := world.GetPlayerID(gameWorld)
 	commandTableID := -1
-	for entityID, interactable := range gameWorld.Interactable {
-		if interactable.InteractionType == component.InteractionTypeTerminal && gameWorld.Pos[entityID].Room == "bridge" {
-			commandTableID = entityID
-			break
+	for position, targetRoom := range gameWorld.Terminals {
+		if targetRoom != "terminal_helm" {
+			continue
+		}
+		for _, entityID := range world.GetEntitiesAtPosition(gameWorld, position) {
+			if interactable, ok := gameWorld.Interactable[entityID]; ok && interactable.InteractionType == component.InteractionTypeTerminal {
+				commandTableID = entityID
+				break
+			}
 		}
 	}
 	if commandTableID == -1 {
@@ -105,11 +119,18 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 
 	open := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
 	gameWorld = applyUpdate(t, open, gameWorld)
-	if gameWorld.UserInputProfile.KeyExit != "q" {
-		t.Fatalf("expected terminal_scan exit profile, got %+v", gameWorld.UserInputProfile)
+	if gameWorld.Room != "terminal_helm" || gameWorld.UserInputProfile.KeyExit != "q" {
+		t.Fatalf("expected terminal_helm exit profile, got room=%q profile=%+v", gameWorld.Room, gameWorld.UserInputProfile)
 	}
 	if gameWorld.Pos[playerID] != physicalPosition {
-		t.Fatal("expected player to remain in comms while terminal is open")
+		t.Fatal("expected player to remain on the bridge while terminal is open")
+	}
+	if gameWorld.ActiveControl != gameWorld.ControlLists["terminal_helm"] {
+		t.Fatal("expected first Helm control to be focused")
+	}
+	frame := render.TerminalFrame(gameWorld)
+	if !strings.Contains(frame, "\033[8;9Hö") || !strings.Contains(frame, "\033[8;19Ho") {
+		t.Fatalf("expected focused first control and unfocused second control in frame %q", frame)
 	}
 
 	gameWorld.KeyDown = gameWorld.UserInputProfile.KeyExit

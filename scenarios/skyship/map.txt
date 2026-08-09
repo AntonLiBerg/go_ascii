@@ -42,7 +42,7 @@ features
 features
 - ground:void
 - inputprofile:terminal_scan
-===terminal_helm: terminal
+===terminal_helm: terminal_controls
 ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
 ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
 ¤¤                        ¤¤

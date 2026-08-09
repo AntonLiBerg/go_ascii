@@ -130,6 +130,10 @@ func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[st
 			}
 			if _, isTerminalRoom := terminalRooms[roomName]; isTerminalRoom {
 				entityName, hasEntity := entities[char]
+				if allowed, scoped := asciiMap.EntityGroups[roomName]; scoped {
+					_, explicitlyAllowed := allowed[char]
+					hasEntity = hasEntity && explicitlyAllowed
+				}
 				entityID := len(world.Entities)
 				if hasEntity {
 					entityComponents, exists := components[entityName]
