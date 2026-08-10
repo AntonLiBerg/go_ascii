@@ -94,7 +94,7 @@ func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath
 	asciiMap = withUI(asciiMap, layout, uiContent)
 	return asciiMap, entities, components, inputProfiles, layout, uis, nil
 }
-func nGetUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]string, error) {
+func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]string, error) {
 	text := strings.ReplaceAll(uiFileText, "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
 	lines := strings.Split(text, "\n")
@@ -110,87 +110,23 @@ func nGetUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]str
 		if len(remainingLines) == 0{
 			break
 		}
-		sName := strings.Split(remainingLines[0],SectionDivider)[1]
+		sName := strings.TrimSpace(strings.TrimPrefix(remainingLines[0], SectionDivider))
 		uiSections[sName] = getNextUiSection(remainingLines[1:])
 		remainingLines = remainingLines[len(uiSections[sName])+1:]
 	}
 
-	return uiLayout,nil,uiSections,nil
+	return uiLayout,filter(uiLayout,func(s string)bool{return s != "room"}),uiSections,nil
 }
 func getNextUiSection(lines []string) []string{
 	section := []string{}
 	for _,line := range lines{
-		if strings.HasPrefix(line,"==="){
+		if isUISectionHeader(line){
 			break
 		}
 		section = append(section, line)
 	}
 	return section
 }
-func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]string, error) {
-	text := strings.ReplaceAll(uiFileText, "\r\n", "\n")
-	text = strings.ReplaceAll(text, "\r", "\n")
-	lines := strings.Split(text, "\n")
-
-	sections := []uiSection{}
-	current := uiSection{}
-	for lineNumber, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if isUISectionHeader(trimmed) {
-			if current.name != "" {
-				sections = append(sections, current)
-			}
-			name := uiSectionNameFromHeader(trimmed)
-			if name == "" {
-				return nil, nil, nil, fmt.Errorf("UI section on line %d has no name", lineNumber+1)
-			}
-			current = uiSection{name: name}
-			continue
-		}
-		if !isUIContentAllowed(current.name, trimmed) {
-			return nil, nil, nil, fmt.Errorf("UI content must start with a section")
-		}
-		if current.name == "" {
-			continue
-		}
-		current.lines = append(current.lines, line)
-	}
-	if current.name != "" {
-		sections = append(sections, current)
-	}
-
-	var layout []string
-	var uis []string
-	uiContent := make(map[string][]string)
-	for _, section := range sections {
-		if isUILayoutSection(section.name) {
-			if layout != nil {
-				return nil, nil, nil, fmt.Errorf("duplicate UI layout section")
-			}
-			for _, entry := range uiLayoutEntriesFromLines(section.lines) {
-				if !isValidUILayoutEntry(entry.name) {
-					return nil, nil, nil, fmt.Errorf("invalid UI layout entry on line %d", entry.lineNumber+1)
-				}
-				if !isUniqueUIName(layout, entry.name) {
-					return nil, nil, nil, fmt.Errorf("duplicate UI layout entry %q", entry.name)
-				}
-				layout = append(layout, entry.name)
-			}
-			continue
-		}
-
-		if !isUniqueUIName(uis, section.name) {
-			return nil, nil, nil, fmt.Errorf("duplicate UI section %q", section.name)
-		}
-		uis = append(uis, section.name)
-		uiContent[section.name] = uiContentFromLines(section.lines)
-	}
-	if layout == nil {
-		return nil, nil, nil, fmt.Errorf("UI file has no layout section")
-	}
-	return layout, uis, uiContent, nil
-}
-
 func normalizeInputProfileType(value string) string {
 	switch value {
 	case "none", "terminal", "control":
