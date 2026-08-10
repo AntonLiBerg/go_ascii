@@ -2,41 +2,7 @@ package scenario
 
 import (
 	component "go_ascii/internal"
-	"strings"
 )
-
-func filter[T any](slice []T,f func(T)bool) []T{
-	nSlice := []T{}
-	for _,s := range slice{
-		if f(s){
-			nSlice = append(nSlice, s)
-		}
-	}
-	return nSlice
-}
-func anyIsTrue[T any](slice []T,f func(T)bool) bool{
-	for _,s := range slice {
-		if f(s){
-			return true
-		}
-	}
-	return false
-}
-func allIsTrue[T any](slice []T,f func(T)bool) bool{
-	for _,s := range slice {
-		if !f(s){
-			return false
-		}
-	}
-	return true
-}
-func transformEach[T any](values []T, transform func(T) T) []T {
-	result := make([]T, 0, len(values))
-	for _, value := range values {
-		result = append(result, transform(value))
-	}
-	return result
-}
 
 func asciiMapFromLines(lines []string) map[[2]int]rune {
 	asciiMap := make(map[[2]int]rune)
@@ -86,35 +52,49 @@ func withUI(asciiMap Map, layout []string, content map[string][]string) Map {
 	return asciiMap
 }
 
-func uiSectionNameFromHeader(header string) string {
-	return strings.TrimSpace(strings.TrimLeft(header, SectionNameDivider))
-}
-
-func uiLayoutEntriesFromLines(lines []string) []uiLayoutEntry {
-	entries := make([]uiLayoutEntry, 0, len(lines))
-	for lineNumber, line := range lines {
-		name := strings.TrimSpace(line)
-		if name != "" {
-			entries = append(entries, uiLayoutEntry{name: name, lineNumber: lineNumber})
+func findMissingRoomGroup(roomGroups map[string][]string, groups map[string]map[rune]struct{}, terminalRooms map[string]struct{}) (string, string, bool) {
+	for roomName, groupNames := range roomGroups {
+		for _, groupName := range groupNames {
+			if _, exists := groups[groupName]; exists {
+				continue
+			}
+			if groupName == "terminal" {
+				if _, isTerminal := terminalRooms[roomName]; isTerminal {
+					continue
+				}
+			}
+			return roomName, groupName, false
 		}
 	}
-	return entries
+	return "", "", true
 }
 
-func uiContentFromLines(lines []string) []string {
-	end := len(lines)
-	for i, line := range lines {
-		if strings.TrimSpace(line) == "features" {
-			end = i
+func findAsciiMapBounds(lines []string, sectionNames []string) (int, int) {
+	lineCount := len(lines)
+	start := 0
+	found := false
+	for i, name := range sectionNames {
+		if name == SectionNameMap {
+			start = i + 1
+			found = true
 			break
 		}
 	}
-	start := 0
+	end := lineCount
+	if found {
+		for i := start; i < lineCount; i++ {
+			name := sectionNames[i]
+			if name == SectionNameMap || name == SectionNameEntity || name == SectionNameInputProfile {
+				end = i
+				break
+			}
+		}
+	}
 	for start < end && lines[start] == "" {
 		start++
 	}
 	for end > start && lines[end-1] == "" {
 		end--
 	}
-	return lines[start:end]
+	return start, end
 }
