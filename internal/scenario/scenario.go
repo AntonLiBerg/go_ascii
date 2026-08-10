@@ -11,10 +11,11 @@ const (
 	SectionNameEntity       string = "ENTITY"
 	SectionNameInputProfile string = "INPUTPROFILE"
 	SectionNameMap          string = "MAP"
-	SectionNameUILayout     string = "LAYOUT"
+	SectionNameUILayout     string = "layout"
 	SectionNameDivider      string = "="
-	inputProfileTypeName           = "profiletype"
-	inputProfileTypePrefix         = "profiletype"
+	SectionDivider				string = SectionNameDivider+SectionNameDivider+SectionNameDivider
+	inputProfileTypeName    string = "profiletype"
+	inputProfileTypePrefix  string = "profiletype"
 )
 
 type Map struct {
@@ -30,53 +31,31 @@ type Map struct {
 	UIContent       map[string][]string
 }
 
+type uiSection struct {
+	name  string
+	lines []string
+}
+
+type uiLayoutEntry struct {
+	name       string
+	lineNumber int
+}
+
 func GetAsciiMap(mapText string) map[[2]int]rune {
-	asciiMap := make(map[[2]int]rune)
 	mapText = strings.ReplaceAll(mapText, "\r\n", "\n")
 	mapText = strings.ReplaceAll(mapText, "\r", "\n")
 	lines := strings.Split(mapText, "\n")
-
-	mapStart := -1
+	sectionNames := make([]string, len(lines))
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
-		if trimmed == SectionNameMap {
-			mapStart = i + 1
-			break
-		}
+		sectionNames[i] = strings.TrimLeft(trimmed, SectionNameDivider)
 	}
-
-	mapEnd := len(lines)
-	if mapStart == -1 {
-		mapStart = 0
-	} else {
-		for i := mapStart; i < len(lines); i++ {
-			trimmed := strings.TrimSpace(lines[i])
-			trimmed = strings.TrimLeft(trimmed, SectionNameDivider)
-			if trimmed == SectionNameMap || trimmed == SectionNameEntity || trimmed == SectionNameInputProfile {
-				mapEnd = i
-				break
-			}
-		}
-	}
-
-	mapSection := strings.Trim(strings.Join(lines[mapStart:mapEnd], "\n"), "\n")
-	if mapSection == "" {
-		return asciiMap
-	}
-
-	for y, line := range strings.Split(mapSection, "\n") {
-		// Spaces are transparent so lower layers remain visible.
-		for x, char := range []rune(line) {
-			asciiMap[[2]int{x, y}] = char
-		}
-	}
-
-	return asciiMap
+	mapStart, mapEnd := findAsciiMapBounds(lines, sectionNames)
+	return asciiMapFromLines(lines[mapStart:mapEnd])
 }
 
 func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePaths ...string) (Map, map[rune]string, map[string]map[string][]string, map[string]map[string]string, []string, []string, error) {
-	if len(uiFilePaths) > 1 {
+	if !hasAtMostOneUIFilePath(uiFilePaths) {
 		return Map{}, nil, nil, nil, nil, nil, fmt.Errorf("expected at most one UI file path")
 	}
 	mapContent, err := os.ReadFile(mapFilePath)
@@ -95,33 +74,12 @@ func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath
 	if err != nil {
 		return Map{}, nil, nil, nil, nil, nil, err
 	}
-	terminalRooms := make(map[string]struct{})
-	for _, roomName := range asciiMap.Terminals {
-		terminalRooms[roomName] = struct{}{}
+	terminalRooms := terminalRoomsFromTerminals(asciiMap.Terminals)
+	roomName, groupName, valid := findMissingRoomGroup(asciiMap.RoomGroups, groups, terminalRooms)
+	if !valid {
+		return Map{}, nil, nil, nil, nil, nil, fmt.Errorf("group %q for room %q does not exist", groupName, roomName)
 	}
-	// Compose each room's allowed entity set from all named groups.
-	asciiMap.EntityGroups = make(map[string]map[rune]struct{})
-	for roomName, groupNames := range asciiMap.RoomGroups {
-		if len(groupNames) == 0 {
-			continue
-		}
-		allowed := make(map[rune]struct{})
-		for _, groupName := range groupNames {
-			group, ok := groups[groupName]
-			if !ok {
-				if groupName == "terminal" {
-					if _, isTerminal := terminalRooms[roomName]; isTerminal {
-						continue
-					}
-				}
-				return Map{}, nil, nil, nil, nil, nil, fmt.Errorf("group %q for room %q does not exist", groupName, roomName)
-			}
-			for entity := range group {
-				allowed[entity] = struct{}{}
-			}
-		}
-		asciiMap.EntityGroups[roomName] = allowed
-	}
+	asciiMap = withEntityGroups(asciiMap, entityGroupsFromRoomGroups(asciiMap.RoomGroups, groups))
 	if len(uiFilePaths) == 0 {
 		return asciiMap, entities, components, inputProfiles, nil, nil, nil
 	}
@@ -133,41 +91,66 @@ func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath
 	if err != nil {
 		return Map{}, nil, nil, nil, nil, nil, err
 	}
-	asciiMap.UILayout = layout
-	asciiMap.UIContent = uiContent
+	asciiMap = withUI(asciiMap, layout, uiContent)
 	return asciiMap, entities, components, inputProfiles, layout, uis, nil
 }
-
-func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]string, error) {
-	// Keep section parsing separate from interpretation so headers and raw lines
-	// are collected consistently before layout-specific validation begins.
-	type section struct {
-		name  string
-		lines []string
-	}
-
+func nGetUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]string, error) {
 	text := strings.ReplaceAll(uiFileText, "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
 	lines := strings.Split(text, "\n")
-	sections := []section{}
-	current := section{}
+
+	err := isUiFileValid(lines)
+	if err != nil {
+		return nil, nil, nil,err
+	}
+	uiLayout := getNextUiSection(lines[1:])
+	uiSections := make(map[string][]string)
+	remainingLines := lines[len(uiLayout)+1:]
+	for {
+		if len(remainingLines) == 0{
+			break
+		}
+		sName := strings.Split(remainingLines[0],SectionDivider)[1]
+		uiSections[sName] = getNextUiSection(remainingLines[1:])
+		remainingLines = remainingLines[len(uiSections[sName])+1:]
+	}
+
+	return uiLayout,nil,uiSections,nil
+}
+func getNextUiSection(lines []string) []string{
+	section := []string{}
+	for _,line := range lines{
+		if strings.HasPrefix(line,"==="){
+			break
+		}
+		section = append(section, line)
+	}
+	return section
+}
+func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]string, error) {
+	text := strings.ReplaceAll(uiFileText, "\r\n", "\n")
+	text = strings.ReplaceAll(text, "\r", "\n")
+	lines := strings.Split(text, "\n")
+
+	sections := []uiSection{}
+	current := uiSection{}
 	for lineNumber, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, SectionNameDivider+SectionNameDivider+SectionNameDivider) {
+		if isUISectionHeader(trimmed) {
 			if current.name != "" {
 				sections = append(sections, current)
 			}
-			name := strings.TrimSpace(strings.TrimLeft(trimmed, SectionNameDivider))
+			name := uiSectionNameFromHeader(trimmed)
 			if name == "" {
 				return nil, nil, nil, fmt.Errorf("UI section on line %d has no name", lineNumber+1)
 			}
-			current = section{name: name}
+			current = uiSection{name: name}
 			continue
 		}
+		if !isUIContentAllowed(current.name, trimmed) {
+			return nil, nil, nil, fmt.Errorf("UI content must start with a section")
+		}
 		if current.name == "" {
-			if trimmed != "" {
-				return nil, nil, nil, fmt.Errorf("UI content must start with a section")
-			}
 			continue
 		}
 		current.lines = append(current.lines, line)
@@ -176,55 +159,31 @@ func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]stri
 		sections = append(sections, current)
 	}
 
-	// The layout section names the render order; every other section contains
-	// the literal lines for one UI block.
 	var layout []string
 	var uis []string
 	uiContent := make(map[string][]string)
 	for _, section := range sections {
-		if strings.EqualFold(section.name, SectionNameUILayout) {
+		if isUILayoutSection(section.name) {
 			if layout != nil {
 				return nil, nil, nil, fmt.Errorf("duplicate UI layout section")
 			}
-			for lineNumber, line := range section.lines {
-				name := strings.TrimSpace(line)
-				if name == "" {
-					continue
+			for _, entry := range uiLayoutEntriesFromLines(section.lines) {
+				if !isValidUILayoutEntry(entry.name) {
+					return nil, nil, nil, fmt.Errorf("invalid UI layout entry on line %d", entry.lineNumber+1)
 				}
-				if strings.HasPrefix(name, "-") {
-					return nil, nil, nil, fmt.Errorf("invalid UI layout entry on line %d", lineNumber+1)
+				if !isUniqueUIName(layout, entry.name) {
+					return nil, nil, nil, fmt.Errorf("duplicate UI layout entry %q", entry.name)
 				}
-				for _, existing := range layout {
-					if existing == name {
-						return nil, nil, nil, fmt.Errorf("duplicate UI layout entry %q", name)
-					}
-				}
-				layout = append(layout, name)
+				layout = append(layout, entry.name)
 			}
 			continue
 		}
 
-		for _, existing := range uis {
-			if existing == section.name {
-				return nil, nil, nil, fmt.Errorf("duplicate UI section %q", section.name)
-			}
+		if !isUniqueUIName(uis, section.name) {
+			return nil, nil, nil, fmt.Errorf("duplicate UI section %q", section.name)
 		}
 		uis = append(uis, section.name)
-		uiLines := section.lines
-		// UI metadata is not part of the rendered lines.
-		for i, line := range uiLines {
-			if strings.TrimSpace(line) == "features" {
-				uiLines = uiLines[:i]
-				break
-			}
-		}
-		for len(uiLines) > 0 && uiLines[0] == "" {
-			uiLines = uiLines[1:]
-		}
-		for len(uiLines) > 0 && uiLines[len(uiLines)-1] == "" {
-			uiLines = uiLines[:len(uiLines)-1]
-		}
-		uiContent[section.name] = uiLines
+		uiContent[section.name] = uiContentFromLines(section.lines)
 	}
 	if layout == nil {
 		return nil, nil, nil, fmt.Errorf("UI file has no layout section")
