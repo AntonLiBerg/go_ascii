@@ -3,6 +3,8 @@ package scenario
 import (
 	"fmt"
 	component "go_ascii/internal"
+	"go_ascii/internal/helpers"
+	"slices"
 	"strings"
 )
 
@@ -17,6 +19,69 @@ func GetAsciiMap(mapText string) map[[2]int]rune {
 	}
 	mapStart, mapEnd := findAsciiMapBounds(lines, sectionNames)
 	return asciiMapFromLines(lines[mapStart:mapEnd])
+}
+func nGetRoomMap(mapText string) (Map, error){
+	asciiMap := Map{
+		Rooms:           make(map[string]map[[2]int]rune),
+		Ground:          make(map[string]string),
+		InputProfiles:   make(map[string]string),
+		Portals:         make(map[component.Position]component.Position),
+		Terminals:       make(map[component.Position]string),
+		SelectableOrder: make(map[string][]rune),
+		RoomGroups:      make(map[string][]string),
+		UIContent:       make(map[string][]string),
+	}
+	mapText = strings.ReplaceAll(mapText, "\r\n", "\n")
+	mapText = strings.ReplaceAll(mapText, "\r", "\n")
+	lines := strings.Split(strings.TrimRight(mapText, "\n"), "\n")
+	if err := isValidMapFile(lines); err != nil{
+		return asciiMap, err
+	}
+	groupOnHeader := group(lines,func(s string)bool{return isSectionHeader(s)})
+	for header,ls := range groupOnHeader{
+		roomName,compositions := makeRoomHeaderParts(header)
+		endOfAsciiIndex := slices.Index(ls,"feature")
+		asciiLines := ls[:endOfAsciiIndex]
+		roomAscii = makeAsciiRoom(asciiLines)
+		asciiMap.Rooms[roomName] = roomAscii
+	}
+	
+
+}
+func group(lines []string,f func(s string)bool)map[string][]string{
+	currentHeader:= lines[0]
+	lines = lines[1:]
+	group := make(map[string][]string)
+	for _,l := range lines{
+		if f(l){
+			currentHeader = l
+			group[currentHeader] = []string{}
+		}else{
+			group[currentHeader] = append(group[currentHeader], l)
+		}
+	} 
+	return group
+}
+func isValidMapFile(roomLines []string) error {
+	if len(roomLines) == 0 {
+		return fmt.Errorf("roomLines is empty!")
+	}
+	if !isSectionHeader(roomLines[0]){
+		return fmt.Errorf("incorrect header!")
+	}
+	if helpers.Any(roomLines,func(s string)bool{return s == ""}){
+		return fmt.Errorf("room contains empty lines!")
+	}
+	return nil
+}
+func makeAsciiRoom(roomLines []string)map[[2]int]rune{
+	room := make(map[[2]int]rune)
+	for y, line := range roomLines {
+		for x, char := range []rune(line) {
+			room[[2]int{x, y}] = char
+		}
+	}
+	return room
 }
 
 func GetRoomMap(mapText string) (Map, error) {
@@ -42,34 +107,13 @@ func GetRoomMap(mapText string) (Map, error) {
 
 	// Finish the current room by trimming separator lines and converting its
 	// ASCII rows into coordinate-indexed runes.
-	storeRoom := func() error {
-		for len(roomLines) > 0 && roomLines[0] == "" {
-			roomLines = roomLines[1:]
-		}
-		for len(roomLines) > 0 && roomLines[len(roomLines)-1] == "" {
-			roomLines = roomLines[:len(roomLines)-1]
-		}
-		if len(roomLines) == 0 {
-			return fmt.Errorf("room %q has no map", currentRoom)
-		}
-
-		room := make(map[[2]int]rune)
-		for y, line := range roomLines {
-			for x, char := range []rune(line) {
-				room[[2]int{x, y}] = char
-			}
-		}
-		asciiMap.Rooms[currentRoom] = room
-		return nil
-	}
-
 	// Parse room headers and map rows first, collecting features that require
 	// cross-room marker resolution for a later pass.
 	for lineNumber, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "===") {
 			if currentRoom != "" {
-				if err := storeRoom(); err != nil {
+				if err := isValidMapFile(); err != nil {
 					return Map{}, err
 				}
 			}

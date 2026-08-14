@@ -19,7 +19,7 @@ func isUiFileValid(lines []string) error {
 	layoutEnd := 1
 	for ; layoutEnd < len(lines); layoutEnd++ {
 		line := lines[layoutEnd]
-		if isUISectionHeader(line) {
+		if isSectionHeader(line) {
 			break
 		}
 		trimmedLine := strings.TrimSpace(line)
@@ -29,7 +29,7 @@ func isUiFileValid(lines []string) error {
 	}
 
 	uiNonLayoutSections := lines[layoutEnd:]
-	sectionHeaders := hlp.Filter(uiNonLayoutSections, isUISectionHeader)
+	sectionHeaders := hlp.Filter(uiNonLayoutSections, isSectionHeader)
 	sectionHeaders = hlp.Transform(sectionHeaders, func(header string) string {
 		return strings.TrimSpace(strings.TrimPrefix(header, SectionDivider))
 	})
@@ -59,7 +59,7 @@ func hasAtMostOneUIFilePath(paths []string) bool {
 	return len(paths) <= 1
 }
 
-func isUISectionHeader(line string) bool {
+func isSectionHeader(line string) bool {
 	line = strings.TrimSpace(line)
 	return strings.HasPrefix(line, SectionDivider) && strings.Count(line, SectionNameDivider) == 3
 }

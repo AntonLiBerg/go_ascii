@@ -43,7 +43,7 @@ func trimUIContent(lines []string) []string {
 func getNextUiSection(lines []string) []string {
 	section := []string{}
 	for _, line := range lines {
-		if isUISectionHeader(line) {
+		if isSectionHeader(line) {
 			break
 		}
 		section = append(section, line)

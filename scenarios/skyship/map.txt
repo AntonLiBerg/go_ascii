@@ -1,4 +1,4 @@
-===bridge: base,terminals_bridge
+===bridge:base,terminals_bridge
 -----------
 |    H    |
 |T   @    |
@@ -10,7 +10,7 @@ features
 - portal:0,comms,0
 - terminal:H,terminal_helm
 - terminal:T,terminal_scan
-===comms: base
+===comms:base
 -----0-----
 |         |
 |         |
@@ -19,7 +19,7 @@ features
 features
 - ground:floor
 - inputprofile:topdown
-===terminal_scan: terminal
+===terminal_scan:terminal
 ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
 ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
 ¤4¤                   ¤¤¤
@@ -42,7 +42,7 @@ features
 features
 - ground:void
 - inputprofile:terminal_scan
-===terminal_helm: terminal_controls
+===terminal_helm:terminal_controls
 ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
 ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
 ¤¤                        ¤¤
