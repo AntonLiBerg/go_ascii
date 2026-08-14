@@ -7,6 +7,19 @@ import (
 	"strings"
 )
 
+func isValidMapFile(roomLines []string) error {
+	if len(roomLines) == 0 {
+		return fmt.Errorf("roomLines is empty!")
+	}
+	if !isSectionHeader(roomLines[0]){
+		return fmt.Errorf("incorrect header!")
+	}
+	if helpers.Any(roomLines,func(s string)bool{return s == ""}){
+		return fmt.Errorf("room contains empty lines!")
+	}
+	return nil
+}
+
 func isUiFileValid(lines []string) error {
 	if len(lines) <= 1 {
 		return fmt.Errorf("empty file or just the header!")
