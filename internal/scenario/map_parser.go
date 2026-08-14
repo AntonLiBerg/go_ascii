@@ -40,13 +40,29 @@ func nGetRoomMap(mapText string) (Map, error){
 	groupOnHeader := group(lines,func(s string)bool{return isSectionHeader(s)})
 	for header,ls := range groupOnHeader{
 		roomName,compositions := makeRoomHeaderParts(header)
-		endOfAsciiIndex := slices.Index(ls,"feature")
-		asciiLines := ls[:endOfAsciiIndex]
-		roomAscii = makeAsciiRoom(asciiLines)
+		roomAscii := makeAsciiRoom(ls[:slices.Index(ls,"feature")])
 		asciiMap.Rooms[roomName] = roomAscii
+
+
 	}
 	
 
+}
+func makeFeaturesMap(lines []string)map[string][]string{
+	fMap := make(map[string][]string)
+	for _,line := range lines{
+		_,l,_ := strings.Cut(line,"- ")
+		name,vals,_ := strings.Cut(l,":")
+	}
+}
+
+func makeRoomHeaderParts(header string) (string,[]string){
+	if !isSectionHeader(header){
+		fmt.Errorf("not a header!")
+	}
+	_,afterDivider,_ :=strings.Cut(header,SectionDivider)
+	name,appendedGroups,_ := strings.Cut(afterDivider,":")
+	return name,strings.Split(appendedGroups,",")
 }
 func group(lines []string,f func(s string)bool)map[string][]string{
 	currentHeader:= lines[0]
