@@ -296,11 +296,24 @@ func nGetRoomMap(mapText string) (Map, error){
 		roomName,_ := makeRoomHeaderParts(s)
 		return roomName
 	})
+	for _,l := range lines{
+		if isSectionHeader(l){
+			roomName, groups := makeRoomHeaderParts(l)
+			asciiMap.RoomGroups[roomName] = groups
+		}
+	}
 	for roomName,ls := range groupOnName{
 		roomAscii := makeAsciiRoom(ls[:slices.Index(ls,"feature")])
 		asciiMap.Rooms[roomName] = roomAscii
 	}
+	if asciiMap, err := updateWithFeatures(groupOnName,asciiMap);err != nil{
+		return asciiMap,err
+	}
 
+
+	return asciiMap, nil
+}
+func updateWithFeatures(groupOnName map[string][]string,asciiMap Map) (Map,error){
 	for roomName,ls := range groupOnName{
 		features := makeFeaturesMap(helpers.SubSliceAfter(ls,"features"))
 
@@ -325,9 +338,29 @@ func nGetRoomMap(mapText string) (Map, error){
 				to := component.Position{Room: val[1], X: posTo[0], Y: posTo[1]}
 				asciiMap.Portals[from] = to
 				asciiMap.Portals[to] = from
+			case "terminal":
+				termPos,err := getPosPortal(asciiMap.Rooms[roomName],val[0])
+				if err != nil {
+					return asciiMap, fmt.Errorf("portal %q in room %q: %w", val[0], roomName, err)
+				}
+				tPos := component.Position{Room: roomName, X: termPos[0], Y: termPos[1]}
+				asciiMap.Terminals[tPos] = val[1]
+				break
+			case "selectableorder":
+				markers := make([]rune, 0, len(val))
+				for _, marker := range val {
+					marker = strings.TrimSpace(marker)
+					runes := []rune(marker)
+					if len(runes) != 1 {
+						return asciiMap, fmt.Errorf("invalid selectable marker %q in room %q: expected one character", marker, roomName)
+					}
+					markers = append(markers, runes[0])
+				}
+				asciiMap.SelectableOrder[roomName] = markers
 			}
 		}
 	}
+	return asciiMap, nil
 }
 func makeFeaturesMap(lines []string)map[string][]string{
 	fMap := make(map[string][]string)
