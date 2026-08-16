@@ -261,20 +261,7 @@ func findAsciiMapBounds(lines []string, sectionNames []string) (int, int) {
 	return start, end
 }
 
-func GetAsciiMap(mapText string) map[[2]int]rune {
-	mapText = strings.ReplaceAll(mapText, "\r\n", "\n")
-	mapText = strings.ReplaceAll(mapText, "\r", "\n")
-	lines := strings.Split(mapText, "\n")
-	sectionNames := make([]string, len(lines))
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		sectionNames[i] = strings.TrimLeft(trimmed, SectionNameDivider)
-	}
-	mapStart, mapEnd := findAsciiMapBounds(lines, sectionNames)
-	return asciiMapFromLines(lines[mapStart:mapEnd])
-}
-
-func nGetRoomMap(mapText string) (Map, error){
+func GetRoomMap(mapText string) (Map, error) {
 	asciiMap := Map{
 		Rooms:           make(map[string]map[[2]int]rune),
 		Ground:          make(map[string]string),
@@ -288,36 +275,35 @@ func nGetRoomMap(mapText string) (Map, error){
 	mapText = strings.ReplaceAll(mapText, "\r\n", "\n")
 	mapText = strings.ReplaceAll(mapText, "\r", "\n")
 	lines := strings.Split(strings.TrimRight(mapText, "\n"), "\n")
-	if err := isValidMapFile(lines); err != nil{
+	if err := isValidMapFile(lines); err != nil {
 		return asciiMap, err
 	}
 
-	groupOnName := group(lines,func(s string)bool{return isSectionHeader(s)},func(s string)string{
-		roomName,_ := makeRoomHeaderParts(s)
+	groupOnName := group(lines, func(s string) bool { return isSectionHeader(s) }, func(s string) string {
+		roomName, _ := makeRoomHeaderParts(s)
 		return roomName
 	})
-	for _,l := range lines{
-		if isSectionHeader(l){
+	for _, l := range lines {
+		if isSectionHeader(l) {
 			roomName, groups := makeRoomHeaderParts(l)
 			asciiMap.RoomGroups[roomName] = groups
 		}
 	}
-	for roomName,ls := range groupOnName{
-		roomAscii := makeAsciiRoom(ls[:slices.Index(ls,"feature")])
+	for roomName, ls := range groupOnName {
+		roomAscii := makeAsciiRoom(ls[:slices.Index(ls, "features")])
 		asciiMap.Rooms[roomName] = roomAscii
 	}
-	if asciiMap, err := updateWithFeatures(groupOnName,asciiMap);err != nil{
-		return asciiMap,err
+	if asciiMap, err := updateWithFeatures(groupOnName, asciiMap); err != nil {
+		return asciiMap, err
 	}
-
 
 	return asciiMap, nil
 }
-func updateWithFeatures(groupOnName map[string][]string,asciiMap Map) (Map,error){
-	for roomName,ls := range groupOnName{
-		features := makeFeaturesMap(helpers.SubSliceAfter(ls,"features"))
+func updateWithFeatures(groupOnName map[string][]string, asciiMap Map) (Map, error) {
+	for roomName, ls := range groupOnName {
+		features := makeFeaturesMap(helpers.SubSliceAfter(ls, "features"))
 
-		for f,val := range features{
+		for f, val := range features {
 			switch f {
 			case "ground":
 				asciiMap.Ground[roomName] = val[0]
@@ -339,9 +325,9 @@ func updateWithFeatures(groupOnName map[string][]string,asciiMap Map) (Map,error
 				asciiMap.Portals[from] = to
 				asciiMap.Portals[to] = from
 			case "terminal":
-				termPos,err := getPosPortal(asciiMap.Rooms[roomName],val[0])
+				termPos, err := getPosPortal(asciiMap.Rooms[roomName], val[0])
 				if err != nil {
-					return asciiMap, fmt.Errorf("portal %q in room %q: %w", val[0], roomName, err)
+					return asciiMap, fmt.Errorf("terminal %q in room %q: %w", val[0], roomName, err)
 				}
 				tPos := component.Position{Room: roomName, X: termPos[0], Y: termPos[1]}
 				asciiMap.Terminals[tPos] = val[1]
@@ -362,36 +348,36 @@ func updateWithFeatures(groupOnName map[string][]string,asciiMap Map) (Map,error
 	}
 	return asciiMap, nil
 }
-func makeFeaturesMap(lines []string)map[string][]string{
+func makeFeaturesMap(lines []string) map[string][]string {
 	fMap := make(map[string][]string)
-	for _,line := range lines{
-		_,l,_ := strings.Cut(line,"- ")
-		name,vals,_ := strings.Cut(l,":")
+	for _, line := range lines {
+		_, l, _ := strings.Cut(line, "- ")
+		name, vals, _ := strings.Cut(l, ":")
 		fMap[name] = strings.Split(vals, ",")
 	}
 	return fMap
 }
 
-func makeRoomHeaderParts(header string) (string,[]string){
-	if !isSectionHeader(header){
+func makeRoomHeaderParts(header string) (string, []string) {
+	if !isSectionHeader(header) {
 		fmt.Errorf("not a header!")
 	}
-	_,afterDivider,_ :=strings.Cut(header,SectionDivider)
-	name,appendedGroups,_ := strings.Cut(afterDivider,":")
-	return name,strings.Split(appendedGroups,",")
+	_, afterDivider, _ := strings.Cut(header, SectionDivider)
+	name, appendedGroups, _ := strings.Cut(afterDivider, ":")
+	return name, strings.Split(appendedGroups, ",")
 }
 
-func group(lines []string,f func(s string)bool,ft func(s string)string)map[string][]string{
-	currentHeader:= ""
+func group(lines []string, f func(s string) bool, ft func(s string) string) map[string][]string {
+	currentHeader := ""
 	group := make(map[string][]string)
-	for _,l := range lines{
-		if f(l){
+	for _, l := range lines {
+		if f(l) {
 			currentHeader = ft(l)
 			group[currentHeader] = []string{}
-		}else{
+		} else {
 			group[currentHeader] = append(group[currentHeader], l)
 		}
-	} 
+	}
 	return group
 }
 
@@ -408,7 +394,7 @@ func getPosPortal(room map[[2]int]rune, portal string) ([2]int, error) {
 	return [2]int{}, fmt.Errorf("marker %q not found", string(marker[0]))
 }
 
-func makeAsciiRoom(roomLines []string)map[[2]int]rune{
+func makeAsciiRoom(roomLines []string) map[[2]int]rune {
 	room := make(map[[2]int]rune)
 	for y, line := range roomLines {
 		for x, char := range []rune(line) {
@@ -417,7 +403,6 @@ func makeAsciiRoom(roomLines []string)map[[2]int]rune{
 	}
 	return room
 }
-
 
 func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]string, error) {
 	text := strings.ReplaceAll(uiFileText, "\r\n", "\n")

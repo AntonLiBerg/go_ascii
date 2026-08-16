@@ -2,7 +2,7 @@ package scenario
 
 import (
 	"fmt"
-	hlp "go_ascii/internal/helpers"
+	"go_ascii/internal/helpers"
 	"slices"
 	"strings"
 )
@@ -11,10 +11,10 @@ func isValidMapFile(roomLines []string) error {
 	if len(roomLines) == 0 {
 		return fmt.Errorf("roomLines is empty!")
 	}
-	if !isSectionHeader(roomLines[0]){
+	if !isSectionHeader(roomLines[0]) {
 		return fmt.Errorf("incorrect header!")
 	}
-	if helpers.Any(roomLines,func(s string)bool{return s == ""}){
+	if helpers.Any(roomLines, func(s string) bool { return s == "" }) {
 		return fmt.Errorf("room contains empty lines!")
 	}
 	return nil
@@ -42,27 +42,27 @@ func isUiFileValid(lines []string) error {
 	}
 
 	uiNonLayoutSections := lines[layoutEnd:]
-	sectionHeaders := hlp.Filter(uiNonLayoutSections, isSectionHeader)
-	sectionHeaders = hlp.Transform(sectionHeaders, func(header string) string {
+	sectionHeaders := helpers.Filter(uiNonLayoutSections, isSectionHeader)
+	sectionHeaders = helpers.Transform(sectionHeaders, func(header string) string {
 		return strings.TrimSpace(strings.TrimPrefix(header, SectionDivider))
 	})
 
 	if !slices.Contains(uiLayout, "room") {
 		return fmt.Errorf("layout does not contain required keyword room")
 	}
-	if !hlp.IsUnique(uiLayout) {
+	if !helpers.IsUnique(uiLayout) {
 		return fmt.Errorf("duplicate headers in layout!")
 	}
-	if !hlp.IsUnique(sectionHeaders) {
+	if !helpers.IsUnique(sectionHeaders) {
 		return fmt.Errorf("duplicate headers in UI file!")
 	}
-	if !hlp.IsAllS1InS2(sectionHeaders, uiLayout) {
+	if !helpers.IsAllS1InS2(sectionHeaders, uiLayout) {
 		return fmt.Errorf("some sections are not mentioned in the layout!")
 	}
-	uiSectionsInLayout := hlp.Filter(uiLayout, func(name string) bool {
+	uiSectionsInLayout := helpers.Filter(uiLayout, func(name string) bool {
 		return name != "room"
 	})
-	if !hlp.IsAllS1InS2(uiSectionsInLayout, sectionHeaders) {
+	if !helpers.IsAllS1InS2(uiSectionsInLayout, sectionHeaders) {
 		return fmt.Errorf("some sections mentioned in layout do not exist in the UI file")
 	}
 	return nil
