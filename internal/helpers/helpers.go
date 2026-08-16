@@ -44,6 +44,15 @@ func IsAllS1InS2(slice1 []string, slice2 []string) bool {
 	})
 }
 
+func SubSliceAfter[T comparable](values []T, target T) []T {
+	for i, value := range values {
+		if value == target {
+			return values[i+1:]
+		}
+	}
+	return nil
+}
+
 func IsUnique(values []string) bool {
 	seen := make(map[string]struct{}, len(values))
 	for _, value := range values {

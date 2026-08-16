@@ -3,6 +3,7 @@ package scenario
 import (
 	"fmt"
 	component "go_ascii/internal"
+	"go_ascii/internal/helpers"
 	"slices"
 	"strings"
 )
@@ -291,17 +292,33 @@ func nGetRoomMap(mapText string) (Map, error){
 		return asciiMap, err
 	}
 
-	groupOnHeader := group(lines,func(s string)bool{return isSectionHeader(s)})
-	for header,ls := range groupOnHeader{
-		roomName,compositions := makeRoomHeaderParts(header)
+	groupOnName := group(lines,func(s string)bool{return isSectionHeader(s)},func(s string)string{
+		roomName,_ := makeRoomHeaderParts(s)
+		return roomName
+	})
+	for roomName,ls := range groupOnName{
 		roomAscii := makeAsciiRoom(ls[:slices.Index(ls,"feature")])
 		asciiMap.Rooms[roomName] = roomAscii
 	}
-	for header,ls := range groupOnHeader{
-		features := strings.
+
+	for roomName,ls := range groupOnName{
+		features := makeFeaturesMap(helpers.SubSliceAfter(ls,"features"))
+
+		for f,val := range features{
+			switch f {
+			case "ground":
+				asciiMap.Ground[roomName] = val[0]
+				break
+			case "inputprofile":
+				asciiMap.InputProfiles[roomName] = val[0]
+				break
+			case "portal":
+				posFrom := getPosOfPortal(asciiMap.Rooms[roomName],val[0])
+				posTo := getPosOfPortal(asciiMap.Rooms[val[1]],val[2])
+				break
+			}
+		}
 	}
-
-
 }
 func makeFeaturesMap(lines []string)map[string][]string{
 	fMap := make(map[string][]string)
@@ -322,13 +339,12 @@ func makeRoomHeaderParts(header string) (string,[]string){
 	return name,strings.Split(appendedGroups,",")
 }
 
-func group(lines []string,f func(s string)bool)map[string][]string{
-	currentHeader:= lines[0]
-	lines = lines[1:]
+func group(lines []string,f func(s string)bool,ft func(s string)string)map[string][]string{
+	currentHeader:= ""
 	group := make(map[string][]string)
 	for _,l := range lines{
 		if f(l){
-			currentHeader = l
+			currentHeader = ft(l)
 			group[currentHeader] = []string{}
 		}else{
 			group[currentHeader] = append(group[currentHeader], l)
