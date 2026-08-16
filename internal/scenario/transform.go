@@ -313,9 +313,18 @@ func nGetRoomMap(mapText string) (Map, error){
 				asciiMap.InputProfiles[roomName] = val[0]
 				break
 			case "portal":
-				posFrom := getPosOfPortal(asciiMap.Rooms[roomName],val[0])
-				posTo := getPosOfPortal(asciiMap.Rooms[val[1]],val[2])
-				break
+				posFrom, err := getPosPortal(asciiMap.Rooms[roomName], val[0])
+				if err != nil {
+					return asciiMap, fmt.Errorf("portal %q in room %q: %w", val[0], roomName, err)
+				}
+				posTo, err := getPosPortal(asciiMap.Rooms[val[1]], val[2])
+				if err != nil {
+					return asciiMap, fmt.Errorf("portal %q in room %q: %w", val[2], val[1], err)
+				}
+				from := component.Position{Room: roomName, X: posFrom[0], Y: posFrom[1]}
+				to := component.Position{Room: val[1], X: posTo[0], Y: posTo[1]}
+				asciiMap.Portals[from] = to
+				asciiMap.Portals[to] = from
 			}
 		}
 	}
@@ -351,6 +360,19 @@ func group(lines []string,f func(s string)bool,ft func(s string)string)map[strin
 		}
 	} 
 	return group
+}
+
+func getPosPortal(room map[[2]int]rune, portal string) ([2]int, error) {
+	marker := []rune(strings.TrimSpace(portal))
+	if len(marker) == 0 {
+		return [2]int{}, fmt.Errorf("portal marker is empty")
+	}
+	for position, value := range room {
+		if value == marker[0] {
+			return position, nil
+		}
+	}
+	return [2]int{}, fmt.Errorf("marker %q not found", string(marker[0]))
 }
 
 func makeAsciiRoom(roomLines []string)map[[2]int]rune{
