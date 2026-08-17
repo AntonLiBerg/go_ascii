@@ -65,15 +65,15 @@ func NewWorldEmpty() World {
 	}
 }
 
-func NewWorld(asciiMap scenario.Map, entities map[rune]string, components map[string]map[string][]string, inputProfiles map[string]map[string]string) (World, error) {
+func NewWorld(asciiMap scenario.FileMap, entities map[rune]string, components map[string]map[string][]string, inputProfiles map[string]map[string]string) (World, error) {
 	return newWorld(asciiMap, entities, components, inputProfiles, nil, nil)
 }
 
-func NewWorldWithUI(asciiMap scenario.Map, entities map[rune]string, components map[string]map[string][]string, inputProfiles map[string]map[string]string, uiLayout []string, uis []string) (World, error) {
+func NewWorldWithUI(asciiMap scenario.FileMap, entities map[rune]string, components map[string]map[string][]string, inputProfiles map[string]map[string]string, uiLayout []string, uis []string) (World, error) {
 	return newWorld(asciiMap, entities, components, inputProfiles, uiLayout, uis)
 }
 
-func newWorld(asciiMap scenario.Map, entities map[rune]string, components map[string]map[string][]string, inputProfiles map[string]map[string]string, uiLayout []string, uis []string) (World, error) {
+func newWorld(asciiMap scenario.FileMap, entities map[rune]string, components map[string]map[string][]string, inputProfiles map[string]map[string]string, uiLayout []string, uis []string) (World, error) {
 	world := NewWorldEmpty()
 	world.UILayout = slices.Clone(uiLayout)
 	world.UIs = slices.Clone(uis)
