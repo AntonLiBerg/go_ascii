@@ -2,7 +2,6 @@ package scenario
 
 import (
 	"fmt"
-	AI "go_ascii/AI_workspace"
 	component "go_ascii/internal"
 	"go_ascii/internal/helpers"
 	"slices"
@@ -36,7 +35,7 @@ func ParseContentFile(contentText string) (FileContent, error) {
 	contentText = strings.ReplaceAll(contentText, "\r\n", "\n")
 	contentText = strings.ReplaceAll(contentText, "\r", "\n")
 	lines := strings.Split(strings.TrimRight(contentText, "\n"), "\n")
-	if err := AI.IsValidContentFile(lines); err != nil {
+	if err := IsValidContentFile(lines); err != nil {
 		return contentMap, err
 	}
 	groupByName := group(lines, func(s string) bool { return isSectionHeader(s) }, func(s string) string {
@@ -44,31 +43,133 @@ func ParseContentFile(contentText string) (FileContent, error) {
 	})
 	for name, ls := range groupByName {
 		if name == SectionNameInputProfile {
-			if nInpProfiles, err := AI.MakeInputProfiles(ls); err != nil {
+			if nInpProfiles, err := MakeInputProfiles(ls); err != nil {
 				return contentMap, err
 			} else {
 				contentMap.inputProfiles = nInpProfiles
 			}
 			continue
 		}
-		if nEntities, err := AI.AppendEntities(ls, contentMap.entities); err != nil {
+		if nEntities, err := AppendEntities(ls, contentMap.entities); err != nil {
 			return contentMap, err
 		} else {
 			contentMap.entities = nEntities
 		}
-		if nComps, err := AI.AppendComponents(contentMap, ls); err != nil {
+		if nComps, err := AppendComponents(contentMap, ls); err != nil {
 			return contentMap, err
 		} else {
 			contentMap.components = nComps
 		}
 
-		if nGroups, err := AI.AppendGroups(contentMap, name, ls); err != nil {
+		if nGroups, err := AppendGroups(contentMap, name, ls); err != nil {
 			return contentMap, err
 		} else {
 			contentMap.groups = nGroups
 		}
 	}
 	return contentMap, nil
+}
+
+func MakeInputProfiles(lines []string) (map[string]map[string]string, error) {
+	profiles := make(map[string]map[string]string)
+	currentProfile := ""
+	for _, rawLine := range lines {
+		line := strings.TrimSpace(rawLine)
+		if !strings.HasPrefix(line, "- ") {
+			currentProfile = line
+			profiles[currentProfile] = make(map[string]string)
+			continue
+		}
+		binding := strings.TrimSpace(strings.TrimPrefix(line, "- "))
+		action, button, _ := strings.Cut(binding, ":")
+		if !strings.Contains(binding, ":") {
+			action, button, _ = strings.Cut(binding, "=")
+		}
+		action = strings.TrimSpace(action)
+		button = strings.TrimSpace(button)
+		if action == InputProfileTypeName {
+			button = normalizeInputProfileType(button)
+		}
+		profiles[currentProfile][action] = button
+	}
+	return profiles, nil
+}
+
+func MakeEntities(lines []string) (map[rune]string, error) {
+	entities := make(map[rune]string)
+	for _, rawLine := range lines {
+		line := strings.TrimSpace(rawLine)
+		if line == "" || strings.HasPrefix(line, "- ") {
+			continue
+		}
+		keyText, name, _ := strings.Cut(line, ":")
+		key := []rune(strings.TrimSpace(keyText))
+		entities[key[0]] = strings.TrimSpace(name)
+	}
+	return entities, nil
+}
+
+func AppendEntities(lines []string, existing map[rune]string) (map[rune]string, error) {
+	entities := make(map[rune]string, len(existing))
+	for key, name := range existing {
+		entities[key] = name
+	}
+	parsed, _ := MakeEntities(lines)
+	for key, name := range parsed {
+		entities[key] = name
+	}
+	return entities, nil
+}
+
+func AppendComponents(contentMap FileContent, lines []string) (map[string]map[string][]string, error) {
+	components := make(map[string]map[string][]string, len(contentMap.components))
+	for entity, values := range contentMap.components {
+		components[entity] = make(map[string][]string, len(values))
+		for name, values := range values {
+			components[entity][name] = append([]string(nil), values...)
+		}
+	}
+	currentEntity := ""
+	for _, rawLine := range lines {
+		line := strings.TrimSpace(rawLine)
+		if !strings.HasPrefix(line, "- ") {
+			_, name, _ := strings.Cut(line, ":")
+			currentEntity = strings.TrimSpace(name)
+			if _, exists := components[currentEntity]; !exists {
+				components[currentEntity] = make(map[string][]string)
+			}
+			continue
+		}
+		componentText := strings.TrimSpace(strings.TrimPrefix(line, "- "))
+		name, valuesText, ok := strings.Cut(componentText, ":")
+		if !ok {
+			name, valuesText, _ = strings.Cut(componentText, "=")
+		}
+		values := make([]string, 0)
+		for _, value := range strings.Split(valuesText, ",") {
+			if value = strings.TrimSpace(value); value != "" {
+				values = append(values, value)
+			}
+		}
+		components[currentEntity][strings.TrimSpace(name)] = values
+	}
+	return components, nil
+}
+
+func AppendGroups(contentMap FileContent, name string, lines []string) (map[string]map[rune]struct{}, error) {
+	groups := make(map[string]map[rune]struct{}, len(contentMap.groups)+1)
+	for groupName, members := range contentMap.groups {
+		groups[groupName] = make(map[rune]struct{}, len(members))
+		for member := range members {
+			groups[groupName][member] = struct{}{}
+		}
+	}
+	groups[name] = make(map[rune]struct{})
+	parsed, _ := MakeEntities(lines)
+	for member := range parsed {
+		groups[name][member] = struct{}{}
+	}
+	return groups, nil
 }
 
 func GetRoomMap(mapText string) (FileMap, error) {

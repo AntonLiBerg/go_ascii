@@ -7,6 +7,105 @@ import (
 	"strings"
 )
 
+func IsValidContentFile(lines []string) error {
+	if len(lines) == 0 {
+		return fmt.Errorf("content file is empty")
+	}
+
+	sections := make(map[string]struct{})
+	entities := make(map[rune]string)
+	entityNames := make(map[string]struct{})
+	currentSection, currentEntity, currentProfile := "", "", ""
+	components := make(map[string]map[string]struct{})
+	profiles := make(map[string]struct{})
+	bindings := make(map[string]map[string]struct{})
+
+	for lineIndex, rawLine := range lines {
+		lineNumber := lineIndex + 1
+		line := strings.TrimSpace(rawLine)
+		if line == "" {
+			return fmt.Errorf("content file contains an empty line at line %d", lineNumber)
+		}
+		if isSectionHeader(line) {
+			name := strings.TrimSpace(strings.TrimPrefix(line, SectionDivider))
+			if name == "" {
+				return fmt.Errorf("section header on line %d has no name", lineNumber)
+			}
+			if _, exists := sections[name]; exists {
+				return fmt.Errorf("duplicate content section %q", name)
+			}
+			sections[name] = struct{}{}
+			currentSection, currentEntity, currentProfile = name, "", ""
+			continue
+		}
+		if currentSection == "" {
+			return fmt.Errorf("content on line %d has no section", lineNumber)
+		}
+
+		if currentSection == SectionNameInputProfile {
+			if !strings.HasPrefix(line, "- ") {
+				if _, exists := profiles[line]; exists {
+					return fmt.Errorf("duplicate input profile %q", line)
+				}
+				profiles[line] = struct{}{}
+				bindings[line] = make(map[string]struct{})
+				currentProfile = line
+				continue
+			}
+			binding := strings.TrimSpace(strings.TrimPrefix(line, "- "))
+			action, button, ok := strings.Cut(binding, ":")
+			if !ok {
+				action, button, ok = strings.Cut(binding, "=")
+			}
+			action, button = strings.TrimSpace(action), strings.TrimSpace(button)
+			if currentProfile == "" || !ok || action == "" || button == "" {
+				return fmt.Errorf("invalid input binding on line %d", lineNumber)
+			}
+			if _, exists := bindings[currentProfile][action]; exists {
+				return fmt.Errorf("duplicate input binding %q for profile %q", action, currentProfile)
+			}
+			bindings[currentProfile][action] = struct{}{}
+			continue
+		}
+
+		if strings.HasPrefix(line, "- ") {
+			if currentEntity == "" {
+				return fmt.Errorf("component on line %d has no entity", lineNumber)
+			}
+			componentText := strings.TrimSpace(strings.TrimPrefix(line, "- "))
+			componentName := componentText
+			if separator := strings.IndexAny(componentText, ":="); separator >= 0 {
+				componentName = strings.TrimSpace(componentText[:separator])
+			}
+			if componentName == "" {
+				return fmt.Errorf("invalid component on line %d", lineNumber)
+			}
+			if _, exists := components[currentEntity][componentName]; exists {
+				return fmt.Errorf("duplicate component %q for entity %q", componentName, currentEntity)
+			}
+			components[currentEntity][componentName] = struct{}{}
+			continue
+		}
+
+		keyText, name, ok := strings.Cut(line, ":")
+		key := []rune(strings.TrimSpace(keyText))
+		name = strings.TrimSpace(name)
+		if !ok || len(key) != 1 || name == "" {
+			return fmt.Errorf("invalid entity header on line %d", lineNumber)
+		}
+		if existing, exists := entities[key[0]]; exists {
+			return fmt.Errorf("duplicate entity key %q for %q and %q", key[0], existing, name)
+		}
+		if _, exists := entityNames[name]; exists {
+			return fmt.Errorf("duplicate entity name %q", name)
+		}
+		entities[key[0]], entityNames[name] = name, struct{}{}
+		currentEntity = name
+		components[name] = make(map[string]struct{})
+	}
+	return nil
+}
+
 func isValidMapFile(roomLines []string) error {
 	if len(roomLines) == 0 {
 		return fmt.Errorf("roomLines is empty!")
