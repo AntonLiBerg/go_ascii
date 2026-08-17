@@ -78,7 +78,7 @@ func TestAddEntityRequiresOneInteractionType(t *testing.T) {
 
 func TestNewWorldBuildsGroundAndRoomEntities(t *testing.T) {
 	gameWorld, err := world.NewWorld(
-		scenario.Map{
+		scenario.FileMap{
 			Rooms:         map[string]map[[2]int]rune{"bridge": {{1, 1}: 'o'}},
 			Ground:        map[string]string{"bridge": "floor"},
 			InputProfiles: map[string]string{"bridge": "topdown"},
@@ -113,13 +113,13 @@ func TestNewWorldBuildsGroundAndRoomEntities(t *testing.T) {
 }
 
 func TestNewWorldRejectsEmptyRooms(t *testing.T) {
-	if _, err := world.NewWorld(scenario.Map{}, nil, nil, nil); err == nil {
+	if _, err := world.NewWorld(scenario.FileMap{}, nil, nil, nil); err == nil {
 		t.Fatal("expected empty room error")
 	}
 }
 
 func TestNewWorldRequiresExactlyOnePlayer(t *testing.T) {
-	baseMap := scenario.Map{
+	baseMap := scenario.FileMap{
 		Rooms:         map[string]map[[2]int]rune{"room": {{0, 0}: '.'}},
 		Ground:        map[string]string{"room": "floor"},
 		InputProfiles: map[string]string{"room": "topdown"},
@@ -140,7 +140,7 @@ func TestNewWorldRequiresExactlyOnePlayer(t *testing.T) {
 
 func TestNewWorldRejectsReferencedEntityWithoutDefinition(t *testing.T) {
 	_, err := world.NewWorld(
-		scenario.Map{
+		scenario.FileMap{
 			Rooms:         map[string]map[[2]int]rune{"room": {{0, 0}: 'x'}},
 			Ground:        map[string]string{"room": "floor"},
 			InputProfiles: map[string]string{"room": "topdown"},
@@ -156,7 +156,7 @@ func TestNewWorldRejectsReferencedEntityWithoutDefinition(t *testing.T) {
 
 func TestNewWorldSelectsPlayerRoom(t *testing.T) {
 	gameWorld, err := world.NewWorld(
-		scenario.Map{
+		scenario.FileMap{
 			Rooms:         map[string]map[[2]int]rune{"aaa": {{0, 0}: '.'}, "zzz": {{0, 0}: 'o'}},
 			Ground:        map[string]string{"aaa": "floor", "zzz": "floor"},
 			InputProfiles: map[string]string{"aaa": "topdown", "zzz": "topdown"},
@@ -178,7 +178,7 @@ func TestNewWorldSelectsPlayerRoom(t *testing.T) {
 
 func TestNewWorldRejectsUndefinedMapKey(t *testing.T) {
 	_, err := world.NewWorld(
-		scenario.Map{
+		scenario.FileMap{
 			Rooms:         map[string]map[[2]int]rune{"room": {{0, 0}: 'X'}},
 			Ground:        map[string]string{"room": "floor"},
 			InputProfiles: map[string]string{"room": "topdown"},
@@ -195,7 +195,7 @@ func TestNewWorldRejectsUndefinedMapKey(t *testing.T) {
 func TestNewWorldBuildsTerminalRoomFromLiteralASCII(t *testing.T) {
 	terminalPosition := component.Position{Room: "comms", X: 0, Y: 0}
 	gameWorld, err := world.NewWorld(
-		scenario.Map{
+		scenario.FileMap{
 			Rooms: map[string]map[[2]int]rune{
 				"comms": {{0, 0}: 'T', {1, 0}: '@'},
 				"scan":  {{0, 0}: '+', {1, 0}: 'A'},
@@ -241,7 +241,7 @@ func TestNewWorldBuildsTerminalRoomFromLiteralASCII(t *testing.T) {
 func TestNewWorldRejectsTerminalProfileWithoutExit(t *testing.T) {
 	terminalPosition := component.Position{Room: "comms", X: 0, Y: 0}
 	_, err := world.NewWorld(
-		scenario.Map{
+		scenario.FileMap{
 			Rooms: map[string]map[[2]int]rune{
 				"comms": {{0, 0}: 'T', {1, 0}: '@'},
 				"scan":  {{0, 0}: '+'},

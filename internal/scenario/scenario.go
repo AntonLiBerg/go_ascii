@@ -17,7 +17,7 @@ const (
 	inputProfileTypePrefix  string = "profiletype"
 )
 
-type Map struct {
+type FileMap struct {
 	Rooms           map[string]map[[2]int]rune
 	Ground          map[string]string
 	InputProfiles   map[string]string
@@ -30,30 +30,30 @@ type Map struct {
 	UIContent       map[string][]string
 }
 
-func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePaths ...string) (Map, map[rune]string, map[string]map[string][]string, map[string]map[string]string, []string, []string, error) {
+func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePaths ...string) (FileMap, map[rune]string, map[string]map[string][]string, map[string]map[string]string, []string, []string, error) {
 	if !hasAtMostOneUIFilePath(uiFilePaths) {
-		return Map{}, nil, nil, nil, nil, nil, fmt.Errorf("expected at most one UI file path")
+		return FileMap{}, nil, nil, nil, nil, nil, fmt.Errorf("expected at most one UI file path")
 	}
 	mapContent, err := os.ReadFile(mapFilePath)
 	if err != nil {
-		return Map{}, nil, nil, nil, nil, nil, err
+		return FileMap{}, nil, nil, nil, nil, nil, err
 	}
 	content, err := os.ReadFile(contentFilePath)
 	if err != nil {
-		return Map{}, nil, nil, nil, nil, nil, err
+		return FileMap{}, nil, nil, nil, nil, nil, err
 	}
 	asciiMap, err := GetRoomMap(string(mapContent))
 	if err != nil {
-		return Map{}, nil, nil, nil, nil, nil, err
+		return FileMap{}, nil, nil, nil, nil, nil, err
 	}
 	entities, components, inputProfiles, groups, err := getEntitiesAndInputProfiles(string(content))
 	if err != nil {
-		return Map{}, nil, nil, nil, nil, nil, err
+		return FileMap{}, nil, nil, nil, nil, nil, err
 	}
 	terminalRooms := terminalRoomsFromTerminals(asciiMap.Terminals)
 	roomName, groupName, valid := findMissingRoomGroup(asciiMap.RoomGroups, groups, terminalRooms)
 	if !valid {
-		return Map{}, nil, nil, nil, nil, nil, fmt.Errorf("group %q for room %q does not exist", groupName, roomName)
+		return FileMap{}, nil, nil, nil, nil, nil, fmt.Errorf("group %q for room %q does not exist", groupName, roomName)
 	}
 	asciiMap = withEntityGroups(asciiMap, entityGroupsFromRoomGroups(asciiMap.RoomGroups, groups))
 	if len(uiFilePaths) == 0 {
@@ -61,11 +61,11 @@ func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath
 	}
 	uiFileContent, err := os.ReadFile(uiFilePaths[0])
 	if err != nil {
-		return Map{}, nil, nil, nil, nil, nil, err
+		return FileMap{}, nil, nil, nil, nil, nil, err
 	}
 	layout, uis, uiContent, err := getUiLayoutAndUIs(string(uiFileContent))
 	if err != nil {
-		return Map{}, nil, nil, nil, nil, nil, err
+		return FileMap{}, nil, nil, nil, nil, nil, err
 	}
 	asciiMap = withUI(asciiMap, layout, uiContent)
 	return asciiMap, entities, components, inputProfiles, layout, uis, nil
