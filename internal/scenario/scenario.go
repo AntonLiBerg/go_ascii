@@ -7,14 +7,23 @@ import (
 )
 
 const (
-	SectionNameEntity       string = "ENTITY"
-	SectionNameInputProfile string = "INPUTPROFILE"
-	SectionNameMap          string = "MAP"
-	SectionNameUILayout     string = "layout"
-	SectionNameDivider      string = "="
-	SectionDivider          string = SectionNameDivider + SectionNameDivider + SectionNameDivider
-	inputProfileTypeName    string = "profiletype"
-	inputProfileTypePrefix  string = "profiletype"
+	SectionNameEntity        string = "ENTITY"
+	SectionNameInputProfile  string = "INPUTPROFILE"
+	SectionNameMap           string = "MAP"
+	SectionNameUILayout      string = "layout"
+	SectionNameDivider       string = "="
+	SectionDivider           string = "==="
+	SectionNameFeatures      string = "features"
+	FeatureGround            string = "ground"
+	FeatureInputProfile      string = "inputprofile"
+	FeaturePortal            string = "portal"
+	FeatureTerminal          string = "terminal"
+	FeatureSelectableOrder   string = "selectableorder"
+	UILayoutRoom             string = "room"
+	InputProfileTypeName     string = "profiletype"
+	InputProfileTypeNone     string = "none"
+	InputProfileTypeTerminal string = "terminal"
+	InputProfileTypeControl  string = "control"
 )
 
 type FileMap struct {

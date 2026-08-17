@@ -41,7 +41,7 @@ func isValidMapFile(roomLines []string) error {
 			return fmt.Errorf("map content on line %d has no room", lineNumber+1)
 		}
 
-		if line == "features" {
+		if line == SectionNameFeatures {
 			if featuresFound {
 				return fmt.Errorf("duplicate features section in room %q", currentRoom)
 			}
@@ -74,19 +74,19 @@ func isValidMapFile(roomLines []string) error {
 			}
 		}
 		switch name {
-		case "ground", "inputprofile":
+		case FeatureGround, FeatureInputProfile:
 			if len(args) != 1 {
 				return fmt.Errorf("feature %q on line %d expects 1 value", name, lineNumber+1)
 			}
-		case "portal":
+		case FeaturePortal:
 			if len(args) != 3 {
 				return fmt.Errorf("feature %q on line %d expects 3 values", name, lineNumber+1)
 			}
-		case "terminal":
+		case FeatureTerminal:
 			if len(args) != 2 {
 				return fmt.Errorf("feature %q on line %d expects 2 values", name, lineNumber+1)
 			}
-		case "selectableorder":
+		case FeatureSelectableOrder:
 			if len(args) == 0 {
 				return fmt.Errorf("feature %q on line %d requires a value", name, lineNumber+1)
 			}
@@ -124,7 +124,7 @@ func isUiFileValid(lines []string) error {
 		return strings.TrimSpace(strings.TrimPrefix(header, SectionDivider))
 	})
 
-	if !slices.Contains(uiLayout, "room") {
+	if !slices.Contains(uiLayout, UILayoutRoom) {
 		return fmt.Errorf("layout does not contain required keyword room")
 	}
 	if !helpers.IsUnique(uiLayout) {
@@ -137,7 +137,7 @@ func isUiFileValid(lines []string) error {
 		return fmt.Errorf("some sections are not mentioned in the layout!")
 	}
 	uiSectionsInLayout := helpers.Filter(uiLayout, func(name string) bool {
-		return name != "room"
+		return name != UILayoutRoom
 	})
 	if !helpers.IsAllS1InS2(uiSectionsInLayout, sectionHeaders) {
 		return fmt.Errorf("some sections mentioned in layout do not exist in the UI file")

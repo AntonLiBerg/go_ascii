@@ -2,30 +2,31 @@ package scenario
 
 import (
 	"fmt"
+	AI "go_ascii/AI_workspace"
 	component "go_ascii/internal"
 	"go_ascii/internal/helpers"
 	"slices"
 	"strings"
-	AI "go_ascii/AI_workspace"
-
 )
 
 func normalizeInputProfileType(value string) string {
 	switch value {
-	case "none", "terminal", "control":
-		return inputProfileTypePrefix + value
+	case InputProfileTypeNone, InputProfileTypeTerminal, InputProfileTypeControl:
+		return InputProfileTypeName + value
 	default:
 		return value
 	}
 }
-type FileContent struct{
+
+type FileContent struct {
 	entities      map[rune]string
 	components    map[string]map[string][]string
 	inputProfiles map[string]map[string]string
 	groups        map[string]map[rune]struct{}
 }
-func ParseContentFile(contentText string) (FileContent,error) {
-	contentMap := FileContent {
+
+func ParseContentFile(contentText string) (FileContent, error) {
+	contentMap := FileContent{
 		entities:      make(map[rune]string),
 		components:    make(map[string]map[string][]string),
 		inputProfiles: make(map[string]map[string]string),
@@ -35,39 +36,39 @@ func ParseContentFile(contentText string) (FileContent,error) {
 	contentText = strings.ReplaceAll(contentText, "\r\n", "\n")
 	contentText = strings.ReplaceAll(contentText, "\r", "\n")
 	lines := strings.Split(strings.TrimRight(contentText, "\n"), "\n")
-	if err := AI.IsValidContentFile(lines); err != nil{
-		return contentMap,err
+	if err := AI.IsValidContentFile(lines); err != nil {
+		return contentMap, err
 	}
-	groupByName := group(lines,func(s string)bool{return isSectionHeader(s)},func(s string)string{
-		return strings.Split(s,SectionDivider)[0]
+	groupByName := group(lines, func(s string) bool { return isSectionHeader(s) }, func(s string) string {
+		return strings.Split(s, SectionDivider)[0]
 	})
-	for name,ls := range groupByName {
-		if name == SectionNameInputProfile{
-			if nInpProfiles,err := AI.MakeInputProfiles(ls); err != nil{
-				return contentMap,err
-			}else{
+	for name, ls := range groupByName {
+		if name == SectionNameInputProfile {
+			if nInpProfiles, err := AI.MakeInputProfiles(ls); err != nil {
+				return contentMap, err
+			} else {
 				contentMap.inputProfiles = nInpProfiles
 			}
 			continue
 		}
-		if nEntities,err := AI.AppendEntities(ls,contentMap.entities); err != nil{
-			return contentMap,err
-		}else{
+		if nEntities, err := AI.AppendEntities(ls, contentMap.entities); err != nil {
+			return contentMap, err
+		} else {
 			contentMap.entities = nEntities
 		}
-		if nComps,err := AI.AppendComponents(contentMap,ls);err != nil{
-			return contentMap,err
-		}else{
+		if nComps, err := AI.AppendComponents(contentMap, ls); err != nil {
+			return contentMap, err
+		} else {
 			contentMap.components = nComps
 		}
 
-		if nGroups,err := AI.AppendGroups(contentMap,name,ls);err != nil{
-			return contentMap,err
-		}else{
+		if nGroups, err := AI.AppendGroups(contentMap, name, ls); err != nil {
+			return contentMap, err
+		} else {
 			contentMap.groups = nGroups
 		}
 	}
-	return contentMap,nil
+	return contentMap, nil
 }
 
 func GetRoomMap(mapText string) (FileMap, error) {
@@ -99,7 +100,7 @@ func GetRoomMap(mapText string) (FileMap, error) {
 		}
 	}
 	for roomName, ls := range groupOnName {
-		roomAscii := makeAsciiRoom(ls[:slices.Index(ls, "features")])
+		roomAscii := makeAsciiRoom(ls[:slices.Index(ls, SectionNameFeatures)])
 		asciiMap.Rooms[roomName] = roomAscii
 	}
 	if asciiMap, err := updateWithFeatures(groupOnName, asciiMap); err != nil {
@@ -163,7 +164,7 @@ func findMissingRoomGroup(roomGroups map[string][]string, groups map[string]map[
 			if _, exists := groups[groupName]; exists {
 				continue
 			}
-			if groupName == "terminal" {
+			if groupName == FeatureTerminal {
 				if _, isTerminal := terminalRooms[roomName]; isTerminal {
 					continue
 				}
@@ -206,17 +207,17 @@ func findAsciiMapBounds(lines []string, sectionNames []string) (int, int) {
 
 func updateWithFeatures(groupOnName map[string][]string, asciiMap FileMap) (FileMap, error) {
 	for roomName, ls := range groupOnName {
-		features := makeFeaturesMap(helpers.SubSliceAfter(ls, "features"))
+		features := makeFeaturesMap(helpers.SubSliceAfter(ls, SectionNameFeatures))
 
 		for f, val := range features {
 			switch f {
-			case "ground":
+			case FeatureGround:
 				asciiMap.Ground[roomName] = val[0]
 				break
-			case "inputprofile":
+			case FeatureInputProfile:
 				asciiMap.InputProfiles[roomName] = val[0]
 				break
-			case "portal":
+			case FeaturePortal:
 				posFrom, err := getPosPortal(asciiMap.Rooms[roomName], val[0])
 				if err != nil {
 					return asciiMap, fmt.Errorf("portal %q in room %q: %w", val[0], roomName, err)
@@ -229,7 +230,7 @@ func updateWithFeatures(groupOnName map[string][]string, asciiMap FileMap) (File
 				to := component.Position{Room: val[1], X: posTo[0], Y: posTo[1]}
 				asciiMap.Portals[from] = to
 				asciiMap.Portals[to] = from
-			case "terminal":
+			case FeatureTerminal:
 				termPos, err := getPosPortal(asciiMap.Rooms[roomName], val[0])
 				if err != nil {
 					return asciiMap, fmt.Errorf("terminal %q in room %q: %w", val[0], roomName, err)
@@ -237,7 +238,7 @@ func updateWithFeatures(groupOnName map[string][]string, asciiMap FileMap) (File
 				tPos := component.Position{Room: roomName, X: termPos[0], Y: termPos[1]}
 				asciiMap.Terminals[tPos] = val[1]
 				break
-			case "selectableorder":
+			case FeatureSelectableOrder:
 				markers := make([]rune, 0, len(val))
 				for _, marker := range val {
 					marker = strings.TrimSpace(marker)
@@ -328,7 +329,7 @@ func getUiLayoutAndUIs(uiFileText string) ([]string, []string, map[string][]stri
 
 	uis := make([]string, 0, len(uiLayout))
 	for _, name := range uiLayout {
-		if name != "room" {
+		if name != UILayoutRoom {
 			uis = append(uis, name)
 		}
 	}
