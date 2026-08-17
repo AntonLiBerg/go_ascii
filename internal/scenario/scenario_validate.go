@@ -160,7 +160,7 @@ func isValidMapFile(roomLines []string) error {
 			return fmt.Errorf("invalid feature on line %d", lineNumber+1)
 		}
 		name = strings.TrimSpace(name)
-		if _, exists := features[name]; exists {
+		if _, exists := features[name]; exists && name != FeatureTerminal {
 			return fmt.Errorf("duplicate feature %q in room %q", name, currentRoom)
 		}
 		features[name] = struct{}{}
