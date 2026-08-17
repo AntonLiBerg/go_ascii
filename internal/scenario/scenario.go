@@ -55,10 +55,14 @@ func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath
 	if err != nil {
 		return FileMap{}, nil, nil, nil, nil, nil, err
 	}
-	entities, components, inputProfiles, groups, err := getEntitiesAndInputProfiles(string(content))
+	contentMap, err := ParseContentFile(string(content))
 	if err != nil {
 		return FileMap{}, nil, nil, nil, nil, nil, err
 	}
+	entities := contentMap.entities
+	components := contentMap.components
+	inputProfiles := contentMap.inputProfiles
+	groups := contentMap.groups
 	terminalRooms := terminalRoomsFromTerminals(asciiMap.Terminals)
 	roomName, groupName, valid := findMissingRoomGroup(asciiMap.RoomGroups, groups, terminalRooms)
 	if !valid {
