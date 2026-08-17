@@ -38,9 +38,7 @@ func ParseContentFile(contentText string) (FileContent, error) {
 	if err := IsValidContentFile(lines); err != nil {
 		return contentMap, err
 	}
-	groupByName := group(lines, func(s string) bool { return isSectionHeader(s) }, func(s string) string {
-		return strings.Split(s, SectionDivider)[0]
-	})
+	groupByName := group(lines, func(s string) bool { return isSectionHeader(s) }, sectionName)
 	for name, ls := range groupByName {
 		if name == SectionNameInputProfile {
 			if nInpProfiles, err := MakeInputProfiles(ls); err != nil {
@@ -148,6 +146,9 @@ func AppendComponents(contentMap FileContent, lines []string) (map[string]map[st
 		values := make([]string, 0)
 		for _, value := range strings.Split(valuesText, ",") {
 			if value = strings.TrimSpace(value); value != "" {
+				if value == "SPACE" {
+					value = " "
+				}
 				values = append(values, value)
 			}
 		}
@@ -332,12 +333,14 @@ func updateWithFeatures(groupOnName map[string][]string, asciiMap FileMap) (File
 				asciiMap.Portals[from] = to
 				asciiMap.Portals[to] = from
 			case FeatureTerminal:
-				termPos, err := getPosPortal(asciiMap.Rooms[roomName], val[0])
-				if err != nil {
-					return asciiMap, fmt.Errorf("terminal %q in room %q: %w", val[0], roomName, err)
+				for i := 0; i+1 < len(val); i += 2 {
+					termPos, err := getPosPortal(asciiMap.Rooms[roomName], val[i])
+					if err != nil {
+						return asciiMap, fmt.Errorf("terminal %q in room %q: %w", val[i], roomName, err)
+					}
+					tPos := component.Position{Room: roomName, X: termPos[0], Y: termPos[1]}
+					asciiMap.Terminals[tPos] = val[i+1]
 				}
-				tPos := component.Position{Room: roomName, X: termPos[0], Y: termPos[1]}
-				asciiMap.Terminals[tPos] = val[1]
 				break
 			case FeatureSelectableOrder:
 				markers := make([]rune, 0, len(val))
@@ -360,18 +363,42 @@ func makeFeaturesMap(lines []string) map[string][]string {
 	for _, line := range lines {
 		_, l, _ := strings.Cut(line, "- ")
 		name, vals, _ := strings.Cut(l, ":")
-		fMap[name] = strings.Split(vals, ",")
+		name = strings.TrimSpace(name)
+		values := strings.Split(vals, ",")
+		for i := range values {
+			values[i] = strings.TrimSpace(values[i])
+		}
+		if name == FeatureTerminal {
+			fMap[name] = append(fMap[name], values...)
+		} else {
+			fMap[name] = values
+		}
 	}
 	return fMap
+}
+
+func sectionName(header string) string {
+	name := strings.TrimPrefix(strings.TrimSpace(header), SectionDivider)
+	name = strings.TrimPrefix(name, SectionNameDivider)
+	return strings.TrimSpace(name)
 }
 
 func makeRoomHeaderParts(header string) (string, []string) {
 	if !isSectionHeader(header) {
 		fmt.Errorf("not a header!")
 	}
-	_, afterDivider, _ := strings.Cut(header, SectionDivider)
+	afterDivider := strings.TrimPrefix(strings.TrimSpace(header), SectionDivider)
+	afterDivider = strings.TrimPrefix(afterDivider, SectionNameDivider)
 	name, appendedGroups, _ := strings.Cut(afterDivider, ":")
-	return name, strings.Split(appendedGroups, ",")
+	name = strings.TrimSpace(name)
+	if strings.TrimSpace(appendedGroups) == "" {
+		return name, nil
+	}
+	groups := strings.Split(appendedGroups, ",")
+	for i := range groups {
+		groups[i] = strings.TrimSpace(groups[i])
+	}
+	return name, groups
 }
 
 func group(lines []string, f func(s string) bool, ft func(s string) string) map[string][]string {
@@ -402,8 +429,16 @@ func getPosPortal(room map[[2]int]rune, portal string) ([2]int, error) {
 }
 
 func makeAsciiRoom(roomLines []string) map[[2]int]rune {
+	start, end := 0, len(roomLines)
+	for start < end && strings.TrimSpace(roomLines[start]) == "" {
+		start++
+	}
+	for end > start && strings.TrimSpace(roomLines[end-1]) == "" {
+		end--
+	}
+
 	room := make(map[[2]int]rune)
-	for y, line := range roomLines {
+	for y, line := range roomLines[start:end] {
 		for x, char := range []rune(line) {
 			room[[2]int{x, y}] = char
 		}

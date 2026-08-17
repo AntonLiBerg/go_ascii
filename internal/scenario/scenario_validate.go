@@ -27,7 +27,7 @@ func IsValidContentFile(lines []string) error {
 			return fmt.Errorf("content file contains an empty line at line %d", lineNumber)
 		}
 		if isSectionHeader(line) {
-			name := strings.TrimSpace(strings.TrimPrefix(line, SectionDivider))
+			name := sectionName(line)
 			if name == "" {
 				return fmt.Errorf("section header on line %d has no name", lineNumber)
 			}
@@ -118,7 +118,7 @@ func isValidMapFile(roomLines []string) error {
 
 	for lineNumber, rawLine := range roomLines {
 		line := strings.TrimSpace(rawLine)
-		if line == "" {
+		if line == "" && featuresFound {
 			return fmt.Errorf("room contains empty lines on line %d", lineNumber+1)
 		}
 
@@ -250,5 +250,15 @@ func hasAtMostOneUIFilePath(paths []string) bool {
 
 func isSectionHeader(line string) bool {
 	line = strings.TrimSpace(line)
-	return strings.HasPrefix(line, SectionDivider) && strings.Count(line, SectionNameDivider) == 3
+	if !strings.HasPrefix(line, SectionDivider) {
+		return false
+	}
+	remaining := strings.TrimPrefix(line, SectionDivider)
+	if strings.HasPrefix(remaining, SectionNameDivider) {
+		remaining = strings.TrimPrefix(remaining, SectionNameDivider)
+		if strings.HasPrefix(remaining, SectionNameDivider) {
+			return false
+		}
+	}
+	return strings.TrimSpace(remaining) != ""
 }
