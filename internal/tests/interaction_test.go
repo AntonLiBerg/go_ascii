@@ -7,36 +7,80 @@ import (
 	"testing"
 )
 
-func TestServiceOpensSingleNeighborDoorAndClearsInteractKey(t *testing.T) {
-	gameWorld := world.NewWorldEmpty()
-	gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}
-	addTestEntity(t, &gameWorld, [2]int{1, 1}, map[string][]string{
-		"pos": {}, "ascii": {"o"}, "player": {},
-	})
-	doorID := addTestEntity(t, &gameWorld, [2]int{2, 1}, map[string][]string{
-		"pos": {}, "ascii": {"D"}, "impassable": {}, "interactable": {component.InteractionTypeDoor},
-	})
-	gameWorld.KeyDown = "e"
+func TestServiceInteractionDoors(t *testing.T) {
+	tests := []struct {
+		name        string
+		setup       func(*testing.T, *world.World) []int
+		wantClosed  []bool
+		wantChanged bool
+	}{
+		{
+			name: "opens a single closed door",
+			setup: func(t *testing.T, gameWorld *world.World) []int {
+				addTestEntity(t, gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
+				return []int{addTestEntity(t, gameWorld, [2]int{2, 1}, map[string][]string{
+					"pos": {}, "impassable": {}, "interactable": {component.InteractionTypeDoor},
+				})}
+			},
+			wantClosed: []bool{false}, wantChanged: true,
+		},
+		{
+			name: "closes a single open door",
+			setup: func(t *testing.T, gameWorld *world.World) []int {
+				addTestEntity(t, gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
+				return []int{addTestEntity(t, gameWorld, [2]int{2, 1}, map[string][]string{
+					"pos": {}, "interactable": {component.InteractionTypeDoor},
+				})}
+			},
+			wantClosed: []bool{true}, wantChanged: true,
+		},
+		{
+			name: "ignores multiple doors",
+			setup: func(t *testing.T, gameWorld *world.World) []int {
+				addTestEntity(t, gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
+				return []int{
+					addTestEntity(t, gameWorld, [2]int{2, 1}, map[string][]string{"pos": {}, "impassable": {}, "interactable": {component.InteractionTypeDoor}}),
+					addTestEntity(t, gameWorld, [2]int{0, 1}, map[string][]string{"pos": {}, "impassable": {}, "interactable": {component.InteractionTypeDoor}}),
+				}
+			},
+			wantClosed: []bool{true, true},
+		},
+		{
+			name: "ignores unknown interaction",
+			setup: func(t *testing.T, gameWorld *world.World) []int {
+				addTestEntity(t, gameWorld, [2]int{1, 1}, map[string][]string{"pos": {}, "player": {}})
+				return []int{addTestEntity(t, gameWorld, [2]int{2, 1}, map[string][]string{
+					"pos": {}, "impassable": {}, "interactable": {"unsupported"},
+				})}
+			},
+			wantClosed: []bool{true},
+		},
+	}
 
-	result := interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld)
-	if result.UpdateFunc == nil {
-		t.Fatal("expected interact update func")
-	}
-	input := gameWorld
-	next := applyUpdate(t, result, gameWorld)
-	if _, isClosed := input.Impassable[doorID]; !isClosed {
-		t.Fatal("expected interaction update not to mutate its input")
-	}
-	gameWorld = next
-
-	if _, isClosed := gameWorld.Impassable[doorID]; isClosed {
-		t.Fatal("expected door to be open after interaction")
-	}
-	if gameWorld.KeyDown != "" {
-		t.Fatalf("expected interact key to be cleared, got %q", gameWorld.KeyDown)
-	}
-	if !gameWorld.HasChanged {
-		t.Fatal("expected world to be marked changed after opening door")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gameWorld := world.NewWorldEmpty()
+			gameWorld.UserInputProfile = world.UserInputProfile{KeyInteract: "e"}
+			ids := tt.setup(t, &gameWorld)
+			gameWorld.KeyDown = "e"
+			input := gameWorld
+			next := applyUpdate(t, interaction.ServiceInteraction{}.GetUpdateFunc(gameWorld), gameWorld)
+			for i, id := range ids {
+				_, gotClosed := next.Impassable[id]
+				if gotClosed != tt.wantClosed[i] {
+					t.Fatalf("door %d closed=%v, want %v", id, gotClosed, tt.wantClosed[i])
+				}
+			}
+			if _, ok := input.Impassable[ids[0]]; tt.name == "opens a single closed door" && !ok {
+				t.Fatal("expected update not to mutate input")
+			}
+			if next.HasChanged != tt.wantChanged {
+				t.Fatalf("expected HasChanged=%v, got %v", tt.wantChanged, next.HasChanged)
+			}
+			if next.KeyDown != "" {
+				t.Fatalf("expected interact key cleared, got %q", next.KeyDown)
+			}
+		})
 	}
 }
 
