@@ -22,6 +22,7 @@ type World struct {
 	InputProfiles      map[string]UserInputProfile
 	InputProfileByRoom map[string]string
 	KeyDown            string
+	InfoboxContent     string
 	ShouldQuit         bool
 	ActiveControl      *ControlNode
 	EditingControl     bool
@@ -32,6 +33,7 @@ type World struct {
 	UILayout           []string
 	UIs                []string
 	UIContent          map[string][]string
+	UIEmpty            map[string][]string
 	HasChanged         bool
 	IterationNr        int
 	Entities           []int
@@ -53,6 +55,7 @@ func NewWorldEmpty() World {
 		Portals:            make(map[component.Position]component.Position),
 		Terminals:          make(map[component.Position]string),
 		UIContent:          make(map[string][]string),
+		UIEmpty:            make(map[string][]string),
 		Pos:                make(map[int]component.Position),
 		Layer:              make(map[int]component.Layer),
 		Ascii:              make(map[int]component.Ascii),
@@ -79,6 +82,7 @@ func newWorld(asciiMap scenario.FileMap, entities map[rune]string, components ma
 	world.UIs = slices.Clone(uis)
 	for name, lines := range asciiMap.UIContent {
 		world.UIContent[name] = slices.Clone(lines)
+		world.UIEmpty[name] = slices.Clone(lines)
 	}
 	for name, values := range inputProfiles {
 		world.InputProfiles[name] = NewUserInputProfile(values)
@@ -290,6 +294,10 @@ func (w World) Clone() World {
 	clone.UIContent = make(map[string][]string, len(w.UIContent))
 	for name, lines := range w.UIContent {
 		clone.UIContent[name] = slices.Clone(lines)
+	}
+	clone.UIEmpty = make(map[string][]string, len(w.UIEmpty))
+	for name, lines := range w.UIEmpty {
+		clone.UIEmpty[name] = slices.Clone(lines)
 	}
 	clone.Pos = maps.Clone(w.Pos)
 	clone.Layer = maps.Clone(w.Layer)

@@ -4,6 +4,7 @@ import (
 	"go_ascii/internal/game"
 	"go_ascii/internal/scenario"
 	"go_ascii/internal/service/control"
+	"go_ascii/internal/service/infobox"
 	"go_ascii/internal/service/interaction"
 	"go_ascii/internal/service/movement"
 	"go_ascii/internal/service/quit"
@@ -43,6 +44,7 @@ func runScenario(name string) {
 		interaction.ServiceInteraction{},
 		control.ServiceControl{},
 		render.ServiceDrawOnTerminal{},
+		infobox.ServiceInfobox{},
 	}
 	keys := make(chan string)
 	go func() {

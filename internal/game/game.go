@@ -82,6 +82,8 @@ func RunGame(gameWorld world.World, services []IService, keyInput <-chan string)
 				}
 			}
 			state = s_readyToGetUpdateFunctions
+			gameWorld.InfoboxContent = ""
+			gameWorld.UIContent["infobox"] = gameWorld.UIEmpty["infobox"]
 			gameWorld.IterationNr++
 		}
 	}
