@@ -174,15 +174,20 @@ func AppendGroups(contentMap FileContent, name string, lines []string) (map[stri
 }
 
 func GetRoomMap(mapText string) (FileMap, error) {
+	return ParseMapFile(mapText)
+}
+
+func ParseMapFile(mapText string) (FileMap, error) {
 	asciiMap := FileMap{
-		Rooms:           make(map[string]map[[2]int]rune),
-		Ground:          make(map[string]string),
-		InputProfiles:   make(map[string]string),
-		Portals:         make(map[component.Position]component.Position),
-		Terminals:       make(map[component.Position]string),
-		SelectableOrder: make(map[string][]rune),
-		RoomGroups:      make(map[string][]string),
-		UIContent:       make(map[string][]string),
+		Rooms:                  make(map[string]map[[2]int]rune),
+		Ground:                 make(map[string]string),
+		InputProfiles:          make(map[string]string),
+		Portals:                make(map[component.Position]component.Position),
+		Terminals:              make(map[component.Position]string),
+		SelectableOrder:        make(map[string][]rune),
+		RoomGroups:             make(map[string][]string),
+		UIContent:              make(map[string][]string),
+		InfoboxRoomBaseContent: make(map[string]string),
 	}
 	mapText = strings.ReplaceAll(mapText, "\r\n", "\n")
 	mapText = strings.ReplaceAll(mapText, "\r", "\n")
@@ -353,6 +358,10 @@ func updateWithFeatures(groupOnName map[string][]string, asciiMap FileMap) (File
 					markers = append(markers, runes[0])
 				}
 				asciiMap.SelectableOrder[roomName] = markers
+				break
+			case FeatureInfoboxText:
+				asciiMap.InfoboxRoomBaseContent[roomName] = val[0]
+				break
 			}
 		}
 	}
@@ -364,6 +373,10 @@ func makeFeaturesMap(lines []string) map[string][]string {
 		_, l, _ := strings.Cut(line, "- ")
 		name, vals, _ := strings.Cut(l, ":")
 		name = strings.TrimSpace(name)
+		if name == FeatureInfoboxText {
+			fMap[name] = []string{strings.Trim(strings.TrimSpace(vals), `"`)}
+			continue
+		}
 		values := strings.Split(vals, ",")
 		for i := range values {
 			values[i] = strings.TrimSpace(values[i])

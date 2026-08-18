@@ -189,6 +189,10 @@ func isValidMapFile(roomLines []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("feature %q on line %d requires a value", name, lineNumber+1)
 			}
+		case FeatureInfoboxText:
+			if len(args) == 0 {
+				return fmt.Errorf("feature %q on line %d requires a value", name, lineNumber+1)
+			}
 		default:
 			return fmt.Errorf("unknown feature %q on line %d", name, lineNumber+1)
 		}

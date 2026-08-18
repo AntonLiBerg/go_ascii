@@ -42,6 +42,7 @@ features
 features
 - ground:void
 - inputprofile:terminal_scan
+- infoboxtext:"Scanner. It lets me see what is surrounding the ship."
 ===terminal_helm:terminal_controls
 ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
 ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤
@@ -58,4 +59,5 @@ features
 features
 - ground:void
 - inputprofile:terminal_helm
+- infoboxtext:"Helm. It lets me move the ship."
 - selectableorder:1,2

@@ -17,54 +17,56 @@ type ControlNode struct {
 }
 
 type World struct {
-	Room               string
-	UserInputProfile   UserInputProfile
-	InputProfiles      map[string]UserInputProfile
-	InputProfileByRoom map[string]string
-	KeyDown            string
-	InfoboxContent     string
-	ShouldQuit         bool
-	ActiveControl      *ControlNode
-	EditingControl     bool
-	ControlLists       map[string]*ControlNode
-	EByPos             map[component.Position]int
-	Portals            map[component.Position]component.Position
-	Terminals          map[component.Position]string
-	UILayout           []string
-	UIs                []string
-	UIContent          map[string][]string
-	UIEmpty            map[string][]string
-	HasChanged         bool
-	IterationNr        int
-	Entities           []int
-	Pos                map[int]component.Position
-	Layer              map[int]component.Layer
-	Ascii              map[int]component.Ascii
-	Impassable         map[int]component.Impassable
-	Player             map[int]component.Player
-	Interactable       map[int]component.Interactable
-	ControlNumber      map[int]component.ControlNumber
-	Selectable         map[int]component.Selectable
+	Room                   string
+	UserInputProfile       UserInputProfile
+	InputProfiles          map[string]UserInputProfile
+	InputProfileByRoom     map[string]string
+	KeyDown                string
+	InfoboxContent         string
+	ShouldQuit             bool
+	ActiveControl          *ControlNode
+	EditingControl         bool
+	ControlLists           map[string]*ControlNode
+	EByPos                 map[component.Position]int
+	Portals                map[component.Position]component.Position
+	Terminals              map[component.Position]string
+	UILayout               []string
+	UIs                    []string
+	UIContent              map[string][]string
+	UIEmpty                map[string][]string
+	InfoboxRoomBaseContent map[string]string
+	HasChanged             bool
+	IterationNr            int
+	Entities               []int
+	Pos                    map[int]component.Position
+	Layer                  map[int]component.Layer
+	Ascii                  map[int]component.Ascii
+	Impassable             map[int]component.Impassable
+	Player                 map[int]component.Player
+	Interactable           map[int]component.Interactable
+	ControlNumber          map[int]component.ControlNumber
+	Selectable             map[int]component.Selectable
 }
 
 func NewWorldEmpty() World {
 	return World{
-		InputProfiles:      make(map[string]UserInputProfile),
-		InputProfileByRoom: make(map[string]string),
-		EByPos:             make(map[component.Position]int),
-		Portals:            make(map[component.Position]component.Position),
-		Terminals:          make(map[component.Position]string),
-		UIContent:          make(map[string][]string),
-		UIEmpty:            make(map[string][]string),
-		Pos:                make(map[int]component.Position),
-		Layer:              make(map[int]component.Layer),
-		Ascii:              make(map[int]component.Ascii),
-		Impassable:         make(map[int]component.Impassable),
-		Player:             make(map[int]component.Player),
-		Interactable:       make(map[int]component.Interactable),
-		ControlNumber:      make(map[int]component.ControlNumber),
-		Selectable:         make(map[int]component.Selectable),
-		ControlLists:       make(map[string]*ControlNode),
+		InputProfiles:          make(map[string]UserInputProfile),
+		InputProfileByRoom:     make(map[string]string),
+		EByPos:                 make(map[component.Position]int),
+		Portals:                make(map[component.Position]component.Position),
+		Terminals:              make(map[component.Position]string),
+		UIContent:              make(map[string][]string),
+		UIEmpty:                make(map[string][]string),
+		InfoboxRoomBaseContent: make(map[string]string),
+		Pos:                    make(map[int]component.Position),
+		Layer:                  make(map[int]component.Layer),
+		Ascii:                  make(map[int]component.Ascii),
+		Impassable:             make(map[int]component.Impassable),
+		Player:                 make(map[int]component.Player),
+		Interactable:           make(map[int]component.Interactable),
+		ControlNumber:          make(map[int]component.ControlNumber),
+		Selectable:             make(map[int]component.Selectable),
+		ControlLists:           make(map[string]*ControlNode),
 	}
 }
 
@@ -84,6 +86,7 @@ func newWorld(asciiMap scenario.FileMap, entities map[rune]string, components ma
 		world.UIContent[name] = slices.Clone(lines)
 		world.UIEmpty[name] = slices.Clone(lines)
 	}
+	world.InfoboxRoomBaseContent = maps.Clone(asciiMap.InfoboxRoomBaseContent)
 	for name, values := range inputProfiles {
 		world.InputProfiles[name] = NewUserInputProfile(values)
 	}
@@ -240,6 +243,7 @@ func newWorld(asciiMap scenario.FileMap, entities map[rune]string, components ma
 	if position, ok := world.Pos[playerID]; ok {
 		world.Room = position.Room
 		world.SetInputProfileForRoom(position.Room)
+		world.InfoboxContent = world.InfoboxRoomBaseContent[world.Room]
 	}
 	return world, nil
 }
@@ -299,6 +303,7 @@ func (w World) Clone() World {
 	for name, lines := range w.UIEmpty {
 		clone.UIEmpty[name] = slices.Clone(lines)
 	}
+	clone.InfoboxRoomBaseContent = maps.Clone(w.InfoboxRoomBaseContent)
 	clone.Pos = maps.Clone(w.Pos)
 	clone.Layer = maps.Clone(w.Layer)
 	clone.Ascii = maps.Clone(w.Ascii)

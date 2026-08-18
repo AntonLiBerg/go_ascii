@@ -19,6 +19,7 @@ const (
 	FeaturePortal            string = "portal"
 	FeatureTerminal          string = "terminal"
 	FeatureSelectableOrder   string = "selectableorder"
+	FeatureInfoboxText       string = "infoboxtext"
 	UILayoutRoom             string = "room"
 	InputProfileTypeName     string = "profiletype"
 	InputProfileTypeNone     string = "none"
@@ -27,16 +28,17 @@ const (
 )
 
 type FileMap struct {
-	Rooms           map[string]map[[2]int]rune
-	Ground          map[string]string
-	InputProfiles   map[string]string
-	Portals         map[component.Position]component.Position
-	Terminals       map[component.Position]string
-	SelectableOrder map[string][]rune
-	RoomGroups      map[string][]string
-	EntityGroups    map[string]map[rune]struct{}
-	UILayout        []string
-	UIContent       map[string][]string
+	Rooms                  map[string]map[[2]int]rune
+	Ground                 map[string]string
+	InputProfiles          map[string]string
+	Portals                map[component.Position]component.Position
+	Terminals              map[component.Position]string
+	SelectableOrder        map[string][]rune
+	RoomGroups             map[string][]string
+	EntityGroups           map[string]map[rune]struct{}
+	UILayout               []string
+	UIContent              map[string][]string
+	InfoboxRoomBaseContent map[string]string
 }
 
 func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePaths ...string) (FileMap, map[rune]string, map[string]map[string][]string, map[string]map[string]string, []string, []string, error) {
@@ -51,7 +53,7 @@ func GetScenarioFromFiles(mapFilePath string, contentFilePath string, uiFilePath
 	if err != nil {
 		return FileMap{}, nil, nil, nil, nil, nil, err
 	}
-	asciiMap, err := GetRoomMap(string(mapContent))
+	asciiMap, err := ParseMapFile(string(mapContent))
 	if err != nil {
 		return FileMap{}, nil, nil, nil, nil, nil, err
 	}
