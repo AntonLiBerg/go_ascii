@@ -8,171 +8,6 @@ import (
 	"strings"
 )
 
-func normalizeInputProfileType(value string) string {
-	switch value {
-	case InputProfileTypeNone, InputProfileTypeTerminal, InputProfileTypeControl:
-		return InputProfileTypeName + value
-	default:
-		return value
-	}
-}
-
-type FileContent struct {
-	entities      map[rune]string
-	components    map[string]map[string][]string
-	inputProfiles map[string]map[string]string
-	groups        map[string]map[rune]struct{}
-}
-
-func ParseContentFile(contentText string) (FileContent, error) {
-	contentMap := FileContent{
-		entities:      make(map[rune]string),
-		components:    make(map[string]map[string][]string),
-		inputProfiles: make(map[string]map[string]string),
-		groups:        make(map[string]map[rune]struct{}),
-	}
-
-	contentText = strings.ReplaceAll(contentText, "\r\n", "\n")
-	contentText = strings.ReplaceAll(contentText, "\r", "\n")
-	lines := strings.Split(strings.TrimRight(contentText, "\n"), "\n")
-	if err := IsValidContentFile(lines); err != nil {
-		return contentMap, err
-	}
-	groupByName := group(lines, func(s string) bool { return isSectionHeader(s) }, sectionName)
-	for name, ls := range groupByName {
-		if name == SectionNameInputProfile {
-			if nInpProfiles, err := MakeInputProfiles(ls); err != nil {
-				return contentMap, err
-			} else {
-				contentMap.inputProfiles = nInpProfiles
-			}
-			continue
-		}
-		if nEntities, err := AppendEntities(ls, contentMap.entities); err != nil {
-			return contentMap, err
-		} else {
-			contentMap.entities = nEntities
-		}
-		if nComps, err := AppendComponents(contentMap, ls); err != nil {
-			return contentMap, err
-		} else {
-			contentMap.components = nComps
-		}
-
-		if nGroups, err := AppendGroups(contentMap, name, ls); err != nil {
-			return contentMap, err
-		} else {
-			contentMap.groups = nGroups
-		}
-	}
-	return contentMap, nil
-}
-
-func MakeInputProfiles(lines []string) (map[string]map[string]string, error) {
-	profiles := make(map[string]map[string]string)
-	currentProfile := ""
-	for _, rawLine := range lines {
-		line := strings.TrimSpace(rawLine)
-		if !strings.HasPrefix(line, "- ") {
-			currentProfile = line
-			profiles[currentProfile] = make(map[string]string)
-			continue
-		}
-		binding := strings.TrimSpace(strings.TrimPrefix(line, "- "))
-		action, button, _ := strings.Cut(binding, ":")
-		if !strings.Contains(binding, ":") {
-			action, button, _ = strings.Cut(binding, "=")
-		}
-		action = strings.TrimSpace(action)
-		button = strings.TrimSpace(button)
-		if action == InputProfileTypeName {
-			button = normalizeInputProfileType(button)
-		}
-		profiles[currentProfile][action] = button
-	}
-	return profiles, nil
-}
-
-func MakeEntities(lines []string) (map[rune]string, error) {
-	entities := make(map[rune]string)
-	for _, rawLine := range lines {
-		line := strings.TrimSpace(rawLine)
-		if line == "" || strings.HasPrefix(line, "- ") {
-			continue
-		}
-		keyText, name, _ := strings.Cut(line, ":")
-		key := []rune(strings.TrimSpace(keyText))
-		entities[key[0]] = strings.TrimSpace(name)
-	}
-	return entities, nil
-}
-
-func AppendEntities(lines []string, existing map[rune]string) (map[rune]string, error) {
-	entities := make(map[rune]string, len(existing))
-	for key, name := range existing {
-		entities[key] = name
-	}
-	parsed, _ := MakeEntities(lines)
-	for key, name := range parsed {
-		entities[key] = name
-	}
-	return entities, nil
-}
-
-func AppendComponents(contentMap FileContent, lines []string) (map[string]map[string][]string, error) {
-	components := make(map[string]map[string][]string, len(contentMap.components))
-	for entity, values := range contentMap.components {
-		components[entity] = make(map[string][]string, len(values))
-		for name, values := range values {
-			components[entity][name] = append([]string(nil), values...)
-		}
-	}
-	currentEntity := ""
-	for _, rawLine := range lines {
-		line := strings.TrimSpace(rawLine)
-		if !strings.HasPrefix(line, "- ") {
-			_, name, _ := strings.Cut(line, ":")
-			currentEntity = strings.TrimSpace(name)
-			if _, exists := components[currentEntity]; !exists {
-				components[currentEntity] = make(map[string][]string)
-			}
-			continue
-		}
-		componentText := strings.TrimSpace(strings.TrimPrefix(line, "- "))
-		name, valuesText, ok := strings.Cut(componentText, ":")
-		if !ok {
-			name, valuesText, _ = strings.Cut(componentText, "=")
-		}
-		values := make([]string, 0)
-		for _, value := range strings.Split(valuesText, ",") {
-			if value = strings.TrimSpace(value); value != "" {
-				if value == "SPACE" {
-					value = " "
-				}
-				values = append(values, value)
-			}
-		}
-		components[currentEntity][strings.TrimSpace(name)] = values
-	}
-	return components, nil
-}
-
-func AppendGroups(contentMap FileContent, name string, lines []string) (map[string]map[rune]struct{}, error) {
-	groups := make(map[string]map[rune]struct{}, len(contentMap.groups)+1)
-	for groupName, members := range contentMap.groups {
-		groups[groupName] = make(map[rune]struct{}, len(members))
-		for member := range members {
-			groups[groupName][member] = struct{}{}
-		}
-	}
-	groups[name] = make(map[rune]struct{})
-	parsed, _ := MakeEntities(lines)
-	for member := range parsed {
-		groups[name][member] = struct{}{}
-	}
-	return groups, nil
-}
-
 func GetRoomMap(mapText string) (FileMap, error) {
 	return ParseMapFile(mapText)
 }
@@ -506,4 +341,150 @@ func getNextUiSection(lines []string) []string {
 		section = append(section, line)
 	}
 	return section
+}
+
+func isValidMapFile(roomLines []string) error {
+	if len(roomLines) == 0 {
+		return fmt.Errorf("roomLines is empty!")
+	}
+
+	rooms := make(map[string]struct{})
+	currentRoom := ""
+	featuresFound := false
+	features := make(map[string]struct{})
+
+	for lineNumber, rawLine := range roomLines {
+		line := strings.TrimSpace(rawLine)
+		if line == "" && featuresFound {
+			return fmt.Errorf("room contains empty lines on line %d", lineNumber+1)
+		}
+
+		if isSectionHeader(line) {
+			roomName, _ := makeRoomHeaderParts(line)
+			if roomName == "" {
+				return fmt.Errorf("room header on line %d has no name", lineNumber+1)
+			}
+			if _, exists := rooms[roomName]; exists {
+				return fmt.Errorf("duplicate room %q", roomName)
+			}
+			rooms[roomName] = struct{}{}
+			currentRoom = roomName
+			featuresFound = false
+			features = make(map[string]struct{})
+			continue
+		}
+		if currentRoom == "" {
+			return fmt.Errorf("map content on line %d has no room", lineNumber+1)
+		}
+
+		if line == SectionNameFeatures {
+			if featuresFound {
+				return fmt.Errorf("duplicate features section in room %q", currentRoom)
+			}
+			featuresFound = true
+			continue
+		}
+		if !featuresFound {
+			continue // ASCII room content
+		}
+		if !strings.HasPrefix(line, "- ") {
+			return fmt.Errorf("invalid feature on line %d", lineNumber+1)
+		}
+
+		feature := strings.TrimSpace(strings.TrimPrefix(line, "- "))
+		name, values, ok := strings.Cut(feature, ":")
+		if !ok || strings.TrimSpace(name) == "" {
+			return fmt.Errorf("invalid feature on line %d", lineNumber+1)
+		}
+		name = strings.TrimSpace(name)
+		if _, exists := features[name]; exists && name != FeatureTerminal {
+			return fmt.Errorf("duplicate feature %q in room %q", name, currentRoom)
+		}
+		features[name] = struct{}{}
+
+		args := strings.Split(strings.TrimSpace(strings.SplitN(values, "//", 2)[0]), ",")
+		for i := range args {
+			args[i] = strings.TrimSpace(args[i])
+			if args[i] == "" {
+				return fmt.Errorf("empty value for feature %q on line %d", name, lineNumber+1)
+			}
+		}
+		switch name {
+		case FeatureGround, FeatureInputProfile:
+			if len(args) != 1 {
+				return fmt.Errorf("feature %q on line %d expects 1 value", name, lineNumber+1)
+			}
+		case FeaturePortal:
+			if len(args) != 3 {
+				return fmt.Errorf("feature %q on line %d expects 3 values", name, lineNumber+1)
+			}
+		case FeatureTerminal:
+			if len(args) != 2 {
+				return fmt.Errorf("feature %q on line %d expects 2 values", name, lineNumber+1)
+			}
+		case FeatureSelectableOrder:
+			if len(args) == 0 {
+				return fmt.Errorf("feature %q on line %d requires a value", name, lineNumber+1)
+			}
+		case FeatureInfoboxText:
+			if len(args) == 0 {
+				return fmt.Errorf("feature %q on line %d requires a value", name, lineNumber+1)
+			}
+		default:
+			return fmt.Errorf("unknown feature %q on line %d", name, lineNumber+1)
+		}
+	}
+	return nil
+}
+
+func isUiFileValid(lines []string) error {
+	if len(lines) <= 1 {
+		return fmt.Errorf("empty file or just the header!")
+	}
+	if strings.TrimSpace(lines[0]) != SectionDivider+SectionNameUILayout {
+		return fmt.Errorf("no layout section at start of file!")
+	}
+
+	uiLayout := make([]string, 0)
+	layoutEnd := 1
+	for ; layoutEnd < len(lines); layoutEnd++ {
+		line := lines[layoutEnd]
+		if isSectionHeader(line) {
+			break
+		}
+		trimmedLine := strings.TrimSpace(line)
+		if trimmedLine != "" {
+			uiLayout = append(uiLayout, trimmedLine)
+		}
+	}
+
+	uiNonLayoutSections := lines[layoutEnd:]
+	sectionHeaders := helpers.Filter(uiNonLayoutSections, isSectionHeader)
+	sectionHeaders = helpers.Transform(sectionHeaders, func(header string) string {
+		return strings.TrimSpace(strings.TrimPrefix(header, SectionDivider))
+	})
+
+	if !slices.Contains(uiLayout, UILayoutRoom) {
+		return fmt.Errorf("layout does not contain required keyword room")
+	}
+	if !helpers.IsUnique(uiLayout) {
+		return fmt.Errorf("duplicate headers in layout!")
+	}
+	if !helpers.IsUnique(sectionHeaders) {
+		return fmt.Errorf("duplicate headers in UI file!")
+	}
+	if !helpers.IsAllS1InS2(sectionHeaders, uiLayout) {
+		return fmt.Errorf("some sections are not mentioned in the layout!")
+	}
+	uiSectionsInLayout := helpers.Filter(uiLayout, func(name string) bool {
+		return name != UILayoutRoom
+	})
+	if !helpers.IsAllS1InS2(uiSectionsInLayout, sectionHeaders) {
+		return fmt.Errorf("some sections mentioned in layout do not exist in the UI file")
+	}
+	return nil
+}
+
+func hasAtMostOneUIFilePath(paths []string) bool {
+	return len(paths) <= 1
 }
