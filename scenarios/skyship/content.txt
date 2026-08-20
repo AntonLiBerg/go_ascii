@@ -39,16 +39,20 @@ T:scantable
 ===terminal_controls
 1:selectposition1
 - pos
-- ascii:o
-- selectable:o,ö,^,facing
+- ascii:SPACE
+- selectable:SPACE,o,^,facing
 2:selectposition2
 - pos
-- ascii:o
-- selectable:o,ö,^,speed
+- ascii:SPACE
+- selectable:SPACE,o,^,speed
 3:selectposition3
 - pos
-- ascii:o
-- selectable:o,ö,>,commandinput
+- ascii:SPACE
+- selectable:SPACE,o,>,commandinput
+4:selectposition4
+- pos
+- ascii:SPACE
+- selectable:SPACE,o,>,shipgo
 x:facing
 - pos
 - ascii:N

@@ -52,7 +52,11 @@ features
 ¤¤     |x|       |y|      ¤¤
 ¤¤     +-+       +-+      ¤¤
 ¤¤      1         2       ¤¤
-¤¤         3 add          ¤¤
+¤¤         3-add          ¤¤
+¤¤                        ¤¤
+¤¤          +-+           ¤¤
+¤¤        GO|4|GO         ¤¤
+¤¤          +-+           ¤¤
 ¤¤------------------------¤¤
 ¤¤|zzzzzzzzzzzzzzzzzzzzzz|¤¤
 ¤¤------------------------¤¤
@@ -62,4 +66,4 @@ features
 - ground:void
 - inputprofile:terminal_helm
 - infoboxtext:"Helm.","It lets me move the ship."
-- selectableorder:1,2,3
+- selectableorder:1,2,3,4
