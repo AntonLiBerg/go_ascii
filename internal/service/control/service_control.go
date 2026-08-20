@@ -95,6 +95,11 @@ func updateControlNumberValue(entityID, delta int) game.UpdateFunc {
 				controlNumber.ValueCurrent--
 			}
 			next.ControlNumber[entityID] = controlNumber
+
+			ascii := next.Ascii[entityID]
+			ascii.Ascii = rune('0'+controlNumber.ValueCurrent)
+			next.Ascii[entityID] = ascii
+
 			next.HasChanged = controlNumber.ValueCurrent != oldValue
 			next.KeyDown = ""
 			return next, nil

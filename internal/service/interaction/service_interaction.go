@@ -92,6 +92,7 @@ func interactWithTerminal(w world.World, terminalID int) (world.World, error) {
 	if !ok {
 		return w, fmt.Errorf("Terminal not found!")
 	}
+
 	next, err := w.WithRoom(roomName)
 	if err != nil {
 		return next, fmt.Errorf("inputprofile not found!: %w", err)
