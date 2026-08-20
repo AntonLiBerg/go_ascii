@@ -241,9 +241,11 @@ func newWorld(asciiMap scenario.FileMap, entities map[rune]string, components ma
 	}
 	playerID := GetPlayerID(world)
 	if position, ok := world.Pos[playerID]; ok {
-		world.Room = position.Room
-		world.SetInputProfileForRoom(position.Room)
-		world.InfoboxContent = world.InfoboxRoomBaseContent[world.Room]
+		var err error
+		world, err = world.WithRoom(position.Room)
+		if err != nil {
+			return world, err
+		}
 	}
 	return world, nil
 }
@@ -262,6 +264,21 @@ func (w *World) FocusPrevControl() bool {
 	w.ActiveControl = w.ActiveControl.Prev
 	return true
 }
+func (w World) WithRoom(roomName string) (World, error) {
+	profile, ok := w.InputProfileForRoom(roomName)
+	if !ok {
+		return w, fmt.Errorf("input profile for room %q does not exist", roomName)
+	}
+
+	next := w.Clone()
+	next.Room = roomName
+	next.UserInputProfile = profile
+	next.EditingControl = false
+	next.ActiveControl = next.ControlLists[roomName]
+	next.InfoboxContent = next.InfoboxRoomBaseContent[roomName]
+	return next, nil
+}
+
 func (w *World) SetInputProfileForRoom(roomName string) bool {
 	profile, ok := w.InputProfileForRoom(roomName)
 	if !ok {

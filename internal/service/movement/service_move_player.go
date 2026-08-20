@@ -88,12 +88,11 @@ func tryGoToPosition(w world.World, moverID int, delta component.Position) (worl
 	// are we moving into a new room?
 	//
 	if moverPos.Room != targetPos.Room {
-		if _, ok := next.InputProfileForRoom(targetPos.Room); !ok {
-			return next, fmt.Errorf("inputprofile for room not existing!")
+		var err error
+		next, err = next.WithRoom(targetPos.Room)
+		if err != nil {
+			return next, fmt.Errorf("inputprofile for room not existing!: %w", err)
 		}
-		next.Room = targetPos.Room
-		next.SetInputProfileForRoom(targetPos.Room)
-		next.InfoboxContent = next.InfoboxRoomBaseContent[next.Room]
 	}
 	entitiesAtOldPosition := world.GetEntitiesAtPosition(next, moverPos)
 	if len(entitiesAtOldPosition) == 0 {
