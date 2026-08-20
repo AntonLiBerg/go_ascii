@@ -48,7 +48,7 @@ T:scantable
 x:facing
 - pos
 - ascii:0
-- controlnumber:0,9
+- controllist:w,a,s,d
 y:speed
 - pos
 - ascii:0

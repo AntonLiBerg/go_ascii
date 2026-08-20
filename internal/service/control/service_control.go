@@ -78,7 +78,25 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 		return game.UpdateFunc{}
 	}
 }
+func updateControlValue(w world.World,entityID int,delta int) game.UpdateFunc{
+	if _,ok := w.ControlNumber[entityID]; ok{
+		return updateControlNumberValue(entityID,delta)
+	}
+	return updateControlListValue(entityID,delta)
 
+}
+func updateControlListValue(entityID, delta int) game.UpdateFunc {
+	return game.UpdateFunc{
+		Order: 1,
+		UpdateFunc: func(w world.World) (world.World, error) {
+			next := w.Clone()
+			controlList, ok := next.ControlList[entityID]
+			if !ok {
+				return next, fmt.Errorf("control list for entity %d not found", entityID)
+			}
+		}
+	}
+}
 func updateControlNumberValue(entityID, delta int) game.UpdateFunc {
 	return game.UpdateFunc{
 		Order: 1,
