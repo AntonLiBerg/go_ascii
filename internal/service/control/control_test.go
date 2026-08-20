@@ -191,6 +191,43 @@ func TestControl(t *testing.T) {
 	}
 }
 
+func TestControlLabelAppendsAndRemoves(t *testing.T) {
+	gameWorld := world.NewWorldEmpty()
+	gameWorld.UserInputProfile = world.UserInputProfile{
+		ProfileType:       world.ProfileTypeControl,
+		KeyMoveSelectNext: "n",
+		KeyMoveSelectPrev: "p",
+	}
+	gameWorld.EditingControl = true
+	gameWorld.KeyDown = "n"
+	gameWorld.ActiveControl = &world.ControlNode{TargetEntityID: 7}
+	gameWorld.ControlLabels[7] = component.ControlLabel{
+		EntityIDs:       []int{7, 8, 9, 10},
+		Width:           4,
+		Height:          1,
+		MaxLength:       4,
+		Operation:       "append",
+		Sources:         []string{"facing", "speed", ", "},
+		SourceEntityIDs: []int{4, 5, -1},
+	}
+	for _, entityID := range []int{7, 8, 9, 10} {
+		gameWorld.Ascii[entityID] = component.Ascii{Ascii: ' '}
+	}
+	gameWorld.ControlOptions[4] = component.ControlOptions{Current: 'N', Options: []rune{'N', 'E'}}
+	gameWorld.ControlNumber[5] = component.ControlNumber{ValueCurrent: 0}
+
+	next := applyUpdate(t, control.ServiceControl{}.GetUpdateFunc(gameWorld), gameWorld)
+	if got := string([]rune{next.Ascii[7].Ascii, next.Ascii[8].Ascii, next.Ascii[9].Ascii, next.Ascii[10].Ascii}); got != "N0, " {
+		t.Fatalf("expected appended control label %q, got %q", "N0, ", got)
+	}
+
+	next.KeyDown = "p"
+	removed := applyUpdate(t, control.ServiceControl{}.GetUpdateFunc(next), next)
+	if got := string([]rune{removed.Ascii[7].Ascii, removed.Ascii[8].Ascii, removed.Ascii[9].Ascii, removed.Ascii[10].Ascii}); got != "    " {
+		t.Fatalf("expected control label to be cleared, got %q", got)
+	}
+}
+
 func newControlTestWorld() world.World {
 	n1 := &world.ControlNode{SelectableEntityID: 1, TargetEntityID: 4}
 	n2 := &world.ControlNode{SelectableEntityID: 2, TargetEntityID: 5}

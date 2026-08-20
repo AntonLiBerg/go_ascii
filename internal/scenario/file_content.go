@@ -140,18 +140,68 @@ func AppendComponents(contentMap FileContent, lines []string) (map[string]map[st
 		if !ok {
 			name, valuesText, _ = strings.Cut(componentText, "=")
 		}
-		values := make([]string, 0)
-		for _, value := range strings.Split(valuesText, ",") {
-			if value = strings.TrimSpace(value); value != "" {
-				if value == "SPACE" {
-					value = " "
-				}
-				values = append(values, value)
-			}
+		values, err := splitComponentValues(valuesText)
+		if err != nil {
+			return components, err
 		}
 		components[currentEntity][strings.TrimSpace(name)] = values
 	}
 	return components, nil
+}
+
+func splitComponentValues(valuesText string) ([]string, error) {
+	values := make([]string, 0)
+	start := 0
+	bracketDepth := 0
+	inQuotes := false
+	escaped := false
+
+	for i, char := range valuesText {
+		if inQuotes {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if char == '\\' {
+				escaped = true
+			} else if char == '"' {
+				inQuotes = false
+			}
+			continue
+		}
+		switch char {
+		case '"':
+			inQuotes = true
+		case '[':
+			bracketDepth++
+		case ']':
+			bracketDepth--
+			if bracketDepth < 0 {
+				return nil, fmt.Errorf("unmatched closing bracket in component values %q", valuesText)
+			}
+		case ',':
+			if bracketDepth == 0 {
+				appendComponentValue(&values, valuesText[start:i])
+				start = i + 1
+			}
+		}
+	}
+	if inQuotes || bracketDepth != 0 {
+		return nil, fmt.Errorf("unterminated component value %q", valuesText)
+	}
+	appendComponentValue(&values, valuesText[start:])
+	return values, nil
+}
+
+func appendComponentValue(values *[]string, rawValue string) {
+	value := strings.TrimSpace(rawValue)
+	if value == "" {
+		return
+	}
+	if value == "SPACE" {
+		value = " "
+	}
+	*values = append(*values, value)
 }
 
 func AppendGroups(contentMap FileContent, name string, lines []string) (map[string]map[rune]struct{}, error) {

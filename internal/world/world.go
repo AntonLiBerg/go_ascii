@@ -7,6 +7,7 @@ import (
 	"maps"
 	"slices"
 	"strconv"
+	"strings"
 )
 
 type ControlNode struct {
@@ -46,6 +47,7 @@ type World struct {
 	Interactable           map[int]component.Interactable
 	ControlNumber          map[int]component.ControlNumber
 	ControlOptions         map[int]component.ControlOptions
+	ControlLabels          map[int]component.ControlLabel
 	Selectable             map[int]component.Selectable
 }
 
@@ -67,6 +69,7 @@ func NewWorldEmpty() World {
 		Interactable:           make(map[int]component.Interactable),
 		ControlNumber:          make(map[int]component.ControlNumber),
 		ControlOptions:         make(map[int]component.ControlOptions),
+		ControlLabels:          make(map[int]component.ControlLabel),
 		Selectable:             make(map[int]component.Selectable),
 		ControlOrder:           make(map[string]*ControlNode),
 	}
@@ -152,7 +155,9 @@ func newWorld(asciiMap scenario.FileMap, entities map[rune]string, components ma
 					if err := world.addEntityAtPosition(position, 1, entityComponents); err != nil {
 						return world, err
 					}
-					entityIDsByName[entityName] = entityID
+					if _, exists := entityIDsByName[entityName]; !exists {
+						entityIDsByName[entityName] = entityID
+					}
 				} else if err := world.addEntityAtPosition(position, 1, map[string][]string{
 					component.NamePosition: {},
 					component.NameASCII:    {string(char)},
@@ -190,13 +195,19 @@ func newWorld(asciiMap scenario.FileMap, entities map[rune]string, components ma
 			if err := world.addEntityAtPosition(position, 1, entityComponents); err != nil {
 				return world, err
 			}
-			entityIDsByName[entityName] = entityID
+			if _, exists := entityIDsByName[entityName]; !exists {
+				entityIDsByName[entityName] = entityID
+			}
 			if roomEntityIDs[roomName] == nil {
 				roomEntityIDs[roomName] = make(map[rune]int)
 			}
 			roomEntityIDs[roomName][char] = entityID
 		}
 	}
+	if err := collectControlLabels(&world); err != nil {
+		return world, err
+	}
+	resolveControlLabelSources(&world, entityIDsByName)
 	for entityID, selectable := range world.Selectable {
 		targetID, ok := entityIDsByName[selectable.TargetEntityName]
 		if !ok {
@@ -329,6 +340,14 @@ func (w World) Clone() World {
 	clone.Interactable = maps.Clone(w.Interactable)
 	clone.ControlNumber = maps.Clone(w.ControlNumber)
 	clone.ControlOptions = maps.Clone(w.ControlOptions)
+	clone.ControlLabels = make(map[int]component.ControlLabel, len(w.ControlLabels))
+	for entityID, label := range w.ControlLabels {
+		label.EntityIDs = slices.Clone(label.EntityIDs)
+		label.Sources = slices.Clone(label.Sources)
+		label.SourceEntityIDs = slices.Clone(label.SourceEntityIDs)
+		label.History = slices.Clone(label.History)
+		clone.ControlLabels[entityID] = label
+	}
 	clone.Selectable = maps.Clone(w.Selectable)
 	clone.ControlOrder = maps.Clone(w.ControlOrder)
 	return clone
@@ -357,6 +376,8 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 	var hasControlNumber bool
 	var controlOptions component.ControlOptions
 	var hasControlOptions bool
+	var controlLabel component.ControlLabel
+	var hasControlLabel bool
 	var selectable component.Selectable
 	var hasSelectable bool
 
@@ -431,6 +452,14 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 			controlOptions = component.ControlOptions{Current: list[0], Options: list}
 			hasControlOptions = true
 
+		case component.NameControlLabel:
+			parsedLabel, err := parseControlLabel(values)
+			if err != nil {
+				return err
+			}
+			controlLabel = parsedLabel
+			hasControlLabel = true
+
 		case component.NameSelectable:
 			if len(values) != 4 || values[3] == "" {
 				return fmt.Errorf("invalid values for component %q", name)
@@ -476,10 +505,137 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 	if hasControlOptions {
 		w.ControlOptions[eID] = controlOptions
 	}
+	if hasControlLabel {
+		w.ControlLabels[eID] = controlLabel
+		if !hasASCII {
+			w.Ascii[eID] = component.Ascii{Ascii: ' '}
+		}
+	}
 	if hasSelectable {
 		w.Selectable[eID] = selectable
 	}
 	return nil
+}
+
+func parseControlLabel(values []string) (component.ControlLabel, error) {
+	if len(values) != 2 {
+		return component.ControlLabel{}, fmt.Errorf("invalid values for component %q", component.NameControlLabel)
+	}
+	width, err := strconv.Atoi(values[0])
+	if err != nil || width <= 0 {
+		return component.ControlLabel{}, fmt.Errorf("invalid values for component %q", component.NameControlLabel)
+	}
+	operation, sourcesText, ok := strings.Cut(values[1], ":")
+	if !ok || operation == "" || !strings.HasPrefix(sourcesText, "[") || !strings.HasSuffix(sourcesText, "]") {
+		return component.ControlLabel{}, fmt.Errorf("invalid values for component %q", component.NameControlLabel)
+	}
+	sources, err := splitControlLabelSources(strings.TrimSuffix(strings.TrimPrefix(sourcesText, "["), "]"))
+	if err != nil {
+		return component.ControlLabel{}, fmt.Errorf("invalid values for component %q: %w", component.NameControlLabel, err)
+	}
+	return component.ControlLabel{MaxLength: width, Operation: operation, Sources: sources}, nil
+}
+
+func splitControlLabelSources(text string) ([]string, error) {
+	values := make([]string, 0)
+	start := 0
+	inQuotes := false
+	escaped := false
+	for i, char := range text {
+		if inQuotes {
+			if escaped {
+				escaped = false
+			} else if char == '\\' {
+				escaped = true
+			} else if char == '"' {
+				inQuotes = false
+			}
+			continue
+		}
+		if char == '"' {
+			inQuotes = true
+		} else if char == ',' {
+			values = append(values, strings.TrimSpace(text[start:i]))
+			start = i + 1
+		}
+	}
+	if inQuotes {
+		return nil, fmt.Errorf("unterminated source string")
+	}
+	values = append(values, strings.TrimSpace(text[start:]))
+	for i, value := range values {
+		if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
+			unquoted, err := strconv.Unquote(value)
+			if err != nil {
+				return nil, err
+			}
+			values[i] = unquoted
+		}
+	}
+	return values, nil
+}
+
+func collectControlLabels(w *World) error {
+	groups := make(map[string][]int)
+	for entityID, label := range w.ControlLabels {
+		position := w.Pos[entityID]
+		key := fmt.Sprintf("%s|%d|%s|%s", position.Room, label.MaxLength, label.Operation, strings.Join(label.Sources, "\x00"))
+		groups[key] = append(groups[key], entityID)
+	}
+	for _, entityIDs := range groups {
+		if len(entityIDs) == 0 {
+			continue
+		}
+		label := w.ControlLabels[entityIDs[0]]
+		slices.SortFunc(entityIDs, func(a, b int) int {
+			pa, pb := w.Pos[a], w.Pos[b]
+			if pa.Y != pb.Y {
+				return pa.Y - pb.Y
+			}
+			return pa.X - pb.X
+		})
+		first := w.Pos[entityIDs[0]]
+		minX, maxX := first.X, first.X
+		minY, maxY := first.Y, first.Y
+		for _, entityID := range entityIDs[1:] {
+			position := w.Pos[entityID]
+			minX, maxX = min(minX, position.X), max(maxX, position.X)
+			minY, maxY = min(minY, position.Y), max(maxY, position.Y)
+		}
+		width := maxX - minX + 1
+		height := maxY - minY + 1
+		if len(entityIDs) != width*height {
+			return fmt.Errorf("control label does not form a rectangle")
+		}
+		for i, entityID := range entityIDs {
+			position := w.Pos[entityID]
+			expected := component.Position{Room: first.Room, X: minX + i%width, Y: minY + i/width}
+			if position != expected {
+				return fmt.Errorf("control label entities do not form a rectangle")
+			}
+		}
+		label.EntityIDs = slices.Clone(entityIDs)
+		label.Width = width
+		label.Height = height
+		w.ControlLabels[entityIDs[0]] = label
+		for _, entityID := range entityIDs[1:] {
+			delete(w.ControlLabels, entityID)
+		}
+	}
+	return nil
+}
+
+func resolveControlLabelSources(w *World, entityIDsByName map[string]int) {
+	for entityID, label := range w.ControlLabels {
+		label.SourceEntityIDs = make([]int, len(label.Sources))
+		for i, source := range label.Sources {
+			label.SourceEntityIDs[i] = -1
+			if sourceEntityID, ok := entityIDsByName[source]; ok {
+				label.SourceEntityIDs[i] = sourceEntityID
+			}
+		}
+		w.ControlLabels[entityID] = label
+	}
 }
 
 func circularControlNodes(entityIDs []int, selectables map[int]component.Selectable) *ControlNode {

@@ -10,7 +10,7 @@ const (
 	InteractionTypeTerminal = "terminal"
 	NameControlTypeNumber   = "controlnumber"
 	NameControlOptions      = "controloptions"
-	NameControlLabel      = "controllabel"
+	NameControlLabel        = "controllabel"
 	NameSelectable          = "selectable"
 )
 
@@ -51,7 +51,13 @@ type Selectable struct {
 	TargetEntityName string
 }
 type ControlLabel struct {
-	EntityIDs []int
-	Width int
-	Height int
+	EntityIDs       []int
+	MaxLength       int
+	Width           int
+	Height          int
+	Operation       string
+	Sources         []string
+	SourceEntityIDs []int
+	Content         string
+	History         []string
 }

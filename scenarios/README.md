@@ -96,6 +96,8 @@ Supported components:
 - `interactable:door` makes an impassable neighboring entity openable.
 - `interactable:terminal` opens the room configured by a `terminal` map feature.
 - `controlnumber:<minimum>,<maximum>` defines a numeric control value.
+- `controloptions:<value>,...` defines a control that cycles through rune values.
+- `controllabel:<maximum length>,<operation>:[arguments]` defines a rectangular display label.
 - `selectable:<unfocused>,<focused>,<selected>,<target entity>` controls another entity.
 
 An interactive entity declares one interaction type with the `interactable` component:
@@ -116,6 +118,35 @@ A selectable entity declares its unfocused, focused, and selected ASCII followed
 - ascii:o
 - selectable:o,ö,^,facing
 ```
+
+Control values can be numeric or selected from a list:
+
+```text
+x:facing
+- pos
+- ascii:N
+- controloptions:N,E,S,W
+
+y:speed
+- pos
+- ascii:0
+- controlnumber:0,9
+```
+
+A control label is formed by repeated map cells for the same entity. The cells
+must form a rectangle and are filled in row-major order. Its arguments can
+reference controls by entity name or contain quoted literal text:
+
+```text
+z:commandinput
+- controllabel:21,append:[facing,speed,", "]
+```
+
+When the label is selected, pressing the next-control key appends the current
+`facing` value, the current `speed` value, and the literal `, `. Pressing the
+previous-control key removes the last appended group. The label is limited to
+21 characters. Values are appended exactly as configured; no separators are
+inserted automatically.
 
 The target entity must exist and contain a compatible control component. Every
 marker in `selectableorder` must resolve to a selectable entity in that room.

@@ -62,4 +62,4 @@ features
 - ground:void
 - inputprofile:terminal_helm
 - infoboxtext:"Helm.","It lets me move the ship."
-- selectableorder:1,2
+- selectableorder:1,2,3

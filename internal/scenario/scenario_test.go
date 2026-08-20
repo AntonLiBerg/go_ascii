@@ -182,6 +182,16 @@ func TestScenarioContentRejectsDuplicateInputBinding(t *testing.T) {
 	}
 }
 
+func TestScenarioContentParsesControlLabelArguments(t *testing.T) {
+	_, components, _, err := getScenarioContent(t, `===ENTITY
+z:commandinput
+- controllabel:21,append:[facing,speed,", "]`)
+	if err != nil {
+		t.Fatalf("getScenarioContent returned error: %v", err)
+	}
+	assertComponentValues(t, components, "commandinput", "controllabel", "21", `append:[facing,speed,", "]`)
+}
+
 func TestGetRoomMapParsesTerminal(t *testing.T) {
 	asciiMap, err := scenario.GetRoomMap("===comms\nT\nfeatures\n- ground:floor\n- inputprofile:topdown\n- terminal:T,scan\n===scan\n+\nfeatures\n- ground:void\n- inputprofile:scan")
 	if err != nil {

@@ -34,6 +34,14 @@ func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 	if len(gameWorld.Interactable) != 2 {
 		t.Fatalf("expected two interactable instruments, got %d", len(gameWorld.Interactable))
 	}
+	if len(gameWorld.ControlLabels) != 1 {
+		t.Fatalf("expected one control label, got %d", len(gameWorld.ControlLabels))
+	}
+	for _, label := range gameWorld.ControlLabels {
+		if label.Width != 22 || label.Height != 1 || label.MaxLength != 21 {
+			t.Fatalf("unexpected control label dimensions: %+v", label)
+		}
+	}
 	for _, entity := range []rune{'.', '@', 'H', 'T'} {
 		if _, ok := asciiMap.EntityGroups["bridge"][entity]; !ok {
 			t.Fatalf("expected bridge group composition to include %q", entity)
@@ -85,8 +93,8 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 	for entityID := range gameWorld.Selectable {
 		selectablesByRoom[gameWorld.Pos[entityID].Room]++
 	}
-	if selectablesByRoom["terminal_helm"] != 2 || selectablesByRoom["terminal_scan"] != 0 {
-		t.Fatalf("expected only two Helm selectables, got %v", selectablesByRoom)
+	if selectablesByRoom["terminal_helm"] != 3 || selectablesByRoom["terminal_scan"] != 0 {
+		t.Fatalf("expected three Helm selectables, got %v", selectablesByRoom)
 	}
 
 	playerID := world.GetPlayerID(gameWorld)
