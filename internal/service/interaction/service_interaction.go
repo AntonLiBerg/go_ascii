@@ -26,6 +26,7 @@ func (s ServiceInteraction) GetUpdateFunc(w world.World) game.UpdateFunc {
 				}
 				next.Room = position.Room
 				next.HasChanged = true
+				next.InfoboxContent = next.InfoboxRoomBaseContent[next.Room]
 				if next.KeyDown == exitKey {
 					next.KeyDown = ""
 				}
@@ -96,5 +97,6 @@ func interactWithTerminal(w world.World, terminalID int) (world.World, error) {
 	next.HasChanged = true
 	next.Room = roomName
 	next.SetInputProfileForRoom(roomName)
+	next.InfoboxContent = next.InfoboxRoomBaseContent[next.Room]
 	return next, nil
 }

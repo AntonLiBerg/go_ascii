@@ -195,7 +195,7 @@ func updateWithFeatures(groupOnName map[string][]string, asciiMap FileMap) (File
 				asciiMap.SelectableOrder[roomName] = markers
 				break
 			case FeatureInfoboxText:
-				asciiMap.InfoboxRoomBaseContent[roomName] = val[0]
+				asciiMap.InfoboxRoomBaseContent[roomName] = strings.Join(val, "\n")
 				break
 			}
 		}
@@ -208,11 +208,14 @@ func makeFeaturesMap(lines []string) map[string][]string {
 		_, l, _ := strings.Cut(line, "- ")
 		name, vals, _ := strings.Cut(l, ":")
 		name = strings.TrimSpace(name)
+		values := strings.Split(vals, ",")
 		if name == FeatureInfoboxText {
-			fMap[name] = []string{strings.Trim(strings.TrimSpace(vals), `"`)}
+			for i := range values {
+				values[i] = strings.Trim(strings.TrimSpace(values[i]), `"`)
+			}
+			fMap[name] = values
 			continue
 		}
-		values := strings.Split(vals, ",")
 		for i := range values {
 			values[i] = strings.TrimSpace(values[i])
 		}
