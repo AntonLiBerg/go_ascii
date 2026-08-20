@@ -1,4 +1,4 @@
-package tests
+package quit_test
 
 import (
 	"go_ascii/internal/service/quit"

@@ -1,4 +1,4 @@
-package tests
+package world_test
 
 import (
 	component "go_ascii/internal"

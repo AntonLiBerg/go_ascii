@@ -1,4 +1,4 @@
-package tests
+package scenario_test
 
 import (
 	component "go_ascii/internal"

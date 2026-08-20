@@ -1,4 +1,4 @@
-package tests
+package movement_test
 
 import (
 	component "go_ascii/internal"

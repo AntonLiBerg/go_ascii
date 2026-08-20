@@ -1,4 +1,4 @@
-package tests
+package interaction_test
 
 import (
 	component "go_ascii/internal"

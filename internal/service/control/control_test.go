@@ -1,4 +1,4 @@
-package tests
+package control_test
 
 import (
 	component "go_ascii/internal"

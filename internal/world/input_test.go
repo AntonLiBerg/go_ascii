@@ -1,4 +1,4 @@
-package tests
+package world_test
 
 import (
 	"go_ascii/internal/world"

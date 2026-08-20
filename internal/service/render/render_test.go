@@ -1,4 +1,4 @@
-package tests
+package render_test
 
 import (
 	"bytes"

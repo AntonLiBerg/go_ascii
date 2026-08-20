@@ -1,4 +1,4 @@
-package tests
+package component_test
 
 import (
 	component "go_ascii/internal"
@@ -13,9 +13,9 @@ import (
 
 func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 	asciiMap, entities, components, inputProfiles, uiLayout, uis, err := scenario.GetScenarioFromFiles(
-		"../../scenarios/skyship/map.txt",
-		"../../scenarios/skyship/content.txt",
-		"../../scenarios/skyship/ui.txt",
+		"../scenarios/skyship/map.txt",
+		"../scenarios/skyship/content.txt",
+		"../scenarios/skyship/ui.txt",
 	)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
@@ -70,9 +70,9 @@ func TestSkyshipScenarioLoadsRooms(t *testing.T) {
 
 func TestSkyshipCommandTerminalFlow(t *testing.T) {
 	asciiMap, entities, components, inputProfiles, _, _, err := scenario.GetScenarioFromFiles(
-		"../../scenarios/skyship/map.txt",
-		"../../scenarios/skyship/content.txt",
-		"../../scenarios/skyship/ui.txt",
+		"../scenarios/skyship/map.txt",
+		"../scenarios/skyship/content.txt",
+		"../scenarios/skyship/ui.txt",
 	)
 	if err != nil {
 		t.Fatalf("GetScenarioFromFiles returned error: %v", err)
