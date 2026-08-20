@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go_ascii/internal/game"
 	"go_ascii/internal/world"
+	"slices"
 )
 
 type ServiceControl struct{}
@@ -60,9 +61,9 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 
 	switch w.KeyDown {
 	case w.UserInputProfile.KeyMoveSelectNext:
-		return updateControlNumberValue(w.ActiveControl.TargetEntityID, 1)
+		return updateControlValue(w, w.ActiveControl.TargetEntityID, 1)
 	case w.UserInputProfile.KeyMoveSelectPrev:
-		return updateControlNumberValue(w.ActiveControl.TargetEntityID, -1)
+		return updateControlValue(w, w.ActiveControl.TargetEntityID, -1)
 	case w.UserInputProfile.KeySelect:
 		return game.UpdateFunc{
 			Order: 1,
@@ -78,23 +79,48 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 		return game.UpdateFunc{}
 	}
 }
-func updateControlValue(w world.World,entityID int,delta int) game.UpdateFunc{
-	if _,ok := w.ControlNumber[entityID]; ok{
-		return updateControlNumberValue(entityID,delta)
+func updateControlValue(w world.World, entityID, delta int) game.UpdateFunc {
+	if _, ok := w.ControlNumber[entityID]; ok {
+		return updateControlNumberValue(entityID, delta)
 	}
-	return updateControlListValue(entityID,delta)
-
+	return updateControlOptionsValue(entityID, delta)
 }
-func updateControlListValue(entityID, delta int) game.UpdateFunc {
+
+func updateControlOptionsValue(entityID, delta int) game.UpdateFunc {
 	return game.UpdateFunc{
 		Order: 1,
 		UpdateFunc: func(w world.World) (world.World, error) {
 			next := w.Clone()
-			controlList, ok := next.ControlList[entityID]
+			controlOptions, ok := next.ControlOptions[entityID]
 			if !ok {
-				return next, fmt.Errorf("control list for entity %d not found", entityID)
+				return next, fmt.Errorf("control options for entity %d not found", entityID)
 			}
-		}
+			if len(controlOptions.Options) == 0 {
+				return next, fmt.Errorf("control options for entity %d are empty", entityID)
+			}
+			currentIndex := slices.Index(controlOptions.Options, controlOptions.Current)
+			if currentIndex < 0 {
+				return next, fmt.Errorf("current control option for entity %d not found", entityID)
+			}
+
+			nextIndex := (currentIndex + delta) % len(controlOptions.Options)
+			if nextIndex < 0 {
+				nextIndex += len(controlOptions.Options)
+			}
+			oldValue := controlOptions.Current
+			controlOptions.Current = controlOptions.Options[nextIndex]
+			next.ControlOptions[entityID] = controlOptions
+
+			ascii, ok := next.Ascii[entityID]
+			if !ok {
+				return next, fmt.Errorf("ascii for control options entity %d not found", entityID)
+			}
+			ascii.Ascii = controlOptions.Current
+			next.Ascii[entityID] = ascii
+			next.HasChanged = oldValue != controlOptions.Current
+			next.KeyDown = ""
+			return next, nil
+		},
 	}
 }
 func updateControlNumberValue(entityID, delta int) game.UpdateFunc {
@@ -115,7 +141,7 @@ func updateControlNumberValue(entityID, delta int) game.UpdateFunc {
 			next.ControlNumber[entityID] = controlNumber
 
 			ascii := next.Ascii[entityID]
-			ascii.Ascii = rune('0'+controlNumber.ValueCurrent)
+			ascii.Ascii = rune('0' + controlNumber.ValueCurrent)
 			next.Ascii[entityID] = ascii
 
 			next.HasChanged = controlNumber.ValueCurrent != oldValue

@@ -9,7 +9,7 @@ const (
 	InteractionTypeDoor     = "door"
 	InteractionTypeTerminal = "terminal"
 	NameControlTypeNumber   = "controlnumber"
-	NameControlTypeList     = "controllist"
+	NameControlOptions      = "controloptions"
 	NameSelectable          = "selectable"
 )
 
@@ -34,9 +34,9 @@ type Player struct{}
 type Interactable struct {
 	InteractionType string
 }
-type ControlList struct {
+type ControlOptions struct {
 	Current rune
-	List    []rune
+	Options []rune
 }
 type ControlNumber struct {
 	ValueStart   int

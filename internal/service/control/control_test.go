@@ -172,7 +172,7 @@ func TestControl(t *testing.T) {
 				if !profileSet {
 					t.Fatal("expected room input profile to be set")
 				}
-				if gameWorld.ActiveControl != gameWorld.ControlLists["testroom"] {
+				if gameWorld.ActiveControl != gameWorld.ControlOrder["testroom"] {
 					t.Fatal("expected focus to reset to the room's first control")
 				}
 				if gameWorld.EditingControl {
@@ -200,7 +200,7 @@ func newControlTestWorld() world.World {
 	n3.Next, n3.Prev = n1, n2
 
 	gameWorld := world.NewWorldEmpty()
-	gameWorld.ControlLists["testroom"] = n1
+	gameWorld.ControlOrder["testroom"] = n1
 	gameWorld.ActiveControl = n1
 	gameWorld.UserInputProfile = world.UserInputProfile{
 		ProfileType:       world.ProfileTypeControl,

@@ -26,7 +26,7 @@ type World struct {
 	ShouldQuit             bool
 	ActiveControl          *ControlNode
 	EditingControl         bool
-	ControlLists           map[string]*ControlNode
+	ControlOrder           map[string]*ControlNode
 	EByPos                 map[component.Position]int
 	Portals                map[component.Position]component.Position
 	Terminals              map[component.Position]string
@@ -45,7 +45,7 @@ type World struct {
 	Player                 map[int]component.Player
 	Interactable           map[int]component.Interactable
 	ControlNumber          map[int]component.ControlNumber
-	ControlList            map[int]component.ControlList
+	ControlOptions         map[int]component.ControlOptions
 	Selectable             map[int]component.Selectable
 }
 
@@ -66,9 +66,9 @@ func NewWorldEmpty() World {
 		Player:                 make(map[int]component.Player),
 		Interactable:           make(map[int]component.Interactable),
 		ControlNumber:          make(map[int]component.ControlNumber),
-		ControlList:            make(map[int]component.ControlList),
+		ControlOptions:         make(map[int]component.ControlOptions),
 		Selectable:             make(map[int]component.Selectable),
-		ControlLists:           make(map[string]*ControlNode),
+		ControlOrder:           make(map[string]*ControlNode),
 	}
 }
 
@@ -219,7 +219,7 @@ func newWorld(asciiMap scenario.FileMap, entities map[rune]string, components ma
 			ids = append(ids, entityID)
 		}
 		if len(ids) > 0 {
-			world.ControlLists[roomName] = circularControlNodes(ids, world.Selectable)
+			world.ControlOrder[roomName] = circularControlNodes(ids, world.Selectable)
 		}
 	}
 	world.Portals = maps.Clone(asciiMap.Portals)
@@ -286,7 +286,7 @@ func (w World) WithInputProfileForRoom(roomName string) (World, bool) {
 	next := w.Clone()
 	next.UserInputProfile = profile
 	next.EditingControl = false
-	next.ActiveControl = next.ControlLists[roomName]
+	next.ActiveControl = next.ControlOrder[roomName]
 	return next, true
 }
 
@@ -328,9 +328,9 @@ func (w World) Clone() World {
 	clone.Player = maps.Clone(w.Player)
 	clone.Interactable = maps.Clone(w.Interactable)
 	clone.ControlNumber = maps.Clone(w.ControlNumber)
-	clone.ControlList = maps.Clone(w.ControlList)
+	clone.ControlOptions = maps.Clone(w.ControlOptions)
 	clone.Selectable = maps.Clone(w.Selectable)
-	clone.ControlLists = maps.Clone(w.ControlLists)
+	clone.ControlOrder = maps.Clone(w.ControlOrder)
 	return clone
 }
 
@@ -355,8 +355,8 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 	var hasInteractable bool
 	var controlNumber component.ControlNumber
 	var hasControlNumber bool
-	var controlList component.ControlList
-	var hasControlList bool
+	var controlOptions component.ControlOptions
+	var hasControlOptions bool
 	var selectable component.Selectable
 	var hasSelectable bool
 
@@ -416,7 +416,7 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 			}
 			hasControlNumber = true
 
-		case component.NameControlTypeList:
+		case component.NameControlOptions:
 			if len(values) == 0 {
 				return fmt.Errorf("invalid values for component %q", name)
 			}
@@ -428,8 +428,8 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 				}
 				list[i] = chars[0]
 			}
-			controlList = component.ControlList{Current: list[0], List: list}
-			hasControlList = true
+			controlOptions = component.ControlOptions{Current: list[0], Options: list}
+			hasControlOptions = true
 
 		case component.NameSelectable:
 			if len(values) != 4 || values[3] == "" {
@@ -473,8 +473,8 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 	if hasControlNumber {
 		w.ControlNumber[eID] = controlNumber
 	}
-	if hasControlList {
-		w.ControlList[eID] = controlList
+	if hasControlOptions {
+		w.ControlOptions[eID] = controlOptions
 	}
 	if hasSelectable {
 		w.Selectable[eID] = selectable

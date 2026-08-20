@@ -127,7 +127,7 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 	if gameWorld.Pos[playerID] != physicalPosition {
 		t.Fatal("expected player to remain on the bridge while terminal is open")
 	}
-	if gameWorld.ActiveControl != gameWorld.ControlLists["terminal_helm"] {
+	if gameWorld.ActiveControl != gameWorld.ControlOrder["terminal_helm"] {
 		t.Fatal("expected first Helm control to be focused")
 	}
 	frame := render.TerminalFrame(gameWorld)
