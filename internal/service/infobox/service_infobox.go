@@ -8,9 +8,6 @@ import (
 type ServiceInfobox struct{}
 
 func (s ServiceInfobox) GetUpdateFunc(w world.World) game.UpdateFunc {
-	if w.InfoboxContent == "" {
-		return game.UpdateFunc{}
-	}
 	return game.UpdateFunc{
 		Order: 10,
 		UpdateFunc: func(w world.World) (world.World, error) {

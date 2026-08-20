@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"go_ascii/internal/world"
-	"slices"
 	"sort"
 	"time"
 )
@@ -83,8 +82,8 @@ func RunGame(gameWorld world.World, services []IService, keyInput <-chan string)
 				}
 			}
 			state = s_readyToGetUpdateFunctions
-			gameWorld.InfoboxContent = gameWorld.InfoboxRoomBaseContent[gameWorld.Room]
-			gameWorld.UIContent["infobox"] = slices.Clone(gameWorld.UIEmpty["infobox"])
+			//gameWorld.InfoboxContent = gameWorld.InfoboxRoomBaseContent[gameWorld.Room]
+			//gameWorld.UIContent["infobox"] = slices.Clone(gameWorld.UIEmpty["infobox"])
 			gameWorld.IterationNr++
 		}
 	}
