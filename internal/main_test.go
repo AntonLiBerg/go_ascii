@@ -112,7 +112,9 @@ func TestSkyshipCommandTerminalFlow(t *testing.T) {
 		Y:    commandTablePosition.Y,
 	}
 	gameWorld.Pos[playerID] = physicalPosition
-	if !gameWorld.SetInputProfileForRoom(physicalPosition.Room) {
+	var profileSet bool
+	gameWorld, profileSet = gameWorld.WithInputProfileForRoom(physicalPosition.Room)
+	if !profileSet {
 		t.Fatal("expected bridge input profile")
 	}
 	gameWorld.KeyDown = gameWorld.UserInputProfile.KeyInteract

@@ -249,45 +249,43 @@ func newWorld(asciiMap scenario.FileMap, entities map[rune]string, components ma
 	}
 	return world, nil
 }
-func (w *World) FocusNextControl() bool {
+func (w World) WithNextControl() (World, bool) {
 	if w.ActiveControl == nil || w.ActiveControl.Next == nil {
-		return false
+		return w, false
 	}
-	w.ActiveControl = w.ActiveControl.Next
-	return true
+	next := w.Clone()
+	next.ActiveControl = next.ActiveControl.Next
+	return next, true
 }
 
-func (w *World) FocusPrevControl() bool {
+func (w World) WithPreviousControl() (World, bool) {
 	if w.ActiveControl == nil || w.ActiveControl.Prev == nil {
-		return false
+		return w, false
 	}
-	w.ActiveControl = w.ActiveControl.Prev
-	return true
+	next := w.Clone()
+	next.ActiveControl = next.ActiveControl.Prev
+	return next, true
 }
 func (w World) WithRoom(roomName string) (World, error) {
-	profile, ok := w.InputProfileForRoom(roomName)
+	next, ok := w.WithInputProfileForRoom(roomName)
 	if !ok {
 		return w, fmt.Errorf("input profile for room %q does not exist", roomName)
 	}
-
-	next := w.Clone()
 	next.Room = roomName
-	next.UserInputProfile = profile
-	next.EditingControl = false
-	next.ActiveControl = next.ControlLists[roomName]
 	next.InfoboxContent = next.InfoboxRoomBaseContent[roomName]
 	return next, nil
 }
 
-func (w *World) SetInputProfileForRoom(roomName string) bool {
+func (w World) WithInputProfileForRoom(roomName string) (World, bool) {
 	profile, ok := w.InputProfileForRoom(roomName)
 	if !ok {
-		return false
+		return w, false
 	}
-	w.UserInputProfile = profile
-	w.EditingControl = false
-	w.ActiveControl = w.ControlLists[roomName]
-	return true
+	next := w.Clone()
+	next.UserInputProfile = profile
+	next.EditingControl = false
+	next.ActiveControl = next.ControlLists[roomName]
+	return next, true
 }
 
 func (w World) InputProfileForRoom(roomName string) (UserInputProfile, bool) {

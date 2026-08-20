@@ -22,8 +22,8 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 			return game.UpdateFunc{
 				Order: 1,
 				UpdateFunc: func(w world.World) (world.World, error) {
-					next := w.Clone()
-					if next.FocusNextControl() {
+					next, focused := w.WithNextControl()
+					if focused {
 						next.HasChanged = true
 						next.KeyDown = ""
 					}
@@ -34,8 +34,8 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 			return game.UpdateFunc{
 				Order: 1,
 				UpdateFunc: func(w world.World) (world.World, error) {
-					next := w.Clone()
-					if next.FocusPrevControl() {
+					next, focused := w.WithPreviousControl()
+					if focused {
 						next.HasChanged = true
 						next.KeyDown = ""
 					}

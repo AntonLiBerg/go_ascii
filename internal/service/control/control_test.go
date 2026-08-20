@@ -167,7 +167,9 @@ func TestControl(t *testing.T) {
 				return gameWorld
 			},
 			Assert: func(gameWorld world.World, _ game.UpdateFunc, t *testing.T) {
-				if !gameWorld.SetInputProfileForRoom("testroom") {
+				var profileSet bool
+				gameWorld, profileSet = gameWorld.WithInputProfileForRoom("testroom")
+				if !profileSet {
 					t.Fatal("expected room input profile to be set")
 				}
 				if gameWorld.ActiveControl != gameWorld.ControlLists["testroom"] {
