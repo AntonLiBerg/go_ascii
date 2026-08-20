@@ -10,6 +10,7 @@ const (
 	InteractionTypeTerminal = "terminal"
 	NameControlTypeNumber   = "controlnumber"
 	NameControlOptions      = "controloptions"
+	NameControlLabel      = "controllabel"
 	NameSelectable          = "selectable"
 )
 
@@ -18,7 +19,6 @@ type Position struct {
 	X    int
 	Y    int
 }
-
 type Layer struct {
 	Nr int
 }
@@ -49,4 +49,9 @@ type Selectable struct {
 	SelectedASCII    rune
 	TargetEntityId   int
 	TargetEntityName string
+}
+type ControlLabel struct {
+	EntityIDs []int
+	Width int
+	Height int
 }

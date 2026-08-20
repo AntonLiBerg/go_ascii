@@ -45,14 +45,20 @@ T:scantable
 - pos
 - ascii:o
 - selectable:o,ö,^,speed
+3:selectposition3
+- pos
+- ascii:o
+- selectable:o,ö,>,commandinput
 x:facing
 - pos
-- ascii:0
-- controloptions:w,a,s,d
+- ascii:N
+- controloptions:N,E,S,W
 y:speed
 - pos
 - ascii:0
 - controlnumber:0,9
+z:commandinput
+- controllabel:21,append:[facing,speed,", "]
 ===INPUTPROFILE
 topdown
 - profiletype=none
