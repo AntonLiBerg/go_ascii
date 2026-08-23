@@ -1,0 +1,7 @@
+services
+- ServiceQuitGame
+- ServiceMovePlayer
+- ServiceInteraction
+- ServiceControl
+- ServiceDrawOnTerminal
+- ServiceInfobox
