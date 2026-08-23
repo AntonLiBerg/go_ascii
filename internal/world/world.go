@@ -18,62 +18,64 @@ type ControlNode struct {
 }
 
 type World struct {
-	ScenarioVariables      map[string]string
-	Room                   string
-	UserInputProfile       UserInputProfile
-	InputProfiles          map[string]UserInputProfile
-	InputProfileByRoom     map[string]string
-	KeyDown                string
-	InfoboxContent         string
-	ShouldQuit             bool
-	ActiveControl          *ControlNode
-	EditingControl         bool
-	ControlOrder           map[string]*ControlNode
-	EByPos                 map[component.Position]int
-	Portals                map[component.Position]component.Position
-	Terminals              map[component.Position]string
-	UILayout               []string
-	UIs                    []string
-	UIContent              map[string][]string
-	UIEmpty                map[string][]string
-	InfoboxRoomBaseContent map[string]string
-	HasChanged             bool
-	IterationNr            int
-	Entities               []int
-	Pos                    map[int]component.Position
-	Layer                  map[int]component.Layer
-	Ascii                  map[int]component.Ascii
-	Impassable             map[int]component.Impassable
-	Player                 map[int]component.Player
-	Interactable           map[int]component.Interactable
-	ControlNumber          map[int]component.ControlNumber
-	ControlOptions         map[int]component.ControlOptions
-	ControlLabels          map[int]component.ControlLabel
-	Selectable             map[int]component.Selectable
-	SelectableButtonVariable             map[int]component.SelectableButtonVariable
+	ScenarioVariables        map[string]string
+	Room                     string
+	UserInputProfile         UserInputProfile
+	InputProfiles            map[string]UserInputProfile
+	InputProfileByRoom       map[string]string
+	KeyDown                  string
+	InfoboxContent           string
+	ShouldQuit               bool
+	ActiveControl            *ControlNode
+	EditingControl           bool
+	ControlOrder             map[string]*ControlNode
+	EByPos                   map[component.Position]int
+	Portals                  map[component.Position]component.Position
+	Terminals                map[component.Position]string
+	UILayout                 []string
+	UIs                      []string
+	UIContent                map[string][]string
+	UIEmpty                  map[string][]string
+	InfoboxRoomBaseContent   map[string]string
+	HasChanged               bool
+	IterationNr              int
+	Entities                 []int
+	Pos                      map[int]component.Position
+	Layer                    map[int]component.Layer
+	Ascii                    map[int]component.Ascii
+	Impassable               map[int]component.Impassable
+	Player                   map[int]component.Player
+	Interactable             map[int]component.Interactable
+	ControlNumber            map[int]component.ControlNumber
+	ControlOptions           map[int]component.ControlOptions
+	ControlLabels            map[int]component.ControlLabel
+	Selectable               map[int]component.Selectable
+	SelectableButtonVariable map[int]component.SelectableButtonVariable
 }
 
 func NewWorldEmpty() World {
 	return World{
-		InputProfiles:          make(map[string]UserInputProfile),
-		InputProfileByRoom:     make(map[string]string),
-		EByPos:                 make(map[component.Position]int),
-		Portals:                make(map[component.Position]component.Position),
-		Terminals:              make(map[component.Position]string),
-		UIContent:              make(map[string][]string),
-		UIEmpty:                make(map[string][]string),
-		InfoboxRoomBaseContent: make(map[string]string),
-		Pos:                    make(map[int]component.Position),
-		Layer:                  make(map[int]component.Layer),
-		Ascii:                  make(map[int]component.Ascii),
-		Impassable:             make(map[int]component.Impassable),
-		Player:                 make(map[int]component.Player),
-		Interactable:           make(map[int]component.Interactable),
-		ControlNumber:          make(map[int]component.ControlNumber),
-		ControlOptions:         make(map[int]component.ControlOptions),
-		ControlLabels:          make(map[int]component.ControlLabel),
-		Selectable:             make(map[int]component.Selectable),
-		ControlOrder:           make(map[string]*ControlNode),
+		ScenarioVariables:        make(map[string]string),
+		InputProfiles:            make(map[string]UserInputProfile),
+		InputProfileByRoom:       make(map[string]string),
+		EByPos:                   make(map[component.Position]int),
+		Portals:                  make(map[component.Position]component.Position),
+		Terminals:                make(map[component.Position]string),
+		UIContent:                make(map[string][]string),
+		UIEmpty:                  make(map[string][]string),
+		InfoboxRoomBaseContent:   make(map[string]string),
+		Pos:                      make(map[int]component.Position),
+		Layer:                    make(map[int]component.Layer),
+		Ascii:                    make(map[int]component.Ascii),
+		Impassable:               make(map[int]component.Impassable),
+		Player:                   make(map[int]component.Player),
+		Interactable:             make(map[int]component.Interactable),
+		ControlNumber:            make(map[int]component.ControlNumber),
+		ControlOptions:           make(map[int]component.ControlOptions),
+		ControlLabels:            make(map[int]component.ControlLabel),
+		Selectable:               make(map[int]component.Selectable),
+		SelectableButtonVariable: make(map[int]component.SelectableButtonVariable),
+		ControlOrder:             make(map[string]*ControlNode),
 	}
 }
 
@@ -227,12 +229,22 @@ func newWorld(asciiMap scenario.FileMap, entities map[rune]string, components ma
 				return world, fmt.Errorf("selectable order for room %q references missing entity %q", roomName, marker)
 			}
 			if _, ok := world.Selectable[entityID]; !ok {
-				return world, fmt.Errorf("entity %q in room %q is not selectable", marker, roomName)
+				if _, ok := world.SelectableButtonVariable[entityID]; !ok {
+					return world, fmt.Errorf("entity %q in room %q is not selectable", marker, roomName)
+				}
 			}
 			ids = append(ids, entityID)
 		}
 		if len(ids) > 0 {
-			world.ControlOrder[roomName] = circularControlNodes(ids, world.Selectable)
+			selectables := maps.Clone(world.Selectable)
+			for entityID, button := range world.SelectableButtonVariable {
+				selectables[entityID] = component.Selectable{
+					UnfocusedASCII: button.UnfocusedASCII,
+					FocusedASCII:   button.FocusedASCII,
+					SelectedASCII:  button.FocusedASCII,
+				}
+			}
+			world.ControlOrder[roomName] = circularControlNodes(ids, selectables)
 		}
 	}
 	world.Portals = maps.Clone(asciiMap.Portals)
@@ -318,6 +330,7 @@ func (w World) InputProfileForRoom(roomName string) (UserInputProfile, bool) {
 func (w World) Clone() World {
 	clone := w
 	clone.Entities = slices.Clone(w.Entities)
+	clone.ScenarioVariables = maps.Clone(w.ScenarioVariables)
 	clone.InputProfiles = maps.Clone(w.InputProfiles)
 	clone.InputProfileByRoom = maps.Clone(w.InputProfileByRoom)
 	clone.EByPos = maps.Clone(w.EByPos)
@@ -351,6 +364,7 @@ func (w World) Clone() World {
 		clone.ControlLabels[entityID] = label
 	}
 	clone.Selectable = maps.Clone(w.Selectable)
+	clone.SelectableButtonVariable = maps.Clone(w.SelectableButtonVariable)
 	clone.ControlOrder = maps.Clone(w.ControlOrder)
 	return clone
 }
@@ -382,6 +396,8 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 	var hasControlLabel bool
 	var selectable component.Selectable
 	var hasSelectable bool
+	var selectableButtonVariable component.SelectableButtonVariable
+	var hasSelectableButtonVariable bool
 
 	for name, values := range components {
 		switch name {
@@ -462,6 +478,26 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 			controlLabel = parsedLabel
 			hasControlLabel = true
 
+		case component.NameSelectableButtonVariable:
+			if len(values) != 3 || values[2] == "" {
+				return fmt.Errorf("invalid values for component %q", name)
+			}
+			unfocused := []rune(values[0])
+			focused := []rune(values[1])
+			if len(unfocused) != 1 || len(focused) != 1 {
+				return fmt.Errorf("invalid values for component %q", name)
+			}
+			variable, value, ok := strings.Cut(values[2], "=")
+			if !ok || variable == "" || value == "" || strings.Contains(value, "=") {
+				return fmt.Errorf("invalid values for component %q", name)
+			}
+			selectableButtonVariable = component.SelectableButtonVariable{
+				UnfocusedASCII: unfocused[0],
+				FocusedASCII:   focused[0],
+				VariableUpdate: values[2],
+			}
+			hasSelectableButtonVariable = true
+
 		case component.NameSelectable:
 			if len(values) != 4 || values[3] == "" {
 				return fmt.Errorf("invalid values for component %q", name)
@@ -515,6 +551,9 @@ func (w *World) addEntityAtPosition(position component.Position, layer int, comp
 	}
 	if hasSelectable {
 		w.Selectable[eID] = selectable
+	}
+	if hasSelectableButtonVariable {
+		w.SelectableButtonVariable[eID] = selectableButtonVariable
 	}
 	return nil
 }

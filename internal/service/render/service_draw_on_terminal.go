@@ -80,6 +80,11 @@ func drawRoom(frame *strings.Builder, gameWorld world.World, activeRoom string, 
 					char = selectable.SelectedASCII
 				}
 			}
+		} else if button, ok := gameWorld.SelectableButtonVariable[eID]; ok {
+			char = button.UnfocusedASCII
+			if gameWorld.ActiveControl != nil && gameWorld.ActiveControl.SelectableEntityID == eID {
+				char = button.FocusedASCII
+			}
 		}
 		frame.WriteRune(char)
 		if screenY > nextY {
