@@ -1,10 +1,33 @@
 # Scenarios
 
+`current_scenario.txt` contains the name of the scenario directory to run. It
+must contain exactly one name and cannot contain a path.
+
 Each scenario is a directory containing:
 
+- `startup_config.txt`: the ordered list of services to start.
 - `map.txt`: rooms, map cells, and room features.
 - `content.txt`: entity groups, components, and input profiles.
 - `ui.txt`: the layout and static UI sections.
+
+## Startup
+
+The startup config begins with `services`, followed by one registered Go
+service per line:
+
+```text
+services
+- ServiceQuitGame
+- ServiceMovePlayer
+- ServiceInteraction
+- ServiceControl
+- ServiceDrawOnTerminal
+- ServiceInfobox
+```
+
+Service order is preserved and duplicate or unknown names are rejected. These
+names select services already compiled into the executable; a custom Go
+service must also be registered in `main.go`.
 
 ## Map
 
