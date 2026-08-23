@@ -18,6 +18,7 @@ type ControlNode struct {
 }
 
 type World struct {
+	ScenarioVariables      map[string]string
 	Room                   string
 	UserInputProfile       UserInputProfile
 	InputProfiles          map[string]UserInputProfile
@@ -49,6 +50,7 @@ type World struct {
 	ControlOptions         map[int]component.ControlOptions
 	ControlLabels          map[int]component.ControlLabel
 	Selectable             map[int]component.Selectable
+	SelectableButtonVariable             map[int]component.SelectableButtonVariable
 }
 
 func NewWorldEmpty() World {

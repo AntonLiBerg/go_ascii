@@ -12,6 +12,7 @@ const (
 	NameControlOptions      = "controloptions"
 	NameControlLabel        = "controllabel"
 	NameSelectable          = "selectable"
+	NameSelectableButtonVariable = "selectablebuttonvariable"
 )
 
 type Position struct {
@@ -49,6 +50,11 @@ type Selectable struct {
 	SelectedASCII    rune
 	TargetEntityId   int
 	TargetEntityName string
+}
+type SelectableButtonVariable struct {
+	UnfocusedASCII   rune
+	FocusedASCII     rune
+	VariableUpdate   string
 }
 type ControlLabel struct {
 	EntityIDs       []int

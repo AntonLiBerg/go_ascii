@@ -51,6 +51,11 @@ func (s ServiceControl) GetUpdateFunc(w world.World) game.UpdateFunc {
 				Order: 1,
 				UpdateFunc: func(w world.World) (world.World, error) {
 					next := w.Clone()
+					if c,ok := next.SelectableButtonVariable[next.ActiveControl.SelectableEntityID];ok{
+						kvp := strings.Split(c.VariableUpdate,"=")
+						next.ScenarioVariables[kvp[0]] = kvp[1]
+						return next,nil
+					}
 					next.EditingControl = true
 					next.HasChanged = true
 					next.KeyDown = ""

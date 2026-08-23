@@ -52,7 +52,7 @@ T:scantable
 4:selectposition4
 - pos
 - ascii:SPACE
-- selectable:SPACE,o,>,shipgo
+- selectablebuttonvariable:SPACE,o,startship=start,
 x:facing
 - pos
 - ascii:N
